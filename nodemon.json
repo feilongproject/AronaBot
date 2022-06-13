@@ -1,0 +1,14 @@
+{
+    "ignore": [
+        ".git",
+        "node_modules/**/node_modules"
+    ],
+    "execMap": {
+        "ts": "tsc"
+    },
+    "watch": [
+        "src/"
+    ],
+    "exec": "./node_modules/.bin/tsc -p ./tsconfig.json && node dist/index.js",
+    "ext": "ts"
+}

@@ -1,0 +1,8 @@
+{
+    "appID": "BOT_ID",
+    "token": "BOT_TOKEN",
+    "intents": [
+        "PUBLIC_GUILD_MESSAGES"
+    ],
+    "sandbox": false
+}
