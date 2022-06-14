@@ -74,7 +74,7 @@ async function main() {
                     } else {
                         //log.info("time out");
                         await client.messageApi.postMessage(msg.channel_id, {
-                            content: `请求时间过短，还有${((userHistory[index].lastTime + dayMaxTimes - nowTime) / 1000).toFixed}s冷却完毕`,
+                            content: `请求时间过短，还有${(userHistory[index].lastTime + dayMaxTimes - nowTime) / 1000}s冷却完毕`,
                             msg_id: msg.id,
                             message_reference: {
                                 message_id: msg.id,
