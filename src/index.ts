@@ -5,9 +5,11 @@ import { findChannel } from './mod/findChannel';
 import log from './mod/logger';
 
 import config from './file/config.json';
+import { sendMsg } from './mod/sendMsg';
 
-const allowChannel = ["互动小游戏"];
-const dayMaxTimes = 200;
+var userHistory: UserHistory[] = [];
+const allowChannel = ["模拟抽卡"];
+const dayMaxTimes = 59000;
 const stopCommand = "stopBot";
 
 async function main() {
@@ -35,49 +37,54 @@ async function main() {
             }
 
             try {
-                dayMaxTimes;
 
-                if (msg.content?.startsWith(`<@!${meId}>`) && (msg.channel_id == findChannel(allowChannel, saveGuilds))) {
+                //log.debug(msg.channel_id);
+                //log.debug(saveGuilds[3].channel);
 
-                    var content = msg.content.slice(`<@!${meId}>`.length);
-                    //log.info(`${content}|`);
-                    content = content.startsWith(" ") ? content.substring(1) : content;
-                    content = content.endsWith(" ") ? content.slice(0, -1) : content;
-                    //log.info(`${content}|`);
+                if (findChannel(allowChannel, saveGuilds, msg.channel_id)) {
 
-                    switch (content) {
-                        case "/单抽出奇迹":
-                            await client.messageApi.postMessage(msg.channel_id, {
-                                content: randChoice(1),
-                                msg_id: msg.id,
-                                message_reference: {
-                                    message_id: msg.id,
-                                },
-                            });
-                            break;
-                        case "/十连大保底":
-                            //log.info("十连");
-                            await client.messageApi.postMessage(msg.channel_id, {
-                                content: randChoice(10),
-                                msg_id: msg.id,
-                                message_reference: {
-                                    message_id: msg.id,
-                                },
-                            });
-                            break;
-                        default:
-                            await client.messageApi.postMessage(msg.channel_id, {
-                                content: "ん？",
-                                msg_id: msg.id,
-                                message_reference: {
-                                    message_id: msg.id,
-                                },
-                            });
-                            //log.info("什么也没发生");
-                            break;
+                    var index = userHistory.findIndex((i) => { return i.id == msg.author.id });
+                    var nowTime = new Date().getTime();
+                    if (index == -1 || userHistory[index].lastTime + dayMaxTimes <= nowTime) {
+                        var content = msg.content.slice(`<@!${meId}>`.length);
+                        //log.info(`${content}|`);
+                        content = content.startsWith(" ") ? content.substring(1) : content;
+                        content = content.endsWith(" ") ? content.slice(0, -1) : content;
+                        //log.info(`${content}|`);
+
+                        switch (content) {
+                            case "/单抽出奇迹":
+                                sendMsg(client, msg.channel_id, msg.id, randChoice(1));
+                                break;
+                            case "/十连大保底":
+                                //log.info("十连");
+                                sendMsg(client, msg.channel_id, msg.id, randChoice(10));
+                                break;
+                            default:
+                                sendMsg(client, msg.channel_id, msg.id, "ん？");
+                                //log.info("什么也没发生");
+                                break;
+                        }
+                        if (index == -1) {
+                            userHistory.push({ id: msg.author.id, lastTime: nowTime, });
+                            log.debug(`push history:${msg.author.id},lastTime:${nowTime}`);
+                        } else {
+                            userHistory[index].lastTime = nowTime;
+                        }
+                    } else {
+                        //log.info("time out");
+                        await client.messageApi.postMessage(msg.channel_id, {
+                            content: `请求时间过短，还有${((userHistory[index].lastTime + dayMaxTimes - nowTime) / 1000).toFixed}s冷却完毕`,
+                            msg_id: msg.id,
+                            message_reference: {
+                                message_id: msg.id,
+                            },
+                        });
                     }
 
 
+                } else {
+                    sendMsg(client, msg.channel_id, msg.id, `当前子频道未授权`);
                 }
             } catch (error) {
                 log.info(error);

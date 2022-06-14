@@ -8,7 +8,7 @@ export async function init(config: any) {
     var client = createOpenAPI(config);
     var ws = createWebsocket(config);
 
-    var meId = await (await client.meApi.me()).data.id
+    var meId = (await client.meApi.me()).data.id;
     var guilds = await client.meApi.meGuilds();
     //log.info(guilds.data);
 
