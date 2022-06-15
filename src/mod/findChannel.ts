@@ -10,7 +10,7 @@ export function findChannel(name: string[], saveGuilds: SaveGuild[], checkId: st
 
             for (let k = 0; k < name.length; k++) {
                 const element = name[k];
-                if (element == f.name && checkId == f.id) return true;
+                if (f.name.includes(element) && checkId == f.id) return true;
             }
 
         }
