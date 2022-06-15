@@ -11,6 +11,7 @@ var userHistory: UserHistory[] = [];
 const allowChannel = ["模拟抽卡"];
 const dayMaxTimes = 59000;
 const stopCommand = "stopBot";
+const admin = "飞龙project";
 
 async function main() {
     var { client, ws, saveGuilds, meId } = await init(config);
@@ -40,8 +41,7 @@ async function main() {
                 //log.debug(saveGuilds[3].channel);
                 var content = msg.content.slice(`<@!${meId}>`.length);
                 //log.info(`${content}|`);
-                content = content.startsWith(" ") ? content.substring(1) : content;
-                content = content.endsWith(" ") ? content.slice(0, -1) : content;
+                content = content.trim();
 
 
                 var userChoice = 0;
