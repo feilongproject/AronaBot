@@ -22,70 +22,75 @@ async function main() {
         if (data.eventType == 'AT_MESSAGE_CREATE') {
             var msg: IMessage = data.msg;
             //log.info(`<@!${meId}>`);
-            log.info(msg.content);
-
-            if (msg.content.includes(stopCommand)) {
-                log.info("stoping");
-                await client.messageApi.postMessage(msg.channel_id, {
-                    content: "ok",
-                    msg_id: msg.id,
-                    message_reference: {
-                        message_id: msg.id,
-                    },
-                });
-                process.exit();
-            }
+            log.info(`${msg.author.username}|||${msg.content}`);
 
             try {
-
+                if (msg.content.includes(stopCommand)) {
+                    log.info("stoping");
+                    await client.messageApi.postMessage(msg.channel_id, {
+                        content: "ok",
+                        msg_id: msg.id,
+                        message_reference: {
+                            message_id: msg.id,
+                        },
+                    });
+                    process.exit();
+                }
                 //log.debug(msg.channel_id);
                 //log.debug(saveGuilds[3].channel);
+                var content = msg.content.slice(`<@!${meId}>`.length);
+                //log.info(`${content}|`);
+                content = content.startsWith(" ") ? content.substring(1) : content;
+                content = content.endsWith(" ") ? content.slice(0, -1) : content;
 
-                if (findChannel(allowChannel, saveGuilds, msg.channel_id)) {
 
-                    var index = userHistory.findIndex((i) => { return i.id == msg.author.id });
-                    var nowTime = new Date().getTime();
-                    if (index == -1 || userHistory[index].lastTime + dayMaxTimes <= nowTime) {
-                        var content = msg.content.slice(`<@!${meId}>`.length);
-                        //log.info(`${content}|`);
-                        content = content.startsWith(" ") ? content.substring(1) : content;
-                        content = content.endsWith(" ") ? content.slice(0, -1) : content;
-                        //log.info(`${content}|`);
+                var userChoice = 0;
+                switch (content) {
+                    case "/单抽出奇迹":
+                        userChoice = 1;
+                    case "/十连大保底":
+                        if (userChoice == 0) userChoice = 10;
 
-                        switch (content) {
-                            case "/单抽出奇迹":
-                                sendMsg(client, msg.channel_id, msg.id, randChoice(1));
-                                break;
-                            case "/十连大保底":
-                                //log.info("十连");
-                                sendMsg(client, msg.channel_id, msg.id, randChoice(10));
-                                break;
-                            default:
-                                sendMsg(client, msg.channel_id, msg.id, "ん？");
-                                //log.info("什么也没发生");
-                                break;
-                        }
-                        if (index == -1) {
-                            userHistory.push({ id: msg.author.id, lastTime: nowTime, });
-                            log.debug(`push history:${msg.author.id},lastTime:${nowTime}`);
+
+                        if (findChannel(allowChannel, saveGuilds, msg.channel_id)) {
+
+                            var index = userHistory.findIndex((i) => { return i.id == msg.author.id });
+                            var nowTime = new Date().getTime();
+                            if (index == -1 || userHistory[index].lastTime + dayMaxTimes <= nowTime || msg.author.username == admin) {
+
+                                //log.info(`${content}|`);
+                                sendMsg(client, msg.channel_id, msg.id, randChoice(userChoice));
+                                //switch
+                                if (index == -1) {
+                                    userHistory.push({ id: msg.author.id, lastTime: nowTime, });
+                                    log.debug(`push history:${msg.author.id},lastTime:${nowTime}`);
+                                } else {
+                                    userHistory[index].lastTime = nowTime;
+                                }
+                            } else {
+                                //log.info("time out");
+                                await client.messageApi.postMessage(msg.channel_id, {
+                                    content: `请求时间过短，还有${(userHistory[index].lastTime + dayMaxTimes - nowTime) / 1000}s冷却完毕`,
+                                    msg_id: msg.id,
+                                    message_reference: {
+                                        message_id: msg.id,
+                                    },
+                                });
+                            }
+
+
                         } else {
-                            userHistory[index].lastTime = nowTime;
+                            sendMsg(client, msg.channel_id, msg.id, `当前子频道未授权`);
                         }
-                    } else {
-                        //log.info("time out");
-                        await client.messageApi.postMessage(msg.channel_id, {
-                            content: `请求时间过短，还有${(userHistory[index].lastTime + dayMaxTimes - nowTime) / 1000}s冷却完毕`,
-                            msg_id: msg.id,
-                            message_reference: {
-                                message_id: msg.id,
-                            },
-                        });
-                    }
-
-
-                } else {
-                    sendMsg(client, msg.channel_id, msg.id, `当前子频道未授权`);
+                        break;
+                    default:
+                        sendMsg(client, msg.channel_id, msg.id, "ん？");
+                        //log.info("什么也没发生");
+                        break;
                 }
+
+
+
             } catch (error) {
                 log.info(error);
             }
