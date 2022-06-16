@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "clear && nodemon src/index.ts",
-    "start": "./node_modules/.bin/tsc -p ./tsconfig.json && node dist/index.js"
+    "start": "./node_modules/.bin/tsc -p ./tsconfig.json"
   },
   "keywords": [],
   "author": "feilongproject",

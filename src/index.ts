@@ -1,6 +1,5 @@
 import { IMessage } from 'qq-guild-bot';
-import { init } from './init'
-import { randChoice } from './mod/rand';
+import { init } from './init';
 import { findChannel, findGuilds } from './mod/findChannel';
 import log from './mod/logger';
 
