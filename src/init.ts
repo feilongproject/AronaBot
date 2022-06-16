@@ -3,7 +3,7 @@ import log from './mod/logger';
 
 export async function init(config: any) {
 
-    var saveGuilds: SaveGuild[] = [];
+    var saveGuildsTree: SaveGuild[] = [];
 
     var client = createOpenAPI(config);
     var ws = createWebsocket(config);
@@ -27,9 +27,9 @@ export async function init(config: any) {
 
         }))
 
-        saveGuilds.push({ name: guild.name, id: guild.id, channel: _guild });
+        saveGuildsTree.push({ name: guild.name, id: guild.id, channel: _guild });
 
     });
 
-    return { client, ws, saveGuilds, meId };
+    return { client, ws, saveGuildsTree, meId };
 }
