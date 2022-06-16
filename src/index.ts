@@ -6,9 +6,8 @@ import log from './mod/logger';
 
 import config from './file/config.json';
 import { sendMsg } from './mod/sendMsg';
+import { commandRand } from './command/rand';
 
-var userHistory: UserHistory[] = [];
-const dayMaxTimes = 59000;
 const stopCommand = "stopBot";
 const admin = "飞龙project";
 
@@ -57,43 +56,12 @@ async function main() {
                     var userChoice = 0;
                     switch (content) {
                         case "/单抽出奇迹":
-                            userChoice = 1;
-                        case "/十连大保底":
-                            if (userChoice == 0) userChoice = 10;
-
-
-                            if (findChannel(saveGuildsTree, msg.channel_id)) {
-
-                                var index = userHistory.findIndex((i) => { return i.id == msg.author.id });
-                                var nowTime = new Date().getTime();
-                                if ((index == -1) || (userHistory[index].lastTime + dayMaxTimes <= nowTime) || (msg.author.username == admin)) {
-
-                                    //log.info(`${content}|`);
-                                    sendMsg(client, msg.channel_id, msg.id, randChoice(userChoice));
-                                    //switch
-                                    if (index == -1) {
-                                        userHistory.push({ id: msg.author.id, lastTime: nowTime, });
-                                        log.debug(`push history:${msg.author.id},lastTime:${nowTime}`);
-                                    } else {
-                                        userHistory[index].lastTime = nowTime;
-                                    }
-                                } else {
-                                    log.warn("time out");
-                                    await client.messageApi.postMessage(msg.channel_id, {
-                                        content: `请求时间过短，还有${(userHistory[index].lastTime + dayMaxTimes - nowTime) / 1000}s冷却完毕`,
-                                        msg_id: msg.id,
-                                        message_reference: {
-                                            message_id: msg.id,
-                                        },
-                                    });
-                                }
-
-
-                            } else {
-                                log.error(`unAuth channel id:${msg.channel_id}|||user:${msg.author.username}`);
-                                sendMsg(client, msg.channel_id, msg.id, `当前子频道未授权`);
-                            }
+                            commandRand(client, saveGuildsTree, msg, 1);
                             break;
+                        case "/十连大保底":
+                            commandRand(client, saveGuildsTree, msg, 10);
+                            break;
+
                         default:
                             sendMsg(client, msg.channel_id, msg.id, "ん？");
                             //log.info("什么也没发生");
