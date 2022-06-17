@@ -67,7 +67,7 @@ function randChoice(times: number): string {
         if (o.star == 1 && must) content += `*(已强制保底)(${choicesList.starString[2]})${once().name}\n`;
         else content += `(${choicesList.starString[o.star]})${o.name}\n`
 
-        return content + "----------\n出货情况仅供娱乐，具体请以游戏内为准";
+        return content + "----------\n结果仅供娱乐，具体以实际为准\n新功能无限期推迟中(另一个新功能在写了)";
     }
 
 }
@@ -106,3 +106,4 @@ function second(star: number): string {
     }
 
 }
+
