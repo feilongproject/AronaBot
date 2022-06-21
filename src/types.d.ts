@@ -26,4 +26,7 @@ declare global {
     lastTime: number,
   }
 
+  interface IMessageEx {
+    guild_name?: string,
+  }
 }
