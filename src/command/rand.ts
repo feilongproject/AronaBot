@@ -10,13 +10,13 @@ const admin = "飞龙project";
 
 
 
-export async function commandRand(client: OpenAPI, saveGuildsTree: SaveGuild[], msg: IMessage, userChoice: number): Promise<void> {
+export async function commandRand(client: OpenAPI, saveGuildsTree: SaveGuild[], msg: IMessage & IMessageEx, userChoice: number): Promise<void> {
 
-    if (findChannel(saveGuildsTree, msg.channel_id)) {
+    if (findChannel(saveGuildsTree, msg.channel_id) || msg.guild_name == "QQ频道机器人测试频道") {
 
         var index = userHistory.findIndex((i) => { return i.id == msg.author.id });
         var nowTime = new Date().getTime();
-        if ((index == -1) || (userHistory[index].lastTime + dayMaxTimes <= nowTime) || (msg.author.username == admin)) {
+        if ((index == -1) || (userHistory[index].lastTime + dayMaxTimes <= nowTime) || (msg.author.username.includes(admin))) {
 
             //log.info(`${content}|`);
             sendMsg(client, msg.channel_id, msg.id, randChoice(userChoice));
@@ -28,7 +28,6 @@ export async function commandRand(client: OpenAPI, saveGuildsTree: SaveGuild[], 
                 userHistory[index].lastTime = nowTime;
             }
         } else {
-            log.warn("time out");
             await client.messageApi.postMessage(msg.channel_id, {
                 content: `请求时间过短，还有${(userHistory[index].lastTime + dayMaxTimes - nowTime) / 1000}s冷却完毕`,
                 msg_id: msg.id,
@@ -40,14 +39,14 @@ export async function commandRand(client: OpenAPI, saveGuildsTree: SaveGuild[], 
 
 
     } else {
-        log.error(`unAuth channel id:${msg.channel_id}|||user:${msg.author.username}`);
-        sendMsg(client, msg.channel_id, msg.id, `当前子频道未授权`);
+        log.warn(`unAuth channel id:${msg.channel_id}|||user:${msg.author.username}`);
+        sendMsg(client, msg.channel_id, msg.id, `当前子频道未授权,请在隔壁使用`);
     }
 
 
 }
 
-function randChoice(times: number): string {
+function randChoice(times: number, msg?: IMessage): string {
 
     var content = (times == 10) ? `进行了一次十连,活动限定up中\n----------\n` : `进行了一次单抽,抽中了:`;
 
@@ -64,18 +63,21 @@ function randChoice(times: number): string {
             content += `(${choicesList.starString[o.star]})${o.name}\n`;
         }
         var o = once();
-        if (o.star == 1 && must) content += `*(已强制保底)(${choicesList.starString[2]})${once().name}\n`;
-        else content += `(${choicesList.starString[o.star]})${o.name}\n`
+        if (o.star == 1 && must) {
+            content += `*(已强制保底)(${choicesList.starString[2]})${once(2).name}\n`;
+        } else {
+            content += `(${choicesList.starString[o.star]})${o.name}\n`;
+        }
 
-        return content + "----------\n结果仅供娱乐，具体以实际为准\n新功能无限期推迟中(另一个新功能在写了)";
+        return content + `----------\n结果仅供娱乐，具体以实际为准\n签到功能目前可用`;
     }
 
 }
 
-function once(must?: boolean): { name: string, star: number } {
+function once(mustStar?: 1 | 2 | 3): { name: string, star: number } {
     var rNum = Math.round(Math.random() * 1000);
     //log.debug(rNum);
-    if (must) return { name: second(2), star: 2 };
+    if (mustStar) return { name: second(mustStar), star: mustStar };
     if (rNum <= 25) {
         return { name: second(3), star: 3 };
     } else if (rNum <= 25 + 185) {
