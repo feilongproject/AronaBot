@@ -6,8 +6,8 @@ import log from './mod/logger';
 import config from './file/config.json';
 import { sendMsg } from './mod/sendMsg';
 import { commandRand } from './command/rand';
+import { ostracism } from './command/ostracism';
 
-const stopCommand = "stopBot";
 const admin = "飞龙project";
 
 
@@ -40,9 +40,15 @@ async function main() {
                 //log.info(`${content}|`);
 
                 if (findGuilds(saveGuildsTree, msg.guild_id) || msg.author.username == admin) {
+                    var useCommand = false;
 
                     content = content.trim();
-                    var userChoice = 0;
+                    if (content.startsWith("陶片放逐")) {
+                        msg.content = content;
+                        ostracism(client, msg);
+                        useCommand = true;
+                    }
+
                     switch (content) {
                         case "stopBot":
                             if (msg.author.username == admin) {
@@ -65,9 +71,12 @@ async function main() {
                             break;
 
                         default:
-                            sendMsg(client, msg.channel_id, msg.id, "ん？");
-                            //log.info("什么也没发生");
-                            break;
+                            if (useCommand == false) {
+                                log.warn(`unknown command:${content}`);
+                                sendMsg(client, msg.channel_id, msg.id, "ん？");
+                                //log.info("什么也没发生");
+                                break;
+                            }
                     }
                 } else {
                     log.error(`unAuth guild:${msg.guild_name}(${msg.guild_id})|||user:${msg.author.username}`);
