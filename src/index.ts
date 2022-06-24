@@ -3,7 +3,7 @@ import { init } from './init';
 import { findChannel, findGuilds } from './mod/findChannel';
 import log from './mod/logger';
 
-import config from './file/config.json';
+import config from '../data/config.json';
 import { sendMsg } from './mod/sendMsg';
 import { commandRand } from './command/rand';
 import { ostracism } from './command/ostracism';
