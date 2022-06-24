@@ -23,15 +23,24 @@ async function main() {
             try {
                 var msg: IMessage & IMessageEx = data.msg;
 
-                var messageGuildFoundInGuilds = false;
+                var messageNotFound = true;
                 saveGuildsTree.forEach(guild => {
-                    if (msg.guild_id == guild.id) {
-                        msg.guild_name = guild.name;
-                        log.info(`${guild.name}|||${msg.author.username}|||${msg.content}`), messageGuildFoundInGuilds = true;
+                    if (guild.id == msg.guild_id) {
+                        //log.debug("find guild");
+                        guild.channel.forEach(channel => {
+                            //log.debug(channel);
+                            if (channel.id == msg.channel_id) {
+                                msg.guild_name = guild.name;
+                                msg.channel_name = channel.name;
+                                log.info(`{${guild.name}}[${channel.name}](${msg.author.username}):${msg.content}`), messageNotFound = false;
+                                return;
+                            }
+                        });
                         return;
                     }
                 });
-                if (!messageGuildFoundInGuilds) log.error(`unKnown message:${msg.guild_id}|||${msg.author.username}|||${msg.content}`);
+                if (messageNotFound)
+                    log.warn(`unKnown message:{${msg.guild_id}}[${msg.channel_id}](${msg.author.username}):${msg.content}`)
 
 
                 //log.debug(msg.channel_id);
