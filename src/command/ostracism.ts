@@ -71,8 +71,16 @@ export async function ostracism(client: OpenAPI, msg: IMessage & IMessageEx) {
             sendMsg(client, msg.channel_id, msg.id, `创建完成，类型:${typeId},编号:${ostracismData.iv}\n频道:${msg.guild_name ? msg.guild_name : "null"}(${msg.guild_id})\n标题:${otherContent}${msg.mentions[1] == null ? "" : `\n目标用户:<@${msg.mentions[1].id}>`}`);
             break;
         case "编辑议题":
-            ostracismData.list[ostracismData.iv].content = otherContent;
-            sendMsg(client, msg.channel_id, msg.id, `编辑完成，类型:${ostracismData.list[ostracismData.iv].type.id},编号:${ostracismData.iv}\n频道:${msg.guild_name ? msg.guild_name : "null"}(${msg.guild_id})\n标题:${otherContent}`);
+            //msg.attachments
+            log.debug(msg.attachments);
+            (ostracismData.list[ostracismData.iv].infos as unknown as InfoType[]).push({
+                content: otherContent,
+                attachments: msg.attachments as unknown as Attachments[],
+
+            });
+
+            //ostracismData.list[ostracismData.iv].content = otherContent;
+            //sendMsg(client, msg.channel_id, msg.id, `编辑完成，类型:${ostracismData.list[ostracismData.iv].type.id},编号:${ostracismData.iv}\n频道:${msg.guild_name ? msg.guild_name : "null"}(${msg.guild_id})\n标题:${otherContent}`);
             break;
         case "查询议题":
             if (otherContent != "") {
@@ -157,13 +165,26 @@ interface OstracismData {
         guildId: string,
         guildName: string,
         title: string,
-        content?: string,
-        pic?: string[],
+        infos: InfoType[],
         opinion: Opinion,
         isEnd: boolean,
         type: OstracismType,
     }[],
+}
 
+interface InfoType {
+    content: string,
+    attachments?: Attachments[],
+}
+
+interface Attachments {
+    content_type: string,
+    filename: string,
+    height: number,
+    id: string,
+    size: number,
+    url: string,
+    width: number,
 }
 
 interface OstracismType {
