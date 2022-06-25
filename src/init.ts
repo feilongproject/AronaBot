@@ -21,7 +21,7 @@ export async function init(config: any) {
         //log.info(channels.data);
         channels.data.forEach((channel => {
             if (channel.name != "") {
-                log.debug(`${guild.name}(${guild.id})-${channel.name}(${channel.id})-father:${channel.parent_id}`);
+                log.info(`${guild.name}(${guild.id})-${channel.name}(${channel.id})-father:${channel.parent_id}`);
             }
             _guild.push({ name: channel.name, id: channel.id });
 

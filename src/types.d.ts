@@ -28,5 +28,8 @@ declare global {
 
   interface IMessageEx {
     guild_name?: string,
+    channel_name?: string,
   }
+
+
 }
