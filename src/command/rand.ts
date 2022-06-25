@@ -109,3 +109,8 @@ function second(star: number): string {
 
 }
 
+
+interface UserHistory {
+    id: string,
+    lastTime: number,
+}

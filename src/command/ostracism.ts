@@ -165,7 +165,3 @@ interface Opinion {
     abstain: Member[],
 }
 
-interface Member {
-    id: string,
-    name: string,
-}

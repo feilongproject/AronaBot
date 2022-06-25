@@ -21,15 +21,15 @@ declare global {
     name: string,
     id: string,
   }
-  interface UserHistory {
-    id: string,
-    lastTime: number,
-  }
 
   interface IMessageEx {
     guild_name?: string,
     channel_name?: string,
   }
 
+  interface Member {
+    id: string,
+    name: string,
+  }
 
 }
