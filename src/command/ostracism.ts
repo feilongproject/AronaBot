@@ -22,6 +22,9 @@ export async function ostracism(client: OpenAPI, msg: IMessage & IMessageEx) {
     //log.info(msg);
 
     switch (command) {
+        case "/创建议题":
+        case "发起议题":
+        case "创建提议":
         case "创建议题"://forUser 未使用
             var typeId = 2;
             var seconds = 0;
@@ -55,6 +58,7 @@ export async function ostracism(client: OpenAPI, msg: IMessage & IMessageEx) {
                 guildId: msg.guild_id,
                 guildName: msg.guild_name ? msg.guild_name : "null",
                 title: otherContent,
+                infos: [],
                 opinion: { agree: [], against: [], abstain: [], },
                 isEnd: false,
                 type: {
@@ -76,13 +80,22 @@ export async function ostracism(client: OpenAPI, msg: IMessage & IMessageEx) {
             }
             sendMsg(client, msg.channel_id, msg.id, `查询编号:${ostracismData.iv}\n标题:${ostracismData.list[ostracismData.iv].title}\n内容:${ostracismData.list[ostracismData.iv].content}`);
             break;
+        case "投票":
+        case "提议投票":
+        case "议题投票":
+        case "投票提议":
         case "投票议题":
             //if (ostracismData.list[ostracismData.iv].opinion.agree.findIndex(findOpinion, msg.author.id) == -1)
             switch (otherContent) {
+                case "赞同":
+                case "支持":
+                case "认同":
+                case "同意":
                 case "赞成":
                     ostracismData.list[ostracismData.iv].opinion.agree.push({ id: msg.author.id, name: msg.author.username });
                     sendMsg(client, msg.channel_id, msg.id, `已记录赞成意见`);
                     break;
+                case "一斤鸭梨":
                 case "反对":
                     ostracismData.list[ostracismData.iv].opinion.against.push({ id: msg.author.id, name: msg.author.username });
                     sendMsg(client, msg.channel_id, msg.id, `已记录反对意见`);
