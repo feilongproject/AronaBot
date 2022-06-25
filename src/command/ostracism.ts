@@ -7,8 +7,8 @@ const userDataFile = "./dist/file/ostracismData.json";
 export async function ostracism(client: OpenAPI, msg: IMessage & IMessageEx) {
 
     var { content } = msg;//
-    var command = content.slice(5, 9);
-    var otherContent = content.slice(10);
+    var command = content.slice(5, 10).trim();
+    var otherContent = content.slice(10).trim();
     log.info(`command:${command},otherContent:${otherContent}`);
     if (otherContent.trim() == "" && command != "结束议题") {
         sendMsg(client, msg.channel_id, msg.id, `议题标题为空，请重试`);
