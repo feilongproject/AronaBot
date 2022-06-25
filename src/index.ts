@@ -7,6 +7,7 @@ import config from '../data/config.json';
 import { sendMsg } from './mod/sendMsg';
 import { commandRand } from './command/rand';
 import { ostracism } from './command/ostracism';
+import { commandSign } from './command/sign';
 
 const admin = "飞龙project";
 
@@ -78,7 +79,10 @@ async function main() {
                         case "/十连大保底":
                             commandRand(client, saveGuildsTree, msg, 10);
                             break;
-
+                        case "签到":
+                        case "/签到":
+                            commandSign(client, msg);
+                            break;
                         default:
                             if (useCommand == false) {
                                 log.warn(`unknown command:${content}`);
