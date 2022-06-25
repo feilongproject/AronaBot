@@ -93,7 +93,8 @@ export async function ostracism(client: OpenAPI, msg: IMessage & IMessageEx) {
         case "议题投票":
         case "投票提议":
         case "投票议题":
-            //if (ostracismData.list[ostracismData.iv].opinion.agree.findIndex(findOpinion, msg.author.id) == -1)
+            //if (ostracismData.list[ostracismData.iv].opinion.agree.findIndex(findOpinion, msg.author.id) == -1) {
+            var optionStr = `对议题\n【${ostracismData.list[ostracismData.iv].title}】(编号${ostracismData.iv})\n`;
             switch (otherContent) {
                 case "赞同":
                 case "支持":
@@ -101,39 +102,62 @@ export async function ostracism(client: OpenAPI, msg: IMessage & IMessageEx) {
                 case "同意":
                 case "赞成":
                     ostracismData.list[ostracismData.iv].opinion.agree.push({ id: msg.author.id, name: msg.author.username });
-                    sendMsg(client, msg.channel_id, msg.id, `已记录赞成意见`);
+                    optionStr += `已记录赞成意见\n`;
                     break;
                 case "一斤鸭梨":
                 case "反对":
                     ostracismData.list[ostracismData.iv].opinion.against.push({ id: msg.author.id, name: msg.author.username });
-                    sendMsg(client, msg.channel_id, msg.id, `已记录反对意见`);
+                    optionStr += `已记录反对意见\n`;
                     break;
                 case "弃权":
                     ostracismData.list[ostracismData.iv].opinion.abstain.push({ id: msg.author.id, name: msg.author.username });
-                    sendMsg(client, msg.channel_id, msg.id, `已记录弃权意见`);
+                    optionStr += `已记录弃权意见\n`;
                     break;
                 default:
-                    sendMsg(client, msg.channel_id, msg.id, `未知意见`);
+
+                    optionStr = `未知意见\n`;
+                    //sendMsg(client, msg.channel_id, msg.id, );
                     break;
             }
+            const options = ostracismData.list[ostracismData.iv].opinion;
+            optionStr += `当前票数统计结果(赞成/反对/弃权):${options.agree.length}/${options.against.length}/${options.abstain.length}`;
+            sendMsg(client, msg.channel_id, msg.id, optionStr);
+
+            //}
             break;
         case "结束议题":
             var o = ostracismData.list[ostracismData.iv];
             var agree = o.opinion.agree.length;
             var against = o.opinion.against.length;
             var abstain = o.opinion.abstain.length;
+
+            var sendStr = `已结束对【${o.title}】的议题\n`;
+            o.infos == undefined ? sendStr += `` : `议题内容:${o.infos}\n`;
+            sendStr += `投票统计(赞成/反对/弃权):${agree}/${against}/${abstain}\n`;
+
             if (agree > against) {
                 if (o.type.id == 0 && o.type.forUser) {
-                    client.muteApi.muteMember(o.guildId, o.type.forUser.id, { seconds: o.type.seconds });
-                    sendMsg(client, msg.channel_id, msg.id, `投票统计：\n同意${agree}票；反对${against}票，弃权${abstain}票\n当前同意大于反对，执行禁言`);
+
+                    try {
+                        client.muteApi.muteMember(o.guildId, o.type.forUser.id, { seconds: o.type.seconds });
+                        sendStr += `同意大于反对,已对用户${o.type.forUser.name}执行禁言\n`;
+                    } catch (error) {
+                        log.error(error);
+                        sendStr += `执行禁言时发生了一些错误${error}\n`;
+                    }
+
+                    //sendMsg(client, msg.channel_id, msg.id, `当前同意大于反对，执行禁言`);
                 } else if (o.type.id == 1) {
-                    sendMsg(client, msg.channel_id, msg.id, `投票统计：\n同意${agree}票；反对${against}票，弃权${abstain}票\n移出功能尚未实现`);
+                    //sendMsg(client, msg.channel_id, msg.id, `移出功能尚未实现`);
                 } else if (o.type.id == 2) {
-                    sendMsg(client, msg.channel_id, msg.id, `投票统计：\n同意${agree}票；反对${against}票，弃权${abstain}票`);
+                    //sendMsg(client, msg.channel_id, msg.id, ``);
                 }
             } else {
-                sendMsg(client, msg.channel_id, msg.id, `投票统计：\n同意${agree}票；反对${against}票，弃权${abstain}票\n当前同意票数未大于反对，议题已存档`);
+                sendStr += `同意未大于反对,取消执行\n`;
+                //sendMsg(client, msg.channel_id, msg.id, `当前`);
             }
+            sendStr += `当前议题已存档，编号${ostracismData.iv}`;
+            sendMsg(client, msg.channel_id, msg.id, sendStr);
             break;
         //ostracismData.list[ostracismData.iv];
         default:
