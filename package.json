@@ -4,8 +4,8 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "clear && nodemon src/index.ts",
-    "start": "./node_modules/.bin/tsc -p ./tsconfig.json"
+    "dev": "clear && nodemon",
+    "build": "clear && ./node_modules/.bin/tsc -p ./tsconfig.json"
   },
   "keywords": [],
   "author": "feilongproject",

@@ -1,7 +1,7 @@
 import { IMessage, OpenAPI } from "qq-guild-bot";
 import { findChannel } from "../mod/findChannel";
 import log from "../mod/logger";
-import choicesList from "../file/choices.json"
+import choicesList from "../../data/choices.json";
 import { sendMsg } from "../mod/sendMsg";
 
 var userHistory: UserHistory[] = [];

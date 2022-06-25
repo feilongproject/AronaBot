@@ -9,6 +9,6 @@
     "watch": [
         "src/"
     ],
-    "exec": "./node_modules/.bin/tsc -p ./tsconfig.json && node dist/index.js",
+    "exec": "./node_modules/.bin/tsc -p ./tsconfig.json && node dist/src/index.js",
     "ext": "ts"
 }
