@@ -1,97 +1,325 @@
 {
     "star1": [
-        "(Haruka)遥香",
-        "(Asuna)明日奈",
-        "(Kotori)亚都梨",
-        "(Suzumi)玲美",
-        "(Pina)菲娜",
-        "(Chinatsu)千夏",
-        "(Kotama)小玉",
-        "(Juri)朱莉",
-        "(Serina)芹奈",
-        "(Shimiko)志美子",
-        "(Yoshimi)喜美"
+        {
+            "source": "Haruka",
+            "chineseName": "遥香",
+            "fileName": "Student_Portrait_Haruka.png"
+        },
+        {
+            "source": "Asuna",
+            "chineseName": "明日奈",
+            "fileName": "Student_Portrait_Asuna.png"
+        },
+        {
+            "source": "Kotori",
+            "chineseName": "亚都梨",
+            "fileName": "Student_Portrait_Kotori.png"
+        },
+        {
+            "source": "Suzumi",
+            "chineseName": "玲美",
+            "fileName": "Student_Portrait_Suzumi.png"
+        },
+        {
+            "source": "Pina",
+            "chineseName": "菲娜",
+            "fileName": "Student_Portrait_Pina.png"
+        },
+        {
+            "source": "Chinatsu",
+            "chineseName": "千夏",
+            "fileName": "Student_Portrait_Chinatsu.png"
+        },
+        {
+            "source": "Kotama",
+            "chineseName": "小玉",
+            "fileName": "Student_Portrait_Kotama.png"
+        },
+        {
+            "source": "Juri",
+            "chineseName": "朱莉",
+            "fileName": "Student_Portrait_Juri.png"
+        },
+        {
+            "source": "Serina",
+            "chineseName": "芹奈",
+            "fileName": "Student_Portrait_Serina.png"
+        },
+        {
+            "source": "Shimiko",
+            "chineseName": "志美子",
+            "fileName": "Student_Portrait_Shimiko.png"
+        },
+        {
+            "source": "Yoshimi",
+            "chineseName": "喜美",
+            "fileName": "Student_Portrait_Yoshimi.png"
+        }
     ],
     "star2": [
-        "(Mari)玛丽",
-        "(Kirino)桐乃",
-        "(Hanako)花子",
-        "(Momoi)桃井",
-        "(Shizuko)静子",
-        "(Akane)朱音",
-        "(Chise)知世",
-        "(Akari)亚伽里",
-        "(Hasumi)莲实",
-        "(Kayoko)佳世子",
-        "(Mutsuki)无月",
-        "(Junko)淳子",
-        "(Serika)茜香",
-        "(Tsubaki)椿",
-        "(Yuuka)佑香",
-        "(Airi)爱莉",
-        "(Fuuka)风华",
-        "(Hanae)花绘",
-        "(Hare)晴",
-        "(Utaha)咏叶",
-        "(Ayane)绫音"
+        {
+            "source": "Mari",
+            "chineseName": "玛丽",
+            "fileName": "Student_Portrait_Mari.png"
+        },
+        {
+            "source": "Kirino",
+            "chineseName": "桐乃",
+            "fileName": "Student_Portrait_Kirino.png"
+        },
+        {
+            "source": "Hanako",
+            "chineseName": "花子",
+            "fileName": "Student_Portrait_Hanako.png"
+        },
+        {
+            "source": "Momoi",
+            "chineseName": "桃井",
+            "fileName": "Student_Portrait_Momoi.png"
+        },
+        {
+            "source": "Shizuko",
+            "chineseName": "静子",
+            "fileName": "Student_Portrait_Shizuko.png"
+        },
+        {
+            "source": "Akane",
+            "chineseName": "朱音",
+            "fileName": "Student_Portrait_Akane.png"
+        },
+        {
+            "source": "Chise",
+            "chineseName": "知世",
+            "fileName": "Student_Portrait_Chise.png"
+        },
+        {
+            "source": "Akari",
+            "chineseName": "亚伽里",
+            "fileName": "Student_Portrait_Akari.png"
+        },
+        {
+            "source": "Hasumi",
+            "chineseName": "莲实",
+            "fileName": "Student_Portrait_Hasumi.png"
+        },
+        {
+            "source": "Kayoko",
+            "chineseName": "佳世子",
+            "fileName": "Student_Portrait_Kayoko.png"
+        },
+        {
+            "source": "Mutsuki",
+            "chineseName": "无月",
+            "fileName": "Student_Portrait_Mutsuki.png"
+        },
+        {
+            "source": "Junko",
+            "chineseName": "淳子",
+            "fileName": "Student_Portrait_Zunko.png"
+        },
+        {
+            "source": "Serika",
+            "chineseName": "茜香",
+            "fileName": "Student_Portrait_Serika.png"
+        },
+        {
+            "source": "Tsubaki",
+            "chineseName": "椿",
+            "fileName": "Student_Portrait_Tsubaki.png"
+        },
+        {
+            "source": "Yuuka",
+            "chineseName": "佑香",
+            "fileName": "Student_Portrait_Yuuka.png"
+        },
+        {
+            "source": "Airi",
+            "chineseName": "爱莉",
+            "fileName": "Student_Portrait_Airi.png"
+        },
+        {
+            "source": "Fuuka",
+            "chineseName": "风华",
+            "fileName": "Student_Portrait_Fuuka.png"
+        },
+        {
+            "source": "Hanae",
+            "chineseName": "花绘",
+            "fileName": "Student_Portrait_Hanae.png"
+        },
+        {
+            "source": "Hare",
+            "chineseName": "晴",
+            "fileName": "Student_Portrait_Hare.png"
+        },
+        {
+            "source": "Utaha",
+            "chineseName": "咏叶",
+            "fileName": "Student_Portrait_Utaha.png"
+        },
+        {
+            "source": "Ayane",
+            "chineseName": "绫音",
+            "fileName": "Student_Portrait_Ayane.png"
+        }
     ],
     "star3": [
-        "(Natsu)夏",
-        "(Asuna Bunny)明日奈(兔女郎)",
-        "(Saya Casual)沙耶(私服)",
-        "(Shun Small)旬(幼女)",
-        "(Shiroko Cycling)白子(单车)",
-        "(Hifumi Swimsuit)日步美(泳装)",
-        "(Hifumi)日步美",
-        "(Koharu)小春",
-        "(Hibiki)响",
-        "(Azusa)梓",
-        "(Karin)花凛",
-        "(Cherino)洁莉诺",
-        "(Aris)爱丽丝",
-        "(Yuzu)柚子",
-        "(Midori)绿",
-        "(Izuna)伊树菜",
-        "(Aru)亚瑠",
-        "(Mashiro)麻白",
-        "(Eimi)英美",
-        "(Haruna)羽留奈",
-        "(Hina)阳奈",
-        "(Hoshino)星野",
-        "(Iori)伊织",
-        "(Maki)真纪",
-        "(Neru)宁瑠",
-        "(Izumi)泉",
-        "(Shiroko)白子",
-        "(Shun)旬",
-        "(Sumire)堇",
-        "(Tsurugi)弦生",
-        "(Saya)沙耶"
+        {
+            "source": "Natsu",
+            "chineseName": "夏",
+            "fileName": "Student_Portrait_CH0155.png"
+        },
+        {
+            "source": "Asuna Bunny",
+            "chineseName": "明日奈(兔女郎)",
+            "fileName": "Student_Portrait_CH0098.png"
+        },
+        {
+            "source": "Saya Casual",
+            "chineseName": "沙耶(私服)",
+            "fileName": "Student_Portrait_Saya_casual.png"
+        },
+        {
+            "source": "Shun Small",
+            "chineseName": "旬(幼女)",
+            "fileName": "Student_Portrait_CH0066.png"
+        },
+        {
+            "source": "Shiroko Cycling",
+            "chineseName": "白子(单车)",
+            "fileName": "Student_Portrait_Shiroko_ridingsuit.png"
+        },
+        {
+            "source": "Hifumi Swimsuit",
+            "chineseName": "日步美(泳装)",
+            "fileName": "Student_Portrait_CH0058.png"
+        },
+        {
+            "source": "Hifumi",
+            "chineseName": "日步美",
+            "fileName": "Student_Portrait_Hihumi.png"
+        },
+        {
+            "source": "Koharu",
+            "chineseName": "小春",
+            "fileName": "Student_Portrait_Koharu.png"
+        },
+        {
+            "source": "Hibiki",
+            "chineseName": "响",
+            "fileName": "Student_Portrait_Hibiki.png"
+        },
+        {
+            "source": "Azusa",
+            "chineseName": "梓",
+            "fileName": "Student_Portrait_Azusa.png"
+        },
+        {
+            "source": "Karin",
+            "chineseName": "花凛",
+            "fileName": "Student_Portrait_Karin.png"
+        },
+        {
+            "source": "Cherino",
+            "chineseName": "洁莉诺",
+            "fileName": "Student_Portrait_Cherino.png"
+        },
+        {
+            "source": "Aris",
+            "chineseName": "爱丽丝",
+            "fileName": "Student_Portrait_Aris.png"
+        },
+        {
+            "source": "Yuzu",
+            "chineseName": "柚子",
+            "fileName": "Student_Portrait_Yuzu.png"
+        },
+        {
+            "source": "Midori",
+            "chineseName": "绿",
+            "fileName": "Student_Portrait_Midori.png"
+        },
+        {
+            "source": "Izuna",
+            "chineseName": "伊树菜",
+            "fileName": "Student_Portrait_Izuna.png"
+        },
+        {
+            "source": "Aru",
+            "chineseName": "亚瑠",
+            "fileName": "Student_Portrait_Aru.png"
+        },
+        {
+            "source": "Mashiro",
+            "chineseName": "麻白",
+            "fileName": "Student_Portrait_Mashiro.png"
+        },
+        {
+            "source": "Eimi",
+            "chineseName": "英美",
+            "fileName": "Student_Portrait_Eimi.png"
+        },
+        {
+            "source": "Haruna",
+            "chineseName": "羽留奈",
+            "fileName": "Student_Portrait_Haruna.png"
+        },
+        {
+            "source": "Hina",
+            "chineseName": "阳奈",
+            "fileName": "Student_Portrait_Hina.png"
+        },
+        {
+            "source": "Hoshino",
+            "chineseName": "星野",
+            "fileName": "Student_Portrait_Hoshino.png"
+        },
+        {
+            "source": "Iori",
+            "chineseName": "伊织",
+            "fileName": "Student_Portrait_Iori.png"
+        },
+        {
+            "source": "Maki",
+            "chineseName": "真纪",
+            "fileName": "Student_Portrait_Maki.png"
+        },
+        {
+            "source": "Neru",
+            "chineseName": "宁瑠",
+            "fileName": "Student_Portrait_Neru.png"
+        },
+        {
+            "source": "Izumi",
+            "chineseName": "泉",
+            "fileName": "Student_Portrait_Izumi.png"
+        },
+        {
+            "source": "Shiroko",
+            "chineseName": "白子",
+            "fileName": "Student_Portrait_Shiroko.png"
+        },
+        {
+            "source": "Shun",
+            "chineseName": "旬",
+            "fileName": "Student_Portrait_Shun.png"
+        },
+        {
+            "source": "Sumire",
+            "chineseName": "堇",
+            "fileName": "Student_Portrait_Sumire.png"
+        },
+        {
+            "source": "Tsurugi",
+            "chineseName": "弦生",
+            "fileName": "Student_Portrait_Tsurugi.png"
+        },
+        {
+            "source": "Saya",
+            "chineseName": "沙耶",
+            "fileName": "Student_Portrait_Saya.png"
+        }
     ],
-    "timeLimit": {
-        "star3": [
-            "秤 敦子",
-            "戎野 美咲",
-            "槌永 日和",
-            "霞沢 美遊",
-            "月雪 宮子",
-            "空井 咲",
-            "各務 千尋",
-            "棗 伊呂波",
-            "冰室 瀨名",
-            "天雨 亞子",
-            "火宮 千夏(温泉)",
-            "古關憂",
-            "若葉日向",
-            "黑見 茜香(正月)",
-            "池倉 瑪麗娜",
-            "連河 切里諾/潔莉諾(温泉)",
-            "天見 和香(溫泉)",
-            "大野 月詠",
-            "勇美 楓",
-            "水羽 三森"
-        ]
-    },
     "starString": [
         "☆☆☆",
         "★☆☆",

@@ -32,4 +32,9 @@ declare global {
     name: string,
   }
 
+  interface Character {
+    source: string,
+    chineseName: string,
+    fileName: string,
+  }
 }

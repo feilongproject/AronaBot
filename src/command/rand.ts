@@ -2,7 +2,8 @@ import { IMessage, OpenAPI } from "qq-guild-bot";
 import { findChannel } from "../mod/findChannel";
 import log from "../mod/logger";
 import choicesList from "../../data/choices.json";
-import { sendMsg } from "../mod/sendMsg";
+import { sendImage, sendMsg } from "../mod/sendMsg";
+import { buildImage } from "../mod/buildImage";
 
 var userHistory: UserHistory[] = [];
 const dayMaxTimes = 59000;
@@ -19,7 +20,10 @@ export async function commandRand(client: OpenAPI, saveGuildsTree: SaveGuild[], 
         if ((index == -1) || (userHistory[index].lastTime + dayMaxTimes <= nowTime) || (msg.author.username.includes(admin))) {
 
             //log.info(`${content}|`);
-            sendMsg(client, msg.channel_id, msg.id, randChoice(userChoice));
+            const sendStr = await randChoice(userChoice, msg);
+            if (sendStr != null) {
+                sendMsg(client, msg.channel_id, msg.id, sendStr);
+            }
             //switch
             if (index == -1) {
                 userHistory.push({ id: msg.author.id, lastTime: nowTime, });
@@ -46,35 +50,79 @@ export async function commandRand(client: OpenAPI, saveGuildsTree: SaveGuild[], 
 
 }
 
-function randChoice(times: number, msg?: IMessage): string {
-
-    var content = (times == 10) ? `进行了一次十连,活动限定up中\n----------\n` : `进行了一次单抽,抽中了:`;
-
+/**
+ * 对二进制判断，并返回结果（当未知时返回null）
+ * 二进制位数介绍：
+ * 第0位：1/0（十连/单抽）
+ * 第1位：1/0（图片/文本）
+ * @param choices 选择条件，以二进制为准
+ * @param msg IMessage类型
+ * @returns 返回本次抽卡结果
+ */
+async function randChoice(choices: number, msg: IMessage): Promise<string | null> {
     //三星角色（彩色卡背）的抽取概率为2.5，二星角色（金色卡背）为18.5，一星角色（灰色卡背）为79
 
-    if (times == 1) {
-        var o = once();
-        return content += `(${choicesList.starString[o.star]})${o.name}`;
-    } else {
-        var must = true;
-        for (let index = 0; index < times - 1; index++) {
-            var o = once();
-            if (o.star > 1) must = false;
-            content += `(${choicesList.starString[o.star]})${o.name}\n`;
-        }
-        var o = once();
-        if (o.star == 1 && must) {
-            content += `*(已强制保底)(${choicesList.starString[2]})${once(2).name}\n`;
-        } else {
-            content += `(${choicesList.starString[o.star]})${o.name}\n`;
-        }
+    switch (choices) {
+        case 0b00://str + 1times
+            var o = cTime(1);
 
-        return content + `----------\n结果仅供娱乐，具体以实际为准\n签到功能目前可用`;
+            return `————————单抽结果————————\n` +
+                `(${choicesList.starString[o[0].star]})(${o[0].name.source})${o[0].name.chineseName}`;
+
+        case 0b01://str + 10times
+            var o = cTime(10);
+
+            var content = `————————十连结果————————\n`;
+
+            o.forEach((value, index) => {
+                content += `(${choicesList.starString[o[index].star]})(${o[index].name.source})${o[index].name.chineseName}\n`;
+            });
+
+            return content +
+                `—————————————————————\n` +
+                `结果仅供娱乐，具体请以实际欧/非气为准` + `\n图片功能添加中，会时不时抽风`;
+
+        case 0b10://image + 1times
+
+            return null;
+        case 0b11://image + 10times
+            var imgPath = await buildImage(cTime(10));
+            //log.debug(imgPath);
+            //imgPath = "/root/RemoteDir/qbot/BAbot/data/pic/bg.png";
+
+            sendImage(msg, imgPath);
+            return null;
+        default:
+            return null;
     }
 
 }
 
-function once(mustStar?: 1 | 2 | 3): { name: string, star: number } {
+function cTime(times: 1 | 10): { name: Character, star: number }[] {
+
+    var ret: { name: Character, star: number }[] = [];
+    if (times == 1) {
+        ret.push(once());
+    } else if (times == 10) {
+        var must = true;
+        var _arr = Array.from({ length: 10 }, (v, k) => k);
+
+        _arr.forEach((value, index) => {
+            if (index == 9 && must == true) {
+                ret.push(once(2));
+            } else {
+                var o = once();
+                if (o.star > 1) must = false;
+                ret.push(o);
+
+
+            }
+        });
+    }
+    return ret;
+}
+
+function once(mustStar?: 1 | 2 | 3): { name: Character, star: number } {
     var rNum = Math.round(Math.random() * 1000);
     //log.debug(rNum);
     if (mustStar) return { name: second(mustStar), star: mustStar };
@@ -92,18 +140,19 @@ function once(mustStar?: 1 | 2 | 3): { name: string, star: number } {
  * @param star 星级
  * @returns 角色名称
  */
-function second(star: number): string {
+function second(star: number): Character {
     if (star == 3) {
         var c = Math.round(Math.random() * 1000) % choicesList.star3.length;
-        log.info(star + choicesList.star3[c]);
+        log.info(`${star}(${choicesList.star3[c].source})${choicesList.star3[c].chineseName}`);
+        //log.info(star + choicesList.star3[c]);
         return choicesList.star3[c];
     } else if (star == 2) {
         var c = Math.round(Math.random() * 1000) % choicesList.star2.length;
-        log.info(star + choicesList.star2[c]);
+        log.info(`${star}(${choicesList.star2[c].source})${choicesList.star2[c].chineseName}`);
         return choicesList.star2[c];
     } else {
         var c = Math.round(Math.random() * 1000) % choicesList.star1.length;
-        log.info(star + choicesList.star1[c]);
+        log.info(`${star}(${choicesList.star1[c].source})${choicesList.star1[c].chineseName}`);
         return choicesList.star1[c];
     }
 

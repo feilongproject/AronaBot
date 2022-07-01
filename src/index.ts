@@ -74,10 +74,16 @@ async function main() {
                             }
                             break;
                         case "/单抽出奇迹":
-                            commandRand(client, saveGuildsTree, msg, 1);
+                            commandRand(client, saveGuildsTree, msg, 0b00);
                             break;
                         case "/十连大保底":
-                            commandRand(client, saveGuildsTree, msg, 10);
+                            commandRand(client, saveGuildsTree, msg, 0b01);
+                            break;
+                        case "单抽奇迹图":
+                            commandRand(client, saveGuildsTree, msg, 0b10);
+                            break;
+                        case "十连保底图":
+                            commandRand(client, saveGuildsTree, msg, 0b11);
                             break;
                         case "签到":
                         case "/签到":
