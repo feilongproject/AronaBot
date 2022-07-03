@@ -98,6 +98,10 @@ export async function commandSign(client: OpenAPI, msg: IMessage & IMessageEx) {
     }
     sendStr += `\n今日诗词: ${poem.data.content}\n` +
         `———${poem.data.origin.author}《${poem.data.origin.title}》`;
+    if (ststus == 2 || ststus == 1 || ststus == 0) {
+        sendStr +=
+            `\n今日运势:${todayLucky()}`;
+    }
 
     sendMsg(client, msg.channel_id, msg.id, sendStr);
 
@@ -129,6 +133,25 @@ function getRandomPoemToken(): Promise<RandomPoemToken> {
         return res.json();
     });
     return token;
+}
+
+function todayLucky(): string {
+
+    var content = ``;
+    var rand = Math.random();
+
+    if (rand <= 0.2) {//[0.00,0.20]20%
+        content += `大吉`;
+    } else if (rand <= 0.4) {//(0.20~0.40]20%
+        content += `小吉`;
+    } else if (rand <= 0.2) {//(0.40~0.80]40%
+        content += `吉`;
+    } else if (rand <= 0.9) {//(0.80~0.90]10%
+        content += `凶`;
+    } else if (rand <= 1) {//(0.90~1.00]10%
+        content += `大凶`;
+    }
+    return content;
 }
 
 interface SignData {
