@@ -13,9 +13,6 @@ export async function commandSign(client: OpenAPI, msg: IMessage & IMessageEx) {
     var signData: SignData = JSON.parse(data);
 
 
-    if (!signData.randomPoem) signData.randomPoem = { token: await getRandomPoemToken() };
-    var poem = await getRandomPoem(signData.randomPoem.token);
-
     /**
      * ststus
      * 0:not found in sign users
@@ -23,25 +20,24 @@ export async function commandSign(client: OpenAPI, msg: IMessage & IMessageEx) {
      * 2:found and continue sign
      * 3:found and already signed at today
      */
-
     var nowDate = new Date();
     var todayDate = new Date(new Date().setHours(0, 0, 0, 0));
 
     if (!signData.users) signData.users = [];
     var ststus = 0;
-    var sendStr = "";
+    var sendStr = `————————签到结果————————\n`;
 
     signData.users.forEach((user, index) => {
         if (user.base.id == msg.author.id) {//found
 
-            if (user.signHistory[user.signHistory.length - 1].todayDate == todayDate.getTime()) {
+            if (user.signHistory[user.signHistory.length - 1].todayDate == todayDate.getTime()) {//3:already signed at today 
                 log.debug("type:3,found and already signed at today");
-                ststus = 3;//already signed at today  
+                ststus = 3;
 
                 sendStr += `已签到，请勿重复签到\n`;
-            } else if (user.signHistory[user.signHistory.length - 1].todayDate + 24 * 60 * 60 * 1000 == todayDate.getTime()) {
+            } else if (user.signHistory[user.signHistory.length - 1].todayDate + 24 * 60 * 60 * 1000 == todayDate.getTime()) {//2:continue sign
                 log.debug("type:2,found and continue sign");
-                ststus = 2;//continue sign
+                ststus = 2;
 
                 signData.users[index].totalSignDay++;
                 signData.users[index].continueSignDay++;//
@@ -56,9 +52,9 @@ export async function commandSign(client: OpenAPI, msg: IMessage & IMessageEx) {
                 sendStr +=
                     `已续签，连续签到${signData.users[index].continueSignDay}天,累计签到${signData.users[index].totalSignDay}天\n` +
                     `获得${signData.users[index].exp.history[signData.users[index].exp.history.length - 1].num}exp,总共${signData.users[index].exp.total}exp\n`;
-            } else {
+            } else {//1:not continue sign
                 log.debug("type:1,found but not continue sign");
-                ststus = 1;//not continue sign
+                ststus = 1;
                 signData.users[index].totalSignDay++;
                 signData.users[index].continueSignDay = 1;//
                 signData.users[index].exp.total += signData.users[index].continueSignDay;
@@ -78,7 +74,7 @@ export async function commandSign(client: OpenAPI, msg: IMessage & IMessageEx) {
         }
     })
 
-    if (ststus == 0) {
+    if (ststus == 0) {//0:not found in sign users(create a user)
         log.debug("type:0,not found in sign users(create a user)");
         signData.users.push({
             base: { id: msg.author.id, name: msg.author.username, },
@@ -96,12 +92,37 @@ export async function commandSign(client: OpenAPI, msg: IMessage & IMessageEx) {
             `获得经验${signData.users[signData.users.length - 1].exp.history[signData.users[signData.users.length - 1].exp.history.length - 1].num}exp,总共经验${signData.users[signData.users.length - 1].exp.total}exp\n`;
 
     }
-    sendStr += `\n今日诗词: ${poem.data.content}\n` +
-        `———${poem.data.origin.author}《${poem.data.origin.title}》`;
+
+
+
+
+    try {
+        if (!signData.randomPoem) signData.randomPoem = { token: await getRandomPoemToken() };
+
+        var poem: RandomPoemSentence = await getRandomPoem(signData.randomPoem.token);
+        if (poem.data) {
+            sendStr +=
+                `————————今日诗词————————\n` +
+                `《${poem.data.origin.title}》${poem.data.origin.author}\n`;
+            poem.data.origin.content.forEach((value, index, array) => {
+                sendStr +=
+                    index == array.length - 1 ? `${value}` : `${value}\n`
+            });
+            //log.debug(poem.data.origin.content);
+            //`${poem.data.content}\n`;
+        } else {
+            sendStr += poem;
+        }
+    } catch (error) {
+        log.error(error);
+    }
+
+
     if (ststus == 2 || ststus == 1 || ststus == 0) {
         sendStr +=
             `\n今日运势:${todayLucky()}`;
     }
+
 
     sendMsg(client, msg.channel_id, msg.id, sendStr);
 
@@ -110,8 +131,7 @@ export async function commandSign(client: OpenAPI, msg: IMessage & IMessageEx) {
     //sendMsg(client, msg.channel_id, msg.id, "签到正在复活");
 }
 
-
-async function getRandomPoem(token: RandomPoemToken): Promise<RandomPoemSentence> {
+function getRandomPoem(token: RandomPoemToken): Promise<RandomPoemSentence> {
 
     log.debug(`geting sentence`);
     var sentence: Promise<RandomPoemSentence> = fetch("https://v2.jinrishici.com/sentence", {
@@ -124,7 +144,6 @@ async function getRandomPoem(token: RandomPoemToken): Promise<RandomPoemSentence
     return sentence;
 
 }
-
 
 function getRandomPoemToken(): Promise<RandomPoemToken> {
 
@@ -179,11 +198,11 @@ interface ExpHistory {
     num: number,
     why: string,
 }
+
 interface SignHistory {
     nowDate: number,
     todayDate: number,
 }
-
 
 interface RandomPoemToken {
     status: "success",
