@@ -95,26 +95,27 @@ export async function commandSign(client: OpenAPI, msg: IMessage & IMessageEx) {
 
 
 
+    if (ststus == 2 || ststus == 1 || ststus == 0) {
+        try {
+            if (!signData.randomPoem) signData.randomPoem = { token: await getRandomPoemToken() };
 
-    try {
-        if (!signData.randomPoem) signData.randomPoem = { token: await getRandomPoemToken() };
-
-        var poem: RandomPoemSentence = await getRandomPoem(signData.randomPoem.token);
-        if (poem.data) {
-            sendStr +=
-                `————————今日诗词————————\n` +
-                `《${poem.data.origin.title}》${poem.data.origin.author}\n`;
-            poem.data.origin.content.forEach((value, index, array) => {
+            var poem: RandomPoemSentence = await getRandomPoem(signData.randomPoem.token);
+            if (poem.data) {
                 sendStr +=
-                    index == array.length - 1 ? `${value}` : `${value}\n`
-            });
-            //log.debug(poem.data.origin.content);
-            //`${poem.data.content}\n`;
-        } else {
-            sendStr += poem;
+                    `————————今日诗词————————\n` +
+                    `《${poem.data.origin.title}》${poem.data.origin.author}\n`;
+                poem.data.origin.content.forEach((value, index, array) => {
+                    sendStr +=
+                        index == array.length - 1 ? `${value}` : `${value}\n`
+                });
+                //log.debug(poem.data.origin.content);
+                //`${poem.data.content}\n`;
+            } else {
+                sendStr += poem;
+            }
+        } catch (error) {
+            log.error(error);
         }
-    } catch (error) {
-        log.error(error);
     }
 
 
