@@ -34,7 +34,7 @@ export async function commandSign(client: OpenAPI, msg: IMessage & IMessageEx) {
                 log.debug("type:3,found and already signed at today");
                 ststus = 3;
 
-                sendStr += `已签到，请勿重复签到\n`;
+                sendStr += `已签到，请勿重复签到`;
             } else if (user.signHistory[user.signHistory.length - 1].todayDate + 24 * 60 * 60 * 1000 == todayDate.getTime()) {//2:continue sign
                 log.debug("type:2,found and continue sign");
                 ststus = 2;
@@ -51,7 +51,7 @@ export async function commandSign(client: OpenAPI, msg: IMessage & IMessageEx) {
 
                 sendStr +=
                     `已续签，连续签到${signData.users[index].continueSignDay}天,累计签到${signData.users[index].totalSignDay}天\n` +
-                    `获得${signData.users[index].exp.history[signData.users[index].exp.history.length - 1].num}exp,总共${signData.users[index].exp.total}exp\n`;
+                    `获得${signData.users[index].exp.history[signData.users[index].exp.history.length - 1].num}exp,总共${signData.users[index].exp.total}exp`;
             } else {//1:not continue sign
                 log.debug("type:1,found but not continue sign");
                 ststus = 1;
@@ -67,7 +67,7 @@ export async function commandSign(client: OpenAPI, msg: IMessage & IMessageEx) {
 
                 sendStr +=
                     `断签已续，连续签到${signData.users[index].continueSignDay}天,累计签到${signData.users[index].totalSignDay}天\n` +
-                    `获得${signData.users[index].exp.history[signData.users[index].exp.history.length - 1].num}exp,总共${signData.users[index].exp.total}exp\n`;
+                    `获得${signData.users[index].exp.history[signData.users[index].exp.history.length - 1].num}exp,总共${signData.users[index].exp.total}exp`;
 
             }
 
@@ -89,11 +89,14 @@ export async function commandSign(client: OpenAPI, msg: IMessage & IMessageEx) {
 
         sendStr +=
             `第一次使用签到，连续签到${signData.users[signData.users.length - 1].continueSignDay}天,累计签到${signData.users[signData.users.length - 1].totalSignDay}天\n` +
-            `获得经验${signData.users[signData.users.length - 1].exp.history[signData.users[signData.users.length - 1].exp.history.length - 1].num}exp,总共经验${signData.users[signData.users.length - 1].exp.total}exp\n`;
+            `获得经验${signData.users[signData.users.length - 1].exp.history[signData.users[signData.users.length - 1].exp.history.length - 1].num}exp,总共经验${signData.users[signData.users.length - 1].exp.total}exp`;
 
     }
 
-
+    if (ststus == 2 || ststus == 1 || ststus == 0) {
+        sendStr +=
+            `\n今日运势:${todayLucky()}`;
+    }
 
     if (ststus == 2 || ststus == 1 || ststus == 0) {
         try {
@@ -102,7 +105,7 @@ export async function commandSign(client: OpenAPI, msg: IMessage & IMessageEx) {
             var poem: RandomPoemSentence = await getRandomPoem(signData.randomPoem.token);
             if (poem.data) {
                 sendStr +=
-                    `————————今日诗词————————\n` +
+                    `\n————————今日诗词————————\n` +
                     `《${poem.data.origin.title}》${poem.data.origin.author}\n`;
                 poem.data.origin.content.forEach((value, index, array) => {
                     sendStr +=
@@ -119,10 +122,6 @@ export async function commandSign(client: OpenAPI, msg: IMessage & IMessageEx) {
     }
 
 
-    if (ststus == 2 || ststus == 1 || ststus == 0) {
-        sendStr +=
-            `\n今日运势:${todayLucky()}`;
-    }
 
 
     sendMsg(client, msg.channel_id, msg.id, sendStr);
