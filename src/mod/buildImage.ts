@@ -59,15 +59,17 @@ export async function buildImage(characterNames: { name: Character, star: number
 
         //files.push();
 
-        const pic = await sharp(config.picPath.background)
+        return sharp(config.picPath.background)
             .composite(files)
             .png({
                 compressionLevel: 6, quality: 5
             })
-            .toFile(tmpOutPath);
+            .toFile(tmpOutPath).then(() => {
+                return tmpOutPath;
+            });
 
 
-        return tmpOutPath;
+
 
     }
 

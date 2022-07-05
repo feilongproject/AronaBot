@@ -20,10 +20,11 @@ export async function commandRand(client: OpenAPI, saveGuildsTree: SaveGuild[], 
         if ((index == -1) || (userHistory[index].lastTime + dayMaxTimes <= nowTime) || (msg.author.username.includes(admin))) {
 
             //log.info(`${content}|`);
-            const sendStr = await randChoice(userChoice, msg);
-            if (sendStr != null) {
-                sendMsg(client, msg.channel_id, msg.id, sendStr);
-            }
+            randChoice(userChoice, msg).then(sendStr => {
+                if (sendStr != null) {
+                    sendMsg(client, msg.channel_id, msg.id, sendStr);
+                }
+            });
             //switch
             if (index == -1) {
                 userHistory.push({ id: msg.author.id, lastTime: nowTime, });
@@ -32,7 +33,7 @@ export async function commandRand(client: OpenAPI, saveGuildsTree: SaveGuild[], 
                 userHistory[index].lastTime = nowTime;
             }
         } else {
-            await client.messageApi.postMessage(msg.channel_id, {
+            client.messageApi.postMessage(msg.channel_id, {
                 content: `请求时间过短，还有${(userHistory[index].lastTime + dayMaxTimes - nowTime) / 1000}s冷却完毕`,
                 msg_id: msg.id,
                 message_reference: {
@@ -86,11 +87,11 @@ async function randChoice(choices: number, msg: IMessage): Promise<string | null
 
             return null;
         case 0b11://image + 10times
-            var imgPath = await buildImage(cTime(10));
-            //log.debug(imgPath);
-            //imgPath = "/root/RemoteDir/qbot/BAbot/data/pic/bg.png";
-
-            sendImage(msg, imgPath);
+            buildImage(cTime(10)).then(imgPath => {
+                //log.debug(imgPath);
+                //imgPath = "/root/RemoteDir/qbot/BAbot/data/pic/bg.png"; 
+                sendImage(msg, imgPath);
+            });
             return null;
         default:
             return null;

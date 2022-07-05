@@ -138,13 +138,12 @@ export async function ostracism(client: OpenAPI, msg: IMessage & IMessageEx) {
             if (agree > against) {
                 if (o.type.id == 0 && o.type.forUser) {
 
-                    try {
-                        client.muteApi.muteMember(o.guildId, o.type.forUser.id, { seconds: o.type.seconds });
-                        sendStr += `同意大于反对,已对用户${o.type.forUser.name}执行禁言\n`;
-                    } catch (error) {
+                    client.muteApi.muteMember(o.guildId, o.type.forUser.id, { seconds: o.type.seconds }).then(() => {
+                        sendStr += `同意大于反对,已对用户${o.type.forUser?.name}执行禁言\n`;
+                    }).catch((error) => {
                         log.error(error);
                         sendStr += `执行禁言时发生了一些错误${error}\n`;
-                    }
+                    });
 
                     //sendMsg(client, msg.channel_id, msg.id, `当前同意大于反对，执行禁言`);
                 } else if (o.type.id == 1) {

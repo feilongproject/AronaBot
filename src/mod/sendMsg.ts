@@ -6,10 +6,10 @@ import config from '../../data/config.json';
 import log from './logger';
 
 
-export async function sendMsg(client: any, channelId: string, msgId: string, content: string) {
+export function sendMsg(client: any, channelId: string, msgId: string, content: string) {
 
 
-    await client.messageApi.postMessage(channelId, {
+    client.messageApi.postMessage(channelId, {
         content: content,
         msg_id: msgId,
         message_reference: {
@@ -35,19 +35,19 @@ export async function sendImage(msg: IMessage, picName: string,) {
     //formdata.append("content", "123456")
     formdata.append("file_image", picData);
 
-    await fetch(`https://api.sgroup.qq.com/channels/${msg.channel_id}/messages`, {
+    fetch(`https://api.sgroup.qq.com/channels/${msg.channel_id}/messages`, {
         method: "POST",
         headers: {
             "Content-Type": formdata.getHeaders()["content-type"],
-            "Authorization": `Bot ${config.appID}.${config.token}`
+            "Authorization": `Bot ${config.initConfig.appID}.${config.initConfig.token}`
         },
         body: formdata
 
-    }).then(async res => {
-        const body = await res.json();
+    }).then(res => {
+        return res.json();
+    }).then(body => {
         if (body.code)
             throw new Error(body);
-
     }).catch(error => {
         log.error(error);
     })
