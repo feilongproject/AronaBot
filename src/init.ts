@@ -1,35 +1,38 @@
-import { createOpenAPI, createWebsocket } from 'qq-guild-bot';
+import { createOpenAPI, createWebsocket, OpenAPI } from 'qq-guild-bot';
 import log from './mod/logger';
 
-export async function init(config: any) {
+export function init(config: any) {
 
     var saveGuildsTree: SaveGuild[] = [];
 
-    var client = createOpenAPI(config);
-    var ws = createWebsocket(config);
+    var client = createOpenAPI(config), ws = createWebsocket(config);
 
-    var meId = (await client.meApi.me()).data.id;
-    var guilds = await client.meApi.meGuilds();
-    //log.info(guilds.data);
+    return client.meApi.me().then(res => {
+        var meId = res.data.id;
 
-    guilds.data.forEach(async (guild) => {
-        log.info(`${guild.name}(${guild.id})`);
-        var _guild: SaveChannel[] = [];
-        //log.info(guild.id);
-        //log.info(guild.channels);
-        var channels = await client.channelApi.channels(guild.id);
-        //log.info(channels.data);
-        channels.data.forEach((channel => {
-            if (channel.name != "") {
-                log.info(`${guild.name}(${guild.id})-${channel.name}(${channel.id})-father:${channel.parent_id}`);
-            }
-            _guild.push({ name: channel.name, id: channel.id });
+        return client.meApi.meGuilds().then(guilds => {
 
-        }))
+            guilds.data.forEach(guild => {
+                log.info(`${guild.name}(${guild.id})`);
+                var _guild: SaveChannel[] = [];
+                //log.info(guild.id);
+                //log.info(guild.channels);
+                client.channelApi.channels(guild.id).then(channels => {
+                    channels.data.forEach((channel => {
+                        if (channel.name != "") {
+                            log.info(`${guild.name}(${guild.id})-${channel.name}(${channel.id})-father:${channel.parent_id}`);
+                        }
+                        _guild.push({ name: channel.name, id: channel.id });
+                    }));
 
-        saveGuildsTree.push({ name: guild.name, id: guild.id, channel: _guild });
+                    saveGuildsTree.push({ name: guild.name, id: guild.id, channel: _guild });
+                });
 
+
+
+            });
+            return { client, ws, saveGuildsTree, meId };
+        });
     });
 
-    return { client, ws, saveGuildsTree, meId };
 }

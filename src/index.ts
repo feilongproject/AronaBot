@@ -1,22 +1,16 @@
 import { IMessage } from 'qq-guild-bot';
 import { init } from './init';
-import { findChannel, findGuilds } from './mod/findChannel';
+import { findGuilds } from './mod/findChannel';
 import log from './mod/logger';
-
-import config from '../data/config.json';
 import { sendMsg } from './mod/sendMsg';
 import { commandRand } from './command/rand';
 import { ostracism } from './command/ostracism';
 import { commandSign } from './command/sign';
+import config from '../data/config.json';
 
-const admin = "飞龙project";
-
-
-async function main() {
-    var { client, ws, saveGuildsTree, meId } = await init(config);
-
-
-    ws.on('PUBLIC_GUILD_MESSAGES', async (data: IntentMessage) => {
+init(config.initConfig).then(initConfig => {
+    const { client, ws, saveGuildsTree, meId } = initConfig;
+    ws.on('PUBLIC_GUILD_MESSAGES', (data: IntentMessage) => {
         //log.info(mainGuild, typeof mainGuild);
         //log.info(JSON.stringify(data));
         if (data.eventType == 'AT_MESSAGE_CREATE') {
@@ -33,6 +27,7 @@ async function main() {
                             if (channel.id == msg.channel_id) {
                                 msg.guild_name = guild.name;
                                 msg.channel_name = channel.name;
+                                //log.info(msg.id, msg.channel_id);
                                 log.info(`{${guild.name}}[${channel.name}](${msg.author.username}):${msg.content}`), messageNotFound = false;
                                 return;
                             }
@@ -49,28 +44,36 @@ async function main() {
                 var content = msg.content.slice(`<@!${meId}>`.length);
                 //log.info(`${content}|`);
 
-                if (findGuilds(saveGuildsTree, msg.guild_id) || msg.author.username == admin) {
+                if (findGuilds(saveGuildsTree, msg.guild_id) || msg.author.username == config.admin || msg.guild_name == "QQ频道机器人测试频道") {
                     var useCommand = false;
 
                     content = content.trim();
-                    if (content.startsWith("陶片放逐")) {
+                    if (content.startsWith("陶片放逐") || content.startsWith("/陶片放逐")) {
                         msg.content = content;
-                        ostracism(client, msg);
+                        try {
+                            ostracism(client, msg);
+
+                        } catch (error) {
+                            log.error(error);
+                        }
+
                         useCommand = true;
                     }
 
                     switch (content) {
                         case "stopBot":
-                            if (msg.author.username == admin) {
+                            if (msg.author.username == config.admin) {
                                 log.info("stoping");
-                                await client.messageApi.postMessage(msg.channel_id, {
+                                client.messageApi.postMessage(msg.channel_id, {
                                     content: "ok",
                                     msg_id: msg.id,
                                     message_reference: {
                                         message_id: msg.id,
                                     },
-                                });
-                                process.exit();
+                                }).then(() => {
+                                    process.exit();
+                                })
+
                             }
                             break;
                         case "/单抽出奇迹":
@@ -82,6 +85,7 @@ async function main() {
                         case "单抽奇迹图":
                             commandRand(client, saveGuildsTree, msg, 0b10);
                             break;
+                        case "/十连保底图":
                         case "十连保底图":
                             commandRand(client, saveGuildsTree, msg, 0b11);
                             break;
@@ -99,7 +103,7 @@ async function main() {
                     }
                 } else {
                     log.error(`unAuth guild:${msg.guild_name}(${msg.guild_id})|||user:${msg.author.username}`);
-                    sendMsg(client, msg.channel_id, msg.id, "未经授权的操作，请联系机器人管理员获取授权");
+                    sendMsg(client, msg.channel_id, msg.id, "未经授权或权限树尚未加载完毕，请重试");
                 }
 
 
@@ -111,10 +115,7 @@ async function main() {
         }
 
     })
-}
-
-main();
-
+});
 
 
 
