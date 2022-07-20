@@ -7,6 +7,7 @@ import { commandRand } from './command/rand';
 import { ostracism } from './command/ostracism';
 import { commandSign } from './command/sign';
 import config from '../data/config.json';
+import { commandALA } from './command/ALA';
 
 init(config.initConfig).then(initConfig => {
     const { client, ws, saveGuildsTree, meId } = initConfig;
@@ -42,13 +43,15 @@ init(config.initConfig).then(initConfig => {
                 //log.debug(msg.channel_id);
                 //log.debug(saveGuilds[3].channel);
                 var content = msg.content.slice(`<@!${meId}>`.length);
+                content = content.trim();
                 //log.info(`${content}|`);
 
                 if (findGuilds(saveGuildsTree, msg.guild_id) || msg.author.username == config.admin || msg.guild_name == "QQ频道机器人测试频道") {
                     var useCommand = false;
 
-                    content = content.trim();
-                    if (content.startsWith("陶片放逐") || content.startsWith("/陶片放逐")) {
+                    var opts = content.split(" ");
+
+                    if (opts[0] == "陶片放逐" || opts[0] == "/陶片放逐") {
                         msg.content = content;
                         try {
                             ostracism(client, msg);
@@ -60,7 +63,7 @@ init(config.initConfig).then(initConfig => {
                         useCommand = true;
                     }
 
-                    switch (content) {
+                    switch (opts[0]) {
                         case "stopBot":
                             if (msg.author.username == config.admin) {
                                 log.info("stoping");
@@ -92,6 +95,10 @@ init(config.initConfig).then(initConfig => {
                         case "签到":
                         case "/签到":
                             commandSign(client, msg);
+                            break;
+                        case "奥利奥":
+                        case "/奥利奥":
+                            commandALA(client, msg, opts[1]);
                             break;
                         default:
                             if (useCommand == false) {
