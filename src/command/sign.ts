@@ -1,4 +1,3 @@
-import { IMessage, OpenAPI } from "qq-guild-bot";
 import fs from "fs";
 import fetch from "node-fetch";
 import log from "../mod/logger";
