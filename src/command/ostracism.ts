@@ -1,17 +1,19 @@
-import { IMessage, OpenAPI } from "qq-guild-bot";
 import fs from "fs";
 import log from "../mod/logger";
-import { sendMsg } from "../mod/sendMsg";
-const userDataFile = "./dist/file/ostracismData.json";
+import ostracismWord from "../../data/ostracismWord.json";
+import { Messager } from "../mod/messager";
+import { Databaser } from "../mod/databaser";
+const userDataFile = "./data/ostracismData.json";
 
-export async function ostracism(client: OpenAPI, msg: IMessage & IMessageEx) {
 
-    var { content } = msg;//
+export async function ostracism(pusher: Databaser, messager: Messager) {
+
+    var { content } = messager.msg;//
     var command = content.slice(5, 10).trim();
     var otherContent = content.slice(10).trim();
     log.info(`command:${command},otherContent:${otherContent}`);
-    if (otherContent.trim() == "" && command != "结束议题") {
-        sendMsg(client, msg.channel_id, msg.id, `议题标题为空，请重试`);
+    if (otherContent?.trim() == "" && command != "结束议题") {
+        pusher.sendMsg(messager, `议题标题为空，请重试`);
         return;
     }
 
@@ -20,6 +22,10 @@ export async function ostracism(client: OpenAPI, msg: IMessage & IMessageEx) {
     if (ostracismData.iv == undefined) ostracismData = { iv: 0, list: [], };
 
     //log.info(msg);
+
+    /*     if (findCommand(command, "create")) {
+    
+        } */
 
     switch (command) {
         case "/创建议题":
@@ -55,8 +61,8 @@ export async function ostracism(client: OpenAPI, msg: IMessage & IMessageEx) {
             }
 
             ostracismData.list.push({
-                guildId: msg.guild_id,
-                guildName: msg.guild_name ? msg.guild_name : "null",
+                guildId: messager.msg.guild_id,
+                guildName: messager.msg.guildName ? messager.msg.guildName : "null",
                 title: otherContent,
                 infos: [],
                 opinion: { agree: [], against: [], abstain: [], },
@@ -64,18 +70,18 @@ export async function ostracism(client: OpenAPI, msg: IMessage & IMessageEx) {
                 type: {
                     id: typeId,
                     seconds: seconds.toString(),
-                    forUser: msg.mentions[1] == null ? undefined : { id: msg.mentions[1].id, name: msg.mentions[1].username, },
+                    forUser: messager.msg.mentions[1] == null ? undefined : { id: messager.msg.mentions[1].id, name: messager.msg.mentions[1].username, },
                 },
             });
             ostracismData.iv = ostracismData.list.length - 1;
-            sendMsg(client, msg.channel_id, msg.id, `创建完成，类型:${typeId},编号:${ostracismData.iv}\n频道:${msg.guild_name ? msg.guild_name : "null"}(${msg.guild_id})\n标题:${otherContent}${msg.mentions[1] == null ? "" : `\n目标用户:<@${msg.mentions[1].id}>`}`);
+            pusher.sendMsg(messager, `创建完成，类型:${typeId},编号:${ostracismData.iv}\n频道:${messager.msg.guildName ? messager.msg.guildName : "null"}(${messager.msg.guild_id})\n标题:${otherContent}${messager.msg.mentions[1] == null ? "" : `\n目标用户:<@${messager.msg.mentions[1].id}>`}`);
             break;
         case "编辑议题":
             //msg.attachments
-            log.debug(msg.attachments);
+            log.debug(messager.msg.attachments);
             (ostracismData.list[ostracismData.iv].infos as unknown as InfoType[]).push({
                 content: otherContent,
-                attachments: msg.attachments as unknown as Attachments[],
+                attachments: messager.msg.attachments as unknown as Attachments[],
 
             });
 
@@ -85,8 +91,8 @@ export async function ostracism(client: OpenAPI, msg: IMessage & IMessageEx) {
         case "查询议题":
             if (otherContent != "") {
                 ostracismData.iv = parseInt(content.slice(10));
+                pusher.sendMsg(messager, `查询编号:${ostracismData.iv}\n标题:${ostracismData.list[ostracismData.iv].title}\n内容:${ostracismData.list[ostracismData.iv].infos}`);
             }
-            sendMsg(client, msg.channel_id, msg.id, `查询编号:${ostracismData.iv}\n标题:${ostracismData.list[ostracismData.iv].title}\n内容:${ostracismData.list[ostracismData.iv].content}`);
             break;
         case "投票":
         case "提议投票":
@@ -101,16 +107,16 @@ export async function ostracism(client: OpenAPI, msg: IMessage & IMessageEx) {
                 case "认同":
                 case "同意":
                 case "赞成":
-                    ostracismData.list[ostracismData.iv].opinion.agree.push({ id: msg.author.id, name: msg.author.username });
+                    ostracismData.list[ostracismData.iv].opinion.agree.push({ id: messager.msg.author.id, name: messager.msg.author.username });
                     optionStr += `已记录赞成意见\n`;
                     break;
                 case "一斤鸭梨":
                 case "反对":
-                    ostracismData.list[ostracismData.iv].opinion.against.push({ id: msg.author.id, name: msg.author.username });
+                    ostracismData.list[ostracismData.iv].opinion.against.push({ id: messager.msg.author.id, name: messager.msg.author.username });
                     optionStr += `已记录反对意见\n`;
                     break;
                 case "弃权":
-                    ostracismData.list[ostracismData.iv].opinion.abstain.push({ id: msg.author.id, name: msg.author.username });
+                    ostracismData.list[ostracismData.iv].opinion.abstain.push({ id: messager.msg.author.id, name: messager.msg.author.username });
                     optionStr += `已记录弃权意见\n`;
                     break;
                 default:
@@ -121,7 +127,7 @@ export async function ostracism(client: OpenAPI, msg: IMessage & IMessageEx) {
             }
             const options = ostracismData.list[ostracismData.iv].opinion;
             optionStr += `当前票数统计结果(赞成/反对/弃权):${options.agree.length}/${options.against.length}/${options.abstain.length}`;
-            sendMsg(client, msg.channel_id, msg.id, optionStr);
+            pusher.sendMsg(messager, optionStr);
 
             //}
             break;
@@ -138,12 +144,12 @@ export async function ostracism(client: OpenAPI, msg: IMessage & IMessageEx) {
             if (agree > against) {
                 if (o.type.id == 0 && o.type.forUser) {
 
-                    client.muteApi.muteMember(o.guildId, o.type.forUser.id, { seconds: o.type.seconds }).then(() => {
+                    /* client.muteApi.muteMember(o.guildId, o.type.forUser.id, { seconds: o.type.seconds }).then(() => {
                         sendStr += `同意大于反对,已对用户${o.type.forUser?.name}执行禁言\n`;
                     }).catch((error) => {
                         log.error(error);
                         sendStr += `执行禁言时发生了一些错误${error}\n`;
-                    });
+                    }); */
 
                     //sendMsg(client, msg.channel_id, msg.id, `当前同意大于反对，执行禁言`);
                 } else if (o.type.id == 1) {
@@ -156,11 +162,11 @@ export async function ostracism(client: OpenAPI, msg: IMessage & IMessageEx) {
                 //sendMsg(client, msg.channel_id, msg.id, `当前`);
             }
             sendStr += `当前议题已存档，编号${ostracismData.iv}`;
-            sendMsg(client, msg.channel_id, msg.id, sendStr);
+            pusher.sendMsg(messager, sendStr);
             break;
         //ostracismData.list[ostracismData.iv];
         default:
-            sendMsg(client, msg.channel_id, msg.id, `未知命令`);
+            pusher.sendMsg(messager, `未知命令`);
             break;
     }
 
@@ -177,10 +183,31 @@ function findOpinion(this: any, value: Member, index: number, obj: Member[]): bo
     if (value.id == this)
         return true;
     else return false;
-
 }
 
+function findCommand(key: string, type: string): boolean {
+    Object.keys(ostracismWord).forEach((obj) => {
+        const word = ostracismWord[obj as keyof OstracismWord];
+        //log.debug(obj);
+        //log.debug(word);
+        //console.log(k, obj[k as keyof Person].toUpperCase());
+    })
+    return false;
+}
 
+interface OstracismWord {
+    create: {
+        index: string[],
+    },
+    vote: {
+        index: string[],
+        opinion: {
+            agree: string[],
+            against: string[],
+            abstain: string[],
+        }
+    }
+}
 
 interface OstracismData {
     iv: number,

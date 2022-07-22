@@ -22,11 +22,6 @@ declare global {
     id: string,
   }
 
-  interface IMessageEx {
-    guild_name?: string,
-    channel_name?: string,
-  }
-
   interface Member {
     id: string,
     name: string,

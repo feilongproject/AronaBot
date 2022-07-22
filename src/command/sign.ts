@@ -1,12 +1,13 @@
 import { IMessage, OpenAPI } from "qq-guild-bot";
-import { sendMsg } from "../mod/sendMsg";
 import fs from "fs";
 import fetch from "node-fetch";
 import log from "../mod/logger";
+import { Messager } from "../mod/messager";
+import { Databaser } from "../mod/databaser";
 
 const signDataFile = "./data/signData.json";
 
-export async function commandSign(client: OpenAPI, msg: IMessage & IMessageEx) {
+export async function commandSign(pusher: Databaser, messager: Messager) {
 
     var data = fs.readFileSync(signDataFile, { encoding: "utf-8" });
     if (data.trim() == "") data = "{}";
@@ -28,7 +29,7 @@ export async function commandSign(client: OpenAPI, msg: IMessage & IMessageEx) {
     var sendStr = `————————签到结果————————\n`;
 
     signData.users.forEach((user, index) => {
-        if (user.base.id == msg.author.id) {//found
+        if (user.base.id == messager.msg.author.id) {//found
 
             if (user.signHistory[user.signHistory.length - 1].todayDate == todayDate.getTime()) {//3:already signed at today 
                 log.debug("type:3,found and already signed at today");
@@ -77,7 +78,7 @@ export async function commandSign(client: OpenAPI, msg: IMessage & IMessageEx) {
     if (ststus == 0) {//0:not found in sign users(create a user)
         log.debug("type:0,not found in sign users(create a user)");
         signData.users.push({
-            base: { id: msg.author.id, name: msg.author.username, },
+            base: { id: messager.msg.author.id, name: messager.msg.author.username, },
             exp: {
                 total: 10,
                 history: [{ date: nowDate.getTime(), num: 10, why: "初次使用签到功能", }],
@@ -124,7 +125,7 @@ export async function commandSign(client: OpenAPI, msg: IMessage & IMessageEx) {
 
 
 
-    sendMsg(client, msg.channel_id, msg.id, sendStr);
+    pusher.sendMsg(messager, sendStr);
 
     fs.writeFileSync(signDataFile, JSON.stringify(signData), { encoding: "utf-8" });
 

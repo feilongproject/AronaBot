@@ -1,9 +1,9 @@
-import { IMessage, OpenAPI } from "qq-guild-bot";
 import { findChannel } from "../mod/findChannel";
 import log from "../mod/logger";
 import choicesList from "../../data/choices.json";
-import { sendImage, sendMsg } from "../mod/sendMsg";
 import { buildImage } from "../mod/buildImage";
+import { Messager } from "../mod/messager";
+import { Databaser } from "../mod/databaser";
 
 var userHistory: UserHistory[] = [];
 const dayMaxTimes = 59000;
@@ -11,41 +11,37 @@ const admin = "飞龙project";
 
 
 
-export async function commandRand(client: OpenAPI, saveGuildsTree: SaveGuild[], msg: IMessage & IMessageEx, userChoice: number): Promise<void> {
+export async function commandRand(pusher: Databaser, messager: Messager, userChoice: number): Promise<void> {
 
-    if (findChannel(saveGuildsTree, msg.channel_id) || msg.guild_name == "QQ频道机器人测试频道") {
+    if (findChannel(pusher.saveGuildsTree, messager.msg.channel_id) || messager.msg.guildName == "QQ频道机器人测试频道") {
 
-        var index = userHistory.findIndex((i) => { return i.id == msg.author.id });
+        var index = userHistory.findIndex((i) => { return i.id == messager.msg.author.id });
         var nowTime = new Date().getTime();
-        if ((index == -1) || (userHistory[index].lastTime + dayMaxTimes <= nowTime) || (msg.author.username.includes(admin))) {
+        if ((index == -1) || (userHistory[index].lastTime + dayMaxTimes <= nowTime) || (messager.msg.author.username.includes(admin))) {
 
             //log.info(`${content}|`);
-            randChoice(userChoice, msg).then(sendStr => {
-                if (sendStr != null) {
-                    sendMsg(client, msg.channel_id, msg.id, sendStr);
+            randChoice(userChoice,).then(sendStr => {
+                if (sendStr?.content) {
+                    pusher.sendMsg(messager, sendStr.content);
+                } else if (sendStr?.picPath) {
+                    pusher.sendImage(messager, sendStr.picPath);
                 }
             });
             //switch
             if (index == -1) {
-                userHistory.push({ id: msg.author.id, lastTime: nowTime, });
-                log.debug(`push history:${msg.author.id},lastTime:${nowTime}`);
+                userHistory.push({ id: messager.msg.author.id, lastTime: nowTime, });
+                log.debug(`push history:${messager.msg.author.id},lastTime:${nowTime}`);
             } else {
                 userHistory[index].lastTime = nowTime;
             }
         } else {
-            client.messageApi.postMessage(msg.channel_id, {
-                content: `请求时间过短，还有${(userHistory[index].lastTime + dayMaxTimes - nowTime) / 1000}s冷却完毕`,
-                msg_id: msg.id,
-                message_reference: {
-                    message_id: msg.id,
-                },
-            });
+            pusher.sendMsg(messager, `请求时间过短，还有${(userHistory[index].lastTime + dayMaxTimes - nowTime) / 1000}s冷却完毕`);
         }
 
 
     } else {
-        log.warn(`unAuth channel id:${msg.channel_id}|||user:${msg.author.username}`);
-        sendMsg(client, msg.channel_id, msg.id, `当前子频道未授权,请在隔壁使用`);
+        log.warn(`unAuth channel id:${messager.msg.channel_id}|||user:${messager.msg.author.username}`);
+        pusher.sendMsg(messager, `当前子频道未授权,请在隔壁使用`);
     }
 
 
@@ -57,18 +53,19 @@ export async function commandRand(client: OpenAPI, saveGuildsTree: SaveGuild[], 
  * 第0位：1/0（十连/单抽）
  * 第1位：1/0（图片/文本）
  * @param choices 选择条件，以二进制为准
- * @param msg IMessage类型
  * @returns 返回本次抽卡结果
  */
-async function randChoice(choices: number, msg: IMessage): Promise<string | null> {
+async function randChoice(choices: number): Promise<{ content?: string, picPath?: string } | null> {
     //三星角色（彩色卡背）的抽取概率为2.5，二星角色（金色卡背）为18.5，一星角色（灰色卡背）为79
 
     switch (choices) {
         case 0b00://str + 1times
             var o = cTime(1);
 
-            return `————————单抽结果————————\n` +
-                `(${choicesList.starString[o[0].star]})(${o[0].name.source})${o[0].name.chineseName}`;
+            return {
+                content: `————————单抽结果————————\n` +
+                    `(${choicesList.starString[o[0].star]})(${o[0].name.source})${o[0].name.chineseName}`
+            };
 
         case 0b01://str + 10times
             var o = cTime(10);
@@ -79,20 +76,20 @@ async function randChoice(choices: number, msg: IMessage): Promise<string | null
                 content += `(${choicesList.starString[o[index].star]})(${o[index].name.source})${o[index].name.chineseName}\n`;
             });
 
-            return content +
-                `—————————————————————\n` +
-                `结果仅供娱乐，具体请以实际欧/非气为准` + `\n图片功能添加中，会时不时抽风`;
+            return {
+                content: content +
+                    `—————————————————————\n` +
+                    `结果仅供娱乐，具体请以实际欧/非气为准` + `\n图片抽卡功能添加完成，目前可用`
+            };
 
         case 0b10://image + 1times
 
             return null;
         case 0b11://image + 10times
-            buildImage(cTime(10)).then(imgPath => {
-                //log.debug(imgPath);
-                //imgPath = "/root/RemoteDir/qbot/BAbot/data/pic/bg.png"; 
-                sendImage(msg, imgPath);
-            });
-            return null;
+
+            return {
+                picPath: await buildImage(cTime(10)),
+            };
         default:
             return null;
     }

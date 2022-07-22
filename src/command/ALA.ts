@@ -1,20 +1,20 @@
-import { IMessage, OpenAPI } from "qq-guild-bot";
 import sharp from "sharp";
 import config from "../../data/config.json";
+import { Databaser } from "../mod/databaser";
 import log from "../mod/logger";
-import { sendImage, sendMsg } from "../mod/sendMsg";
-export async function commandALA(client: OpenAPI, msg: IMessage & IMessageEx, content: string) {
+import { Messager } from "../mod/messager";
+export async function commandALA(pusher: Databaser, messager: Messager, content: string) {
 
 
     //var content = msg.content;
-    if (content.length > 8) {
+    if (content.length <= 15) {
         const alaQueue = buildALA(content);
         //gm()
         buildImage(alaQueue).then(outPath => {
-            sendImage(msg, outPath);
+            pusher.sendImage(messager, outPath);
         });
     } else {
-        sendMsg(client, msg.channel_id, msg.id, "奥利奥过长");
+        pusher.sendMsg(messager, "奥利奥过长,最长可允许长度为15");
     }
 
 
