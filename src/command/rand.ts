@@ -20,11 +20,11 @@ export async function commandRand(pusher: Databaser, messager: Messager, userCho
         if ((index == -1) || (userHistory[index].lastTime + dayMaxTimes <= nowTime) || (messager.msg.author.username.includes(admin))) {
 
             //log.info(`${content}|`);
-            randChoice(userChoice,).then(sendStr => {
-                if (sendStr?.content) {
+            randChoice(userChoice).then(sendStr => {
+                if (sendStr?.picPath) {
+                    pusher.sendImage(messager, sendStr.picPath, sendStr?.content);
+                } else if (sendStr?.content) {
                     pusher.sendMsg(messager, sendStr.content);
-                } else if (sendStr?.picPath) {
-                    pusher.sendImage(messager, sendStr.picPath);
                 }
             });
             //switch
