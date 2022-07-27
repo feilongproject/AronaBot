@@ -57,13 +57,15 @@ export class Databaser {
         });
     }
 
-    sendMsg(messager: Messager, content: string) {
-        this.client.messageApi.postMessage(messager.msg.channel_id, {
+    async sendMsg(messager: Messager, content: string) {
+        return this.client.messageApi.postMessage(messager.msg.channel_id, {
             content: content,
             msg_id: messager.msg.id,
             message_reference: {
                 message_id: messager.msg.id,
             },
+        }).then(res => {
+            return res.data;
         });
     }
 
