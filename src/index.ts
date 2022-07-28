@@ -9,6 +9,7 @@ import config from '../data/config.json';
 import { commandALA } from './command/ALA';
 import { commandStatus } from './command/status';
 import { Messager } from './mod/messager';
+import { commandRandSetting } from './command/randSetting';
 
 
 
@@ -50,6 +51,10 @@ init().then(initConfig => {
                         case "/十连保底图":
                         case "十连保底图":
                             commandRand(pusher, messager, 0b11);
+                            break;
+                        case "抽卡设置":
+                        case "/抽卡设置":
+                            commandRandSetting(pusher, messager, opts);
                             break;
                         case "签到":
                         case "/签到":

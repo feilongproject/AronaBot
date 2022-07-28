@@ -3,7 +3,7 @@ import log from "../mod/logger";
 import choicesList from "../../data/choices.json";
 import { buildImage } from "../mod/buildImage";
 import { Messager } from "../mod/messager";
-import { Databaser } from "../mod/databaser";
+import { Databaser, DatabaseUserPoolSetting } from "../mod/databaser";
 
 var userHistory: UserHistory[] = [];
 const dayMaxTimes = 59000;
@@ -20,9 +20,9 @@ export async function commandRand(pusher: Databaser, messager: Messager, userCho
         if ((index == -1) || (userHistory[index].lastTime + dayMaxTimes <= nowTime) || (messager.msg.author.username.includes(admin))) {
 
             //log.info(`${content}|`);
-            randChoice(userChoice).then(sendStr => {
+            randChoice(userChoice, pusher, messager).then(sendStr => {
                 if (sendStr?.picPath) {
-                    pusher.sendImage(messager, sendStr.picPath, `<@${messager.msg.author.id}>`);
+                    pusher.sendImage(messager, sendStr.picPath, `<@${messager.msg.author.id}>\n${sendStr.content}`);
                 } else if (sendStr?.content) {
                     pusher.sendMsg(messager, sendStr.content);
                 }
@@ -55,23 +55,22 @@ export async function commandRand(pusher: Databaser, messager: Messager, userCho
  * @param choices 选择条件，以二进制为准
  * @returns 返回本次抽卡结果
  */
-async function randChoice(choices: number): Promise<{ content?: string, picPath?: string } | null> {
+async function randChoice(choices: number, pusher: Databaser, messager: Messager): Promise<{ content?: string, picPath?: string } | null> {
     //三星角色（彩色卡背）的抽取概率为2.5，二星角色（金色卡背）为18.5，一星角色（灰色卡背）为79
 
     switch (choices) {
         case 0b00://str + 1times
-            var o = cTime(1);
 
+            var o = cTime(1);
             return {
                 content: `————————单抽结果————————\n` +
                     `(${choicesList.starString[o[0].star]})(${o[0].name.source})${o[0].name.chineseName}`
             };
 
         case 0b01://str + 10times
-            var o = cTime(10);
-
             var content = `————————十连结果————————\n`;
 
+            var o = cTime(10);
             o.forEach((value, index) => {
                 content += `(${choicesList.starString[o[index].star]})(${o[index].name.source})${o[index].name.chineseName}\n`;
             });
@@ -86,9 +85,10 @@ async function randChoice(choices: number): Promise<{ content?: string, picPath?
 
             return null;
         case 0b11://image + 10times
-
+            var o = cTime(10);
             return {
-                picPath: await buildImage(cTime(10)),
+                picPath: await buildImage(o),
+                content: await analyzeRandData(pusher, messager, o),
             };
         default:
             return null;
@@ -153,6 +153,52 @@ function second(star: number): Character {
         log.info(`${star}(${choicesList.star1[c].source})${choicesList.star1[c].chineseName}`);
         return choicesList.star1[c];
     }
+
+}
+
+async function analyzeRandData(pusher: Databaser, messager: Messager, data: { name: Character, star: number }[]) {
+    var stars = [
+        0, 0, 0, 0,
+    ];
+
+    data.forEach(value => {
+        stars[value.star]++;
+    });
+
+    return pusher.databaseSearch("userPoolSetting", "userId", messager.msg.author.id).then((data: DatabaseUserPoolSetting[]) => {
+        if (data[0]?.userId.toString() == messager.msg.author.id) {
+            var setting = data[0];
+
+            setting.randedAll.star1 += stars[1];
+            setting.randedAll.star2 += stars[2];
+            setting.randedAll.star3 += stars[3];
+
+            var randedTodayTs = new Date(new Date().setHours(0, 0, 0, 0)).getTime();
+            if (setting.randedTodayTs == randedTodayTs) {
+                setting.randedToday.star1 += stars[1];
+                setting.randedToday.star2 += stars[2];
+                setting.randedToday.star3 += stars[3];
+            } else {
+                setting.randedToday.star1 = stars[1];
+                setting.randedToday.star2 = stars[2];
+                setting.randedToday.star3 = stars[3];
+            }
+
+            pusher.databasePushPoolSetting(setting, true).catch(err => {
+                log.error(err);
+            });
+
+            return `抽卡统计（一星/二星/三星）\n` +
+                `当前(${stars[1]}/${stars[2]}/${stars[3]}) | ` +
+                `今日(${setting.randedToday.star1}/${setting.randedToday.star2}/${setting.randedToday.star3}) | ` +
+                `累计(${setting.randedAll.star1}/${setting.randedAll.star2}/${setting.randedAll.star3})`;
+        } else {
+            return `未开启抽卡统计，当次抽卡不会记录`;
+        }
+    }).catch(err => {
+        log.error(err);
+        return `在统计发生了一些问题，请联系bot管理员解决`;
+    });
 
 }
 

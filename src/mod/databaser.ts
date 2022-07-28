@@ -102,10 +102,66 @@ export class Databaser {
 
     }
 
+    databasePushPoolSetting(data: DatabaseUserPoolSetting, update: boolean) {
+        if (update) {
+            //UPDATE ${type} SET timestamp=?,channelId=?,channelName=? WHERE token=?;
+            return this.conn.query(`UPDATE userPoolSetting SET selectPoolId=?,randedToday=?,randedAll=? WHERE userId=?`, [
+                data.selectPoolId, data.randedToday, data.randedAll, data.userId,
+            ]);
+        } else {
+            return this.databasePush(
+                "userPoolSetting",
+                ["userName", "userId", "selectPoolId", "randedToday", "randedAll",],
+                [data.userName, data.userId, data.selectPoolId, data.randedToday, data.randedAll],
+            );
+        }
+    }
+
+    databasePush(table: string, key: string[], value: any[]) {
+        var keyStr = `(`;
+        key.forEach(v => { keyStr += `${v},`; });
+        keyStr = `${keyStr.slice(0, -1)}) VALUES (`;
+        key.forEach(v => { keyStr += `?,`; });
+        keyStr = `${keyStr.slice(0, -1)})`;
+
+        return this.conn.query(`INSERT INTO ${table} ${keyStr}`, value);
+    }
+
+    /**
+     * 
+     * @param table 数据表
+     * @param key 数据键
+     * @param value 数据值
+     * @returns 返回查询结果
+     */
+    databaseSearch(table: string, key: string, value: string) {
+        //log.debug("searching");
+
+        //log.debug(`SELECT * FROM ${table} WHERE ${key} = ${value}`);
+        return this.conn.query(`SELECT * FROM ${table} WHERE ${key} = ?`, [
+            value,
+        ]);
+
+    }
 
 }
 
 
 interface DatabaseConfig {
 
+}
+
+export interface DatabaseUserPoolSetting {
+    userName: string;
+    userId: bigint;
+    selectPoolId: number;
+    randedToday: Randed;
+    randedTodayTs: number;
+    randedAll: Randed;
+}
+
+interface Randed {
+    star1: number,
+    star2: number,
+    star3: number,
 }
