@@ -21,45 +21,22 @@ init().then(initConfig => {
             //log.info(`<@!${meId}>`);
             try {
 
-                var messager = new Messager(data.msg, pusher);
+                const messager = new Messager(data.msg, pusher);
 
 
-                var content = messager.msg.content.replace(/<@!\d*>/g, "");
-                content = content.trim();
+                const content = messager.msg.content.replace(/<@!\d*>/g, "").trim();
                 //log.info(`${content}|`);
 
                 if (findGuilds(pusher.saveGuildsTree, messager.msg.guild_id) || messager.msg.author.username == config.admin || messager.msg.guildName == "QQ频道机器人测试频道") {
-                    var useCommand = false;
-
                     var opts = content.split(" ");
 
-                    if (opts[0] == "陶片放逐" || opts[0] == "/陶片放逐") {
-                        messager.msg.content = content;
-                        try {
-                            ostracism(pusher, messager);
-
-                        } catch (error) {
-                            log.error(error);
-                        }
-
-                        useCommand = true;
-                    }
-
                     switch (opts[0]) {
-                        case "stopBot":
-                            if (messager.msg.author.username == config.admin) {
-                                log.info("stoping");
-                                pusher.client.messageApi.postMessage(messager.msg.channel_id, {
-                                    content: "ok",
-                                    msg_id: messager.msg.id,
-                                    message_reference: {
-                                        message_id: messager.msg.id,
-                                    },
-                                }).then(() => {
-                                    process.exit();
-                                })
-
-                            }
+                        case "陶片放逐":
+                        case "/陶片放逐":
+                            messager.msg.content = content;
+                            ostracism(pusher, messager).catch(err => {
+                                log.error(err);
+                            });
                             break;
                         case "/单抽出奇迹":
                             commandRand(pusher, messager, 0b00);
@@ -87,12 +64,10 @@ init().then(initConfig => {
                             commandStatus(pusher, messager);
                             break;
                         default:
-                            if (useCommand == false) {
-                                log.warn(`unknown command:${content}`);
-                                pusher.sendMsg(messager, "ん？输入的指令似乎有什么不太对的地方");
-                                //log.info("什么也没发生");
-                                break;
-                            }
+                            log.warn(`unknown command:${content}`);
+                            pusher.sendMsg(messager, "ん？输入的指令似乎有什么不太对的地方");
+                            //log.info("什么也没发生");
+                            break;
                     }
                 } else {
                     log.error(`unAuth guild:${messager.msg.guildName}(${messager.msg.guild_id})|||user:${messager.msg.author.username}`);
