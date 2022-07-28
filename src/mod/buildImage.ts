@@ -27,21 +27,27 @@ export async function buildImage(characterNames: { name: Character, star: number
 
             x *= 300, x += 120;
             y *= 350, y += 180;
-            if (value.star == 3) {//characters bg
-                files.push({
-                    input: `${config.picPath.mask[value.star]}`,
-                    top: y - 7,
-                    left: x - 4,
-                })
-            } else {
-                files.push({
-                    input: `${config.picPath.mask[value.star]}`,
-                    top: y - 10,
-                    left: x - 4,
-                })
-            }
 
-            files.push({//characters
+            /* files.push({//character and star bg
+                input: `${config.picPath.avatarBg}`,
+                top: y - 20,
+                left: x - 40,
+            }); */
+
+            files.push({//star bg
+                input: `${config.picPath.starBg}`,
+                top: y + 190,
+                left: x - 10,
+            });
+
+            files.push({//character bg
+                input: `${config.picPath.mask[value.star]}`,
+                top: y - 10,
+                left: x - 4,
+            });
+
+
+            files.push({//character avatar
                 input: `${config.picPath.characters}/${value.name.fileName}`,
                 top: y,
                 left: x,
@@ -59,16 +65,12 @@ export async function buildImage(characterNames: { name: Character, star: number
 
         //files.push();
 
-        return sharp(config.picPath.background)
+        return sharp(config.picPath.mainBg)
             .composite(files)
-            .png({
-                compressionLevel: 6, quality: 5
-            })
+            .png({ compressionLevel: 6, quality: 5, })
             .toFile(tmpOutPath).then(() => {
                 return tmpOutPath;
             });
-
-
 
 
     }

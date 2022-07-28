@@ -69,12 +69,10 @@ export class Databaser {
         });
     }
 
-    sendImage(messager: Messager, picName: string,) {
+    async sendImage(messager: Messager, picName: string, content?: string, retry?: boolean) {
 
         picName = picName?.startsWith("/") ? picName : `${config.picPath.out}/${picName}`;
         log.debug(`uploading ${picName}`);
-
-        //picName = "/root/RemoteDir/qbot/BAbot/dist/1656612431035.png";
 
         var picData = fs.createReadStream(picName);
 
@@ -82,17 +80,17 @@ export class Databaser {
 
         var formdata = new FormData();
         formdata.append("msg_id", messager.msg.id);
-        //formdata.append("content", "123456")
+        if (content)
+            formdata.append("content", content);
         formdata.append("file_image", picData);
 
-        fetch(`https://api.sgroup.qq.com/channels/${messager.msg.channel_id}/messages`, {
+        return fetch(`https://api.sgroup.qq.com/channels/${messager.msg.channel_id}/messages`, {
             method: "POST",
             headers: {
                 "Content-Type": formdata.getHeaders()["content-type"],
-                "Authorization": `Bot ${config.initConfig.appID}.${config.initConfig.token}`
+                "Authorization": `Bot ${config.initConfig.appID}.${config.initConfig.token}`,
             },
-            body: formdata
-
+            body: formdata,
         }).then(res => {
             return res.json();
         }).then(body => {

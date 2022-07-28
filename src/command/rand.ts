@@ -22,7 +22,7 @@ export async function commandRand(pusher: Databaser, messager: Messager, userCho
             //log.info(`${content}|`);
             randChoice(userChoice).then(sendStr => {
                 if (sendStr?.picPath) {
-                    pusher.sendImage(messager, sendStr.picPath, sendStr?.content);
+                    pusher.sendImage(messager, sendStr.picPath, `<@${messager.msg.author.id}>`);
                 } else if (sendStr?.content) {
                     pusher.sendMsg(messager, sendStr.content);
                 }
