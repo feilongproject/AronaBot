@@ -7,16 +7,23 @@ export async function commandALA(pusher: Databaser, messager: Messager, content:
 
 
     //var content = msg.content;
-    if (content.length <= 15) {
-        const alaQueue = buildALA(content);
-        //gm()
-        buildImage(alaQueue).then(outPath => {
-            pusher.sendImage(messager, outPath);
-        });
+    if (content) {
+        if (content.length <= 15) {
+            const alaQueue = buildALA(content);
+            //gm()
+            if (alaQueue.length == 0) {
+                pusher.sendMsg(messager, `未找到奥利奥`);
+            } else {
+                buildImage(alaQueue).then(outPath => {
+                    pusher.sendImage(messager, outPath);
+                });
+            }
+        } else {
+            pusher.sendMsg(messager, "奥利奥过长,最长可允许长度为15");
+        }
     } else {
-        pusher.sendMsg(messager, "奥利奥过长,最长可允许长度为15");
+        pusher.sendMsg(messager, `未找到奥利奥`);
     }
-
 
 }
 
@@ -34,6 +41,7 @@ function buildALA(content: string) {
         switch (word) {
             case "艾":
             case "爱":
+            case "愛":
                 if (pop == "12" || pop == "21" || pop == "01" || pop == "02") {
                     alaQueue.push(pop, "10");
                 } else if (pop == "10" || pop == "20") {
@@ -44,12 +52,14 @@ function buildALA(content: string) {
                 break;
             case "莉":
             case "丽":
+            case "麗":
                 if (pop)
                     alaQueue.push(pop, "12");
                 else
                     alaQueue.push("12");
                 break;
             case "丝":
+            case "絲":
                 if (pop == "12" || pop == "21" || pop == "01" || pop == "02") {
                     alaQueue.push(pop, "20");
                 } else if (pop == "10" || pop == "20") {
