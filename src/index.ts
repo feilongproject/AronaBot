@@ -25,7 +25,11 @@ init().then(initConfig => {
                 const messager = new Messager(data.msg, pusher);
 
 
-                const content = messager.msg.content.replace(/<@!\d*>/g, "").trim();
+                var _content = messager.msg.content.replace(/<@!\d*>/g, "").trim();
+                while (_content.includes("  ")) {
+                    _content = _content.replace("  ", " ");
+                }
+                const content = _content;
                 //log.info(`${content}|`);
 
                 if (findGuilds(pusher.saveGuildsTree, messager.msg.guild_id) || messager.msg.author.username == config.admin || messager.msg.guildName == "QQ频道机器人测试频道") {
