@@ -105,14 +105,14 @@ export class Databaser {
     databasePushPoolSetting(data: DatabaseUserPoolSetting, update: boolean) {
         if (update) {
             //UPDATE ${type} SET timestamp=?,channelId=?,channelName=? WHERE token=?;
-            return this.conn.query(`UPDATE userPoolSetting SET selectPoolId=?,randedToday=?,randedAll=? WHERE userId=?`, [
-                data.selectPoolId, data.randedToday, data.randedAll, data.userId,
+            return this.conn.query(`UPDATE userPoolSetting SET selectPoolId=?,randedToday=?,randedTodayTs=?,randedAll=?,hide=? WHERE userId=?`, [
+                data.selectPoolId, data.randedToday, data.randedTodayTs, data.randedAll, data.hide, data.userId,
             ]);
         } else {
             return this.databasePush(
                 "userPoolSetting",
-                ["userName", "userId", "selectPoolId", "randedToday", "randedAll",],
-                [data.userName, data.userId, data.selectPoolId, data.randedToday, data.randedAll],
+                ["userName", "userId", "selectPoolId", "randedToday", "randedAll", "hide"],
+                [data.userName, data.userId, data.selectPoolId, data.randedToday, data.randedAll, data.hide],
             );
         }
     }
@@ -158,6 +158,7 @@ export interface DatabaseUserPoolSetting {
     randedToday: Randed;
     randedTodayTs: number;
     randedAll: Randed;
+    hide: boolean;
 }
 
 interface Randed {

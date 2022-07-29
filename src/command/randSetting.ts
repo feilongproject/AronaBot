@@ -18,7 +18,9 @@ export async function commandRandSetting(pusher: Databaser, messager: Messager, 
                     case "重置":
                         restartSetting(pusher, messager, true);
                         break;
+                    case "清空今日":
                     case "清空今日统计":
+                    case "清空今日统计信息":
                         setting.randedToday = { star1: 0, star2: 0, star3: 0 };
                         pusher.databasePushPoolSetting(setting, true).then(() => {
                             pusher.sendMsg(messager, `已清空今日统计`);
@@ -26,7 +28,9 @@ export async function commandRandSetting(pusher: Databaser, messager: Messager, 
                             log.error(err);
                         });
                         break;
+                    case "清空全部":
                     case "清空全部统计":
+                    case "清空全部统计信息":
                         setting.randedToday = { star1: 0, star2: 0, star3: 0 };
                         setting.randedAll = { star1: 0, star2: 0, star3: 0 };
                         pusher.databasePushPoolSetting(setting, true).then(() => {
@@ -35,20 +39,51 @@ export async function commandRandSetting(pusher: Databaser, messager: Messager, 
                             log.error(err);
                         });
                         break;
+                    case "隐藏":
+                    case "隐藏统计":
+                    case "隐藏统计信息":
+                        if (opts[2]) {
+                            switch (opts[2]) {
+                                case "是":
+                                case "开":
+                                case "开启":
+                                    setting.hide = true;
+                                    break;
+                                case "否":
+                                case "关":
+                                case "关闭":
+                                    setting.hide = false;
+                                    break;
+                            }
+
+                        } else {
+                            setting.hide = true;
+                        }
+                        pusher.databasePushPoolSetting(setting, true).then(() => {
+                            pusher.sendMsg(messager, `已${setting.hide ? `开启` : `关闭`}隐藏统计信息`);
+                        }).catch(err => {
+                            log.error(err);
+                        });
+
+                        break;
                     case "帮助":
                     case "帮助界面":
                         pusher.sendMsg(messager,
                             `抽卡设置 - 帮助界面\n` +
                             `========================\n` +
                             `（以下命令必须@机器人后才能使用）\n\n` +
-                            `指令：/抽卡设置 清空今日统计\n` +
+                            `指令：/抽卡设置 重置\n` +
+                            `介绍：重置所有卡池设置到默认（选择卡池、统计信息等）\n\n` +
+                            `指令：/抽卡设置 清空今日\n` +
                             `介绍：清空今日抽卡统计信息\n\n` +
-                            `指令：/抽卡设置 清空全部统计\n` +
-                            `介绍：清空全部抽卡统计信息` +
+                            `指令：/抽卡设置 清空全部\n` +
+                            `介绍：清空全部抽卡统计信息\n\n` +
+                            `指令：/抽卡设置 隐藏 开/关\n` +
+                            `介绍：选择是否隐藏抽卡统计信息` +
                             ``);
                         break;
-
                     default:
+                        pusher.sendMsg(messager, `未知抽卡设置选项，使用"/抽卡设置 帮助"获取指令列表`);
                         break;
                 }
             } else {
@@ -92,6 +127,7 @@ async function restartSetting(pusher: Databaser, messager: Messager, del: boolea
             star2: 0,
             star3: 0,
         },
+        hide: false,
     }, false).then(() => {
         pusher.sendMsg(messager, `已重置设置（这是一个不可撤回的操作！）`);
     }).catch(err => {

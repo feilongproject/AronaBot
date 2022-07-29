@@ -156,7 +156,7 @@ function second(star: number): Character {
 
 }
 
-async function analyzeRandData(pusher: Databaser, messager: Messager, data: { name: Character, star: number }[]) {
+async function analyzeRandData(pusher: Databaser, messager: Messager, data: { name: Character, star: number }[]): Promise<string> {
     var stars = [
         0, 0, 0, 0,
     ];
@@ -168,6 +168,7 @@ async function analyzeRandData(pusher: Databaser, messager: Messager, data: { na
     return pusher.databaseSearch("userPoolSetting", "userId", messager.msg.author.id).then((data: DatabaseUserPoolSetting[]) => {
         if (data[0]?.userId.toString() == messager.msg.author.id) {
             var setting = data[0];
+            if (setting.hide) return ``;
 
             setting.randedAll.star1 += stars[1];
             setting.randedAll.star2 += stars[2];
@@ -179,6 +180,7 @@ async function analyzeRandData(pusher: Databaser, messager: Messager, data: { na
                 setting.randedToday.star2 += stars[2];
                 setting.randedToday.star3 += stars[3];
             } else {
+                setting.randedTodayTs = randedTodayTs;
                 setting.randedToday.star1 = stars[1];
                 setting.randedToday.star2 = stars[2];
                 setting.randedToday.star3 = stars[3];
@@ -193,7 +195,7 @@ async function analyzeRandData(pusher: Databaser, messager: Messager, data: { na
                 `今日(${setting.randedToday.star1}/${setting.randedToday.star2}/${setting.randedToday.star3}) | ` +
                 `累计(${setting.randedAll.star1}/${setting.randedAll.star2}/${setting.randedAll.star3})`;
         } else {
-            return `未开启抽卡统计，当次抽卡不会记录`;
+            return `未开启抽卡统计，当次抽卡不会记录\n(使用指令"/抽卡设置 重置"初始化设置)`;
         }
     }).catch(err => {
         log.error(err);
