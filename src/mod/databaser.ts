@@ -153,7 +153,7 @@ interface DatabaseConfig {
 
 export interface DatabaseUserPoolSetting {
     userName: string;
-    userId: bigint;
+    userId: string;
     selectPoolId: number;
     randedToday: Randed;
     randedTodayTs: number;
