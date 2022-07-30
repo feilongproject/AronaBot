@@ -1,6 +1,6 @@
 import { IMessage } from 'qq-guild-bot';
 import { init } from './init';
-import { findGuilds } from './mod/findChannel';
+import { findChannel, findGuilds } from './mod/findChannel';
 import log from './mod/logger';
 import { commandRand } from './command/rand';
 import { ostracism } from './command/ostracism';
@@ -71,6 +71,16 @@ init().then(initConfig => {
                         case "status":
                         case "/status":
                             commandStatus(pusher, messager);
+                            break;
+                        case "赞助":
+                        case "/赞助":
+                        case "为爱发电":
+                        case "/为爱发电":
+                        case "用爱发电":
+                        case "/用爱发电":
+                            if (findChannel(pusher.saveGuildsTree, messager.msg.channel_id) || messager.msg.guildName == "QQ频道机器人测试频道") {
+                                pusher.sendImage(messager, `/root/RemoteDir/qbot/AronaBot/data/pic/afdian.png`, `BA彩奈目前是用爱发电的负收入状态，但运行需要服务器支持，同时出问题时需要开发者抽出时间解决，希望可以通过爱发电平台请作者喝杯茶`);
+                            }
                             break;
                         default:
                             log.warn(`unknown command:${content}`);

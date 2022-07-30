@@ -79,7 +79,7 @@ export async function commandRandSetting(pusher: Databaser, messager: Messager, 
                             `指令：/抽卡设置 清空全部\n` +
                             `介绍：清空全部抽卡统计信息\n\n` +
                             `指令：/抽卡设置 隐藏 开/关\n` +
-                            `介绍：选择是否隐藏抽卡统计信息` +
+                            `介绍：选择是否隐藏抽卡统计信息（默认关闭隐藏）` +
                             ``);
                         break;
                     default:
@@ -113,7 +113,7 @@ async function restartSetting(pusher: Databaser, messager: Messager, del: boolea
     }
 
     pusher.databasePushPoolSetting({
-        userId: BigInt(messager.msg.author.id),
+        userId: messager.msg.author.id,
         userName: messager.msg.author.username,
         selectPoolId: 0,
         randedToday: {
@@ -129,7 +129,7 @@ async function restartSetting(pusher: Databaser, messager: Messager, del: boolea
         },
         hide: false,
     }, false).then(() => {
-        pusher.sendMsg(messager, `已重置设置（这是一个不可撤回的操作！）`);
+        pusher.sendMsg(messager, `已重置卡池设置为默认\n已重置所有统计信息为空\n已重置统计信息为显示\n（这是一个不可撤回的操作！）`);
     }).catch(err => {
         log.error(err);
     });

@@ -35,7 +35,7 @@ export async function commandRand(pusher: Databaser, messager: Messager, userCho
                 userHistory[index].lastTime = nowTime;
             }
         } else {
-            pusher.sendMsg(messager, `请求时间过短，还有${(userHistory[index].lastTime + dayMaxTimes - nowTime) / 1000}s冷却完毕`);
+            pusher.sendMsg(messager, `请求时间过短，还有${(userHistory[index].lastTime + dayMaxTimes - nowTime) / 1000}s冷却完毕\n(赞助可以获得更少的冷却时间！)`);
         }
 
 
@@ -190,10 +190,15 @@ async function analyzeRandData(pusher: Databaser, messager: Messager, data: { na
                 log.error(err);
             });
 
-            return `抽卡统计（一星/二星/三星）\n` +
-                `当前(${stars[1]}/${stars[2]}/${stars[3]}) | ` +
-                `今日(${setting.randedToday.star1}/${setting.randedToday.star2}/${setting.randedToday.star3}) | ` +
-                `累计(${setting.randedAll.star1}/${setting.randedAll.star2}/${setting.randedAll.star3})`;
+            const _Today = setting.randedToday;
+            const _All = setting.randedToday;
+            //log.debug(_Today, _All);
+            return `抽卡统计：\n` +
+                `当前：一星${stars[1]}个，二星${stars[2]}个，三星${stars[3]}个\n` +
+                `今日：一星${_Today.star1}个，二星${_Today.star2}个，三星${_Today.star3}个` +
+                `(出货概率${((_Today.star3 / (_Today.star1 + _Today.star2 + _Today.star3)) * 100).toFixed(2)}%)\n` +
+                `累计：一星${_All.star1}个，二星${_All.star2}个，三星${_All.star3}个` +
+                `(出货概率${((_All.star3 / (_All.star1 + _All.star2 + _All.star3)) * 100).toFixed(2)}%)\n`;
         } else {
             return `未开启抽卡统计，当次抽卡不会记录\n(使用指令"/抽卡设置 重置"初始化设置)`;
         }
