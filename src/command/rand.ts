@@ -191,7 +191,7 @@ async function analyzeRandData(pusher: Databaser, messager: Messager, data: { na
             });
 
             const _Today = setting.randedToday;
-            const _All = setting.randedToday;
+            const _All = setting.randedAll;
             //log.debug(_Today, _All);
             return `抽卡统计：\n` +
                 `当前：一星${stars[1]}个，二星${stars[2]}个，三星${stars[3]}个\n` +
