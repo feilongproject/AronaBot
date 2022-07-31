@@ -194,11 +194,11 @@ async function analyzeRandData(pusher: Databaser, messager: Messager, data: { na
             const _All = setting.randedAll;
             //log.debug(_Today, _All);
             return `抽卡统计：\n` +
-                `当前：一星${stars[1]}个，二星${stars[2]}个，三星${stars[3]}个\n` +
-                `今日：一星${_Today.star1}个，二星${_Today.star2}个，三星${_Today.star3}个` +
-                `(出货概率${((_Today.star3 / (_Today.star1 + _Today.star2 + _Today.star3)) * 100).toFixed(2)}%)\n` +
-                `累计：一星${_All.star1}个，二星${_All.star2}个，三星${_All.star3}个` +
-                `(出货概率${((_All.star3 / (_All.star1 + _All.star2 + _All.star3)) * 100).toFixed(2)}%)\n`;
+                //`当前：一星${stars[1]}个，二星${stars[2]}个，三星${stars[3]}个\n` +
+                `今日${_Today.star1 + _Today.star2 + _Today.star3}发，共有一星${_Today.star1}个，二星${_Today.star2}个，三星${_Today.star3}个\n` +
+                `累计${_All.star1 + _All.star2 + _All.star3}发，共有一星${_All.star1}个，二星${_All.star2}个，三星${_All.star3}个\n` +
+                `今日出货概率${((_Today.star3 / (_Today.star1 + _Today.star2 + _Today.star3)) * 100).toFixed(2)}%，` +
+                `累计出货概率${((_All.star3 / (_All.star1 + _All.star2 + _All.star3)) * 100).toFixed(2)}%`;
         } else {
             return `未开启抽卡统计，当次抽卡不会记录\n(使用指令"/抽卡设置 重置"初始化设置)`;
         }
