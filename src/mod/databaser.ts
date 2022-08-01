@@ -166,3 +166,23 @@ interface Randed {
     star2: number,
     star3: number,
 }
+
+export interface DatabaseAuthRand {
+    userId: string;
+    userName: string;
+    timestamp: number;
+    timeLimit: number;
+    lessTime: number;
+    channelId: string;
+    channelName: string;
+}
+
+export interface DatabaseAuthALA {
+    userId: string;
+    userName: string;
+    timestamp: number;
+    timeLimit: number;
+    lessLen: number;
+    channelId: string;
+    channelName: string;
+}

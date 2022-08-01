@@ -3,11 +3,13 @@ import log from "../mod/logger";
 import choicesList from "../../data/choices.json";
 import { buildImage } from "../mod/buildImage";
 import { Messager } from "../mod/messager";
-import { Databaser, DatabaseUserPoolSetting } from "../mod/databaser";
+import { DatabaseAuthRand, Databaser, DatabaseUserPoolSetting } from "../mod/databaser";
 
 var userHistory: UserHistory[] = [];
-const dayMaxTimes = 59000;
-const admin = "飞龙project";
+var maxTime = 60000;
+var authTime = 0;
+
+const adminId = "7681074728704576201";
 
 
 
@@ -17,8 +19,15 @@ export async function commandRand(pusher: Databaser, messager: Messager, userCho
 
         var index = userHistory.findIndex((i) => { return i.id == messager.msg.author.id });
         var nowTime = new Date().getTime();
-        if ((index == -1) || (userHistory[index].lastTime + dayMaxTimes <= nowTime) || (messager.msg.author.username.includes(admin))) {
+        await pusher.databaseSearch("authRand", "userId", messager.msg.author.id).then((datas: DatabaseAuthRand[]) => {
+            if (datas[0]?.userId == messager.msg.author.id) {
+                authTime = 1000 * datas[0].lessTime;
+            }
+        }).catch(err => {
+            log.error(err);
+        });
 
+        if ((index == -1) || (userHistory[index].lastTime + maxTime - authTime <= nowTime) || (messager.msg.author.id == adminId)) {
             //log.info(`${content}|`);
             randChoice(userChoice, pusher, messager).then(sendStr => {
                 if (sendStr?.picPath) {
@@ -35,7 +44,7 @@ export async function commandRand(pusher: Databaser, messager: Messager, userCho
                 userHistory[index].lastTime = nowTime;
             }
         } else {
-            pusher.sendMsg(messager, `请求时间过短，还有${(userHistory[index].lastTime + dayMaxTimes - nowTime) / 1000}s冷却完毕\n(赞助可以获得更少的冷却时间！)`);
+            pusher.sendMsg(messager, `请求时间过短，还有${(userHistory[index].lastTime + maxTime - authTime - nowTime) / 1000}s冷却完毕\n(赞助可以获得更少的冷却时间！)`);
         }
 
 

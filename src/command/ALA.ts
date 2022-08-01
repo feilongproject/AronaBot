@@ -1,15 +1,27 @@
 import sharp from "sharp";
 import config from "../../data/config.json";
-import { Databaser } from "../mod/databaser";
+import { DatabaseAuthALA, Databaser } from "../mod/databaser";
 import log from "../mod/logger";
 import { Messager } from "../mod/messager";
+
+var allowLen = 15;
+var authLen = 0;
+
 export async function commandALA(pusher: Databaser, messager: Messager, content: string) {
 
+    await pusher.databaseSearch("authALA", "userId", messager.msg.author.id).then((datas: DatabaseAuthALA[]) => {
+        if (datas[0]?.userId == messager.msg.author.id) {
+            authLen = datas[0].lessLen;
+        }
+    }).catch(err => {
+        log.error(err);
+    });
 
     //var content = msg.content;
     if (content) {
-        if (content.length <= 15) {
-            const alaQueue = buildALA(content);
+        const alaQueue = buildALA(content);
+        if (alaQueue.length <= (allowLen + authLen)) {
+
             //gm()
             if (alaQueue.length == 0) {
                 pusher.sendMsg(messager, `未找到奥利奥`);
@@ -19,7 +31,7 @@ export async function commandALA(pusher: Databaser, messager: Messager, content:
                 });
             }
         } else {
-            pusher.sendMsg(messager, "奥利奥过长,最长可允许长度为15");
+            pusher.sendMsg(messager, `奥利奥过长(${alaQueue.length}字符),最长可允许长度为${allowLen + authLen}字符\n含${allowLen}字符基础长度${authLen == 0 ? `(赞助可以获得更多长度)` : `+${authLen}字符赞助长度`}`);
         }
     } else {
         pusher.sendMsg(messager, `未找到奥利奥`);
@@ -69,6 +81,9 @@ function buildALA(content: string) {
                 }
                 break;
             default:
+                if (pop) {
+                    alaQueue.push(pop);
+                }
                 log.error(`error word${word}`);
         }
     });
