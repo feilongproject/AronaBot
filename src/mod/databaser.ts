@@ -6,16 +6,12 @@ import fetch from "node-fetch";
 import log from "./logger";
 import { Messager } from "./messager";
 import config from '../../data/config.json';
+import { buildTree } from "../init";
 
 export class Databaser {
 
-
-    saveGuildsTree: SaveGuild[] = [];
     dbPool;
     conn!: mariadb.PoolConnection;
-    client: OpenAPI;
-    ws;
-    meId!: string;
     //sendUsers: SendChannel[] = [];
     //configPath: string;
 
@@ -27,38 +23,14 @@ export class Databaser {
             this.conn = conn;
         });
         //this.configPath = config.serveUserConfigPath;
-        this.client = createOpenAPI(botConfig);
-        this.ws = createWebsocket(botConfig);
 
-        this.client.meApi.me().then(res => {
-            this.meId = res.data.id;
-        });
-        this.buildTree();
+        buildTree();
     }
 
-    buildTree() {
-        this.client.meApi.meGuilds().then(guilds => {
-            guilds.data.forEach(guild => {
-                log.info(`${guild.name}(${guild.id})`);
-                var _guild: SaveChannel[] = [];
-                //log.info(guild.id);
-                //log.info(guild.channels);
-                this.client.channelApi.channels(guild.id).then(channels => {
-                    channels.data.forEach((channel => {
-                        if (channel.name != "") {
-                            log.info(`${guild.name}(${guild.id})-${channel.name}(${channel.id})-father:${channel.parent_id}`);
-                        }
-                        _guild.push({ name: channel.name, id: channel.id });
-                    }));
 
-                    this.saveGuildsTree.push({ name: guild.name, id: guild.id, channel: _guild });
-                });
-            });
-        });
-    }
 
     async sendMsg(messager: Messager, content: string) {
-        return this.client.messageApi.postMessage(messager.msg.channel_id, {
+        return global.client.messageApi.postMessage(messager.msg.channel_id, {
             content: content,
             msg_id: messager.msg.id,
             message_reference: {
@@ -66,6 +38,8 @@ export class Databaser {
             },
         }).then(res => {
             return res.data;
+        }).catch(err => {
+            log.error(err);
         });
     }
 
@@ -95,7 +69,7 @@ export class Databaser {
             return res.json();
         }).then(body => {
             if (body.code)
-                throw new Error(body);
+                throw new Error(JSON.stringify(body));
         }).catch(error => {
             log.error(error);
         })
@@ -125,6 +99,12 @@ export class Databaser {
         keyStr = `${keyStr.slice(0, -1)})`;
 
         return this.conn.query(`INSERT INTO ${table} ${keyStr}`, value);
+    }
+
+    async getMessage(channelId: string, messageId: string) {
+        return global.client.messageApi.message(channelId, messageId).then(res => {
+            return res.data;
+        });
     }
 
     /**
@@ -185,4 +165,18 @@ export interface DatabaseAuthALA {
     lessLen: number;
     channelId: string;
     channelName: string;
+}
+
+export interface DatabaseViolateUser {
+    authorUsername: string;
+    authorId: string;
+    authorAvatar: string;
+    ladder: {
+        timestamp: string;
+        why: string;
+        level: "严重违纪" | "普通违纪" | "特殊违纪";
+        channelId: string;
+        msgId?: string;
+    }[];
+    timestamp: string;
 }

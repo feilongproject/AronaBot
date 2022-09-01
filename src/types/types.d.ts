@@ -1,16 +1,20 @@
-import { IGuild, IMessage, MessageAPI, MessageAttachment } from "qq-guild-bot"
+import { IGuild, IMessage, MessageAPI, MessageAttachment, OpenAPI, WebsocketClient } from "qq-guild-bot"
 
 export { }
 
 
 declare global {
 
+  var client: OpenAPI;
+  var ws: WebsocketClient;
+  var meId: string;
+  var saveGuildsTree: SaveGuild[];
+
   interface IntentMessage {
     eventType: string,
     eventId: string,
     msg: IMessage,
   }
-
 
   interface SaveGuild {
     name: string,

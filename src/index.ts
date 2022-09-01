@@ -15,7 +15,7 @@ import { commandRandSetting } from './command/randSetting';
 
 init().then(initConfig => {
     const pusher = initConfig;
-    pusher.ws.on('PUBLIC_GUILD_MESSAGES', (data: IntentMessage) => {
+    global.ws.on('PUBLIC_GUILD_MESSAGES', (data: IntentMessage) => {
         //log.info(mainGuild, typeof mainGuild);
         //log.info(JSON.stringify(data));
         if (data.eventType == 'AT_MESSAGE_CREATE') {
@@ -32,16 +32,17 @@ init().then(initConfig => {
                 const content = _content;
                 //log.info(`${content}|`);
 
-                if (findGuilds(pusher.saveGuildsTree, messager.msg.guild_id) || messager.msg.author.username == config.admin || messager.msg.guildName == "QQ频道机器人测试频道") {
+                if (findGuilds(messager.msg.guild_id) || messager.msg.author.username == config.admin || messager.msg.guildName == "QQ频道机器人测试频道") {
                     var opts = content.split(" ");
 
                     switch (opts[0]) {
                         case "陶片放逐":
                         case "/陶片放逐":
                             messager.msg.content = content;
-                            ostracism(pusher, messager).catch(err => {
-                                log.error(err);
-                            });
+                            if (findChannel(messager.msg.channel_id))
+                                ostracism(pusher, messager).catch(err => {
+                                    log.error(err);
+                                });
                             break;
                         case "/单抽出奇迹":
                             commandRand(pusher, messager, 0b00);
@@ -78,8 +79,13 @@ init().then(initConfig => {
                         case "/为爱发电":
                         case "用爱发电":
                         case "/用爱发电":
-                            if (findChannel(pusher.saveGuildsTree, messager.msg.channel_id) || messager.msg.guildName == "QQ频道机器人测试频道") {
-                                pusher.sendImage(messager, `/root/RemoteDir/qbot/AronaBot/data/pic/afdian.png`, `BA彩奈目前是用爱发电的负收入状态，但运行需要服务器支持，同时出问题时需要开发者抽出时间解决，希望可以通过爱发电平台请作者喝杯茶`);
+                            if (findChannel(messager.msg.channel_id)) {
+                                pusher.sendImage(messager,
+                                    `/root/RemoteDir/qbot/AronaBot/data/pic/afdian.png`,
+                                    `BA彩奈目前是用爱发电的负收入状态，但运行需要服务器支持，同时出问题时需要开发者抽出时间解决，希望可以通过爱发电平台请作者喝杯茶` +
+                                    `\n(赞助会解锁更少的限制，也可以为开发者女装计划助力！)`);
+                            } else {
+                                log.error(`unAuth channel id:${messager.msg.channel_id}|||user:${messager.msg.author.username}`);
                             }
                             break;
                         default:
@@ -90,7 +96,7 @@ init().then(initConfig => {
                     }
                 } else {
                     log.error(`unAuth guild:${messager.msg.guildName}(${messager.msg.guild_id})|||user:${messager.msg.author.username}`);
-                    pusher.sendMsg(messager, "未经授权或权限树尚未加载完毕，请重试");
+                    pusher.sendMsg(messager, "未经授权，请寻找开发者「飞龙project」进行授权");
                 }
 
 

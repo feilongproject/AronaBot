@@ -9,7 +9,7 @@ import { Databaser, DatabaseUserPoolSetting } from "../mod/databaser";
 
 export async function commandRandSetting(pusher: Databaser, messager: Messager, opts: string[]): Promise<void> {
 
-    if (findChannel(pusher.saveGuildsTree, messager.msg.channel_id) || messager.msg.guildName == "QQ频道机器人测试频道") {
+    if (findChannel(messager.msg.channel_id)) {
         pusher.databaseSearch("userPoolSetting", "userId", messager.msg.author.id).then((data: DatabaseUserPoolSetting[]) => {
             if (data[0]?.userId.toString() == messager.msg.author.id) {
 
@@ -97,7 +97,7 @@ export async function commandRandSetting(pusher: Databaser, messager: Messager, 
         });
 
     } else {
-        log.warn(`unAuth channel id:${messager.msg.channel_id}|||user:${messager.msg.author.username}`);
+        log.error(`unAuth channel id:${messager.msg.channel_id}|||user:${messager.msg.author.username}`);
         pusher.sendMsg(messager, `当前子频道未授权,请在隔壁使用`);
     }
 

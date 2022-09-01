@@ -1,42 +1,28 @@
 import log from "./logger";
 
-const allowChannels = ["模拟抽卡"];
-const allowGuilds = ["碧蓝档案", "BA彩奈bot专属频道"];
-
-export function findChannel(saveGuilds: SaveGuild[], checkId: string): boolean {
-
-    for (let i = 0; i < saveGuilds.length; i++) {
-        const e = saveGuilds[i];
-        //log.debug(`search guilds`);
-        for (let j = 0; j < e.channel.length; j++) {
-            const f = e.channel[j];
-
-            for (let k = 0; k < allowChannels.length; k++) {
-                const element = allowChannels[k];
-                if (f.name.includes(element) && checkId == f.id) return true;
-            }
-
-        }
-
-    }
+const allowChannels = ["7465750", "7730184", "7519851"];
+/* 
+碧蓝档案(7487571598174764531)-📨模拟抽卡&每日签到区(7465750)-father:7340027
+碧蓝档案(7487571598174764531)-陶片放逐区&三百人议事会(7730184)-father:7351235
+BA彩奈bot专属频道(9919414431536104110)-模拟抽卡(7519851)-father:7519511
+*/
+const allowGuilds = ["7487571598174764531", "9919414431536104110"];
+/* 
+碧蓝档案(7487571598174764531)
+BA彩奈bot专属频道(9919414431536104110)
+*/
+export function findChannel(checkChannelId: string): boolean {
+    //for (const guild of global.saveGuildsTree) {
+    //for (const channel of guild.channel) {
+    if (allowChannels.includes(checkChannelId)) return true;
+    //}
+    //}
     return false;
 }
 
-export function findGuilds(saveGuildsTree: SaveGuild[], guildId: string): boolean {
+export function findGuilds(checkGuildId: string): boolean {
 
-    for (let i = 0; i < saveGuildsTree.length; i++) {
-        const saveGuild = saveGuildsTree[i];
-
-        if (saveGuild.id == guildId) {
-            //log.debug(saveGuild.name);
-            for (let k = 0; k < allowGuilds.length; k++) {
-                const guildName = allowGuilds[k];
-                //log.debug(`|${guildName}|${saveGuild.name}|`);
-                //log.debug(guildName == saveGuild.name);
-                if (guildName == saveGuild.name) return true;
-            }
-        }
-    }
+    if (allowGuilds.includes(checkGuildId)) return true;
 
     return false;
 }

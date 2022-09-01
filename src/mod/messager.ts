@@ -6,6 +6,7 @@ export class Messager {
     msg: IMessage & {
         guildName?: string,
         channelName?: string,
+        message_reference?: { message_id: string, }
     };
 
 
@@ -13,13 +14,13 @@ export class Messager {
         this.msg = message;
 
         var messageNotFound = true;
-        pusher.saveGuildsTree.forEach(guild => {
+        global.saveGuildsTree.forEach(guild => {
             if (guild.id == message.guild_id) {
                 guild.channel.forEach(channel => {
                     if (channel.id == message.channel_id) {
                         this.msg.guildName = guild.name;
                         this.msg.channelName = channel.name;
-                        log.info(`{${guild.name}}[${channel.name}](${message.author.username}):${message.content}`);
+                        log.info(`{${guild.name}}[${channel.name}](${message.author.username}|${message.author.id}):${message.content}`);
                         messageNotFound = false;
                         return;
                     }
@@ -28,7 +29,7 @@ export class Messager {
             }
         });
         if (messageNotFound)
-            log.warn(`unKnown message:{${message.guild_id}}[${message.channel_id}](${message.author.username}):${message.content}`);
+            log.error(`unKnown message:{${message.guild_id}}[${message.channel_id}](${message.author.username}):${message.content}`);
     }
 
 

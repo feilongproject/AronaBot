@@ -2,23 +2,31 @@
   "compilerOptions": {
     "outDir": "./dist",
     "module": "commonjs",
-    "target": "es2016",
+    "target": "es2021",
     "lib": [
-      "es2016"
+      "es2021",
+      "es2016",
+      "es2015",
     ],
+    "moduleResolution": "node",
     "alwaysStrict": true,
     //"allowJs": true,
     "strict": true,
     "preserveConstEnums": true,
-    //"moduleResolution": "node",
-    //"sourceMap": true,
+    "sourceMap": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "types": []
   },
   "include": [
-    "src"
+    "src/**/*"
   ],
+  "typeRoots": [
+    "./src/types"
+  ],
+  "ts-node": {
+    "files": true
+  },
   "exclude": [
     "node_modules",
     "dist",

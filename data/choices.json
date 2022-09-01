@@ -165,32 +165,57 @@
     ],
     "star3": [
         {
+            "source": "Serika (New Year)",
+            "chineseName": "茜香(正月)",
+            "fileName": "Student_Portrait_Serika_Newyear.png"
+        },
+        {
+            "source": "Nodoka (Hot Spring)",
+            "chineseName": "和香(温泉)",
+            "fileName": "Student_Portrait_CH0165.png"
+        },
+        {
+            "source": "Chinatsu (Hot Spring)",
+            "chineseName": "千夏(温泉)",
+            "fileName": "Student_Portrait_CH0163.png"
+        },
+        {
+            "source": "Cherino (Hot Spring)",
+            "chineseName": "潔莉諾(温泉)",
+            "fileName": "Student_Portrait_CH0164.png"
+        },
+        {
+            "source": "Ako",
+            "chineseName": " 亚子",
+            "fileName": "Student_Portrait_Ako.png"
+        },
+        {
             "source": "Natsu",
             "chineseName": "夏",
             "fileName": "Student_Portrait_CH0155.png"
         },
         {
-            "source": "Asuna Bunny",
+            "source": "Asuna (Bunny)",
             "chineseName": "明日奈(兔女郎)",
             "fileName": "Student_Portrait_CH0098.png"
         },
         {
-            "source": "Saya Casual",
+            "source": "Saya (Casual)",
             "chineseName": "沙耶(私服)",
             "fileName": "Student_Portrait_Saya_casual.png"
         },
         {
-            "source": "Shun Small",
+            "source": "Shun (Small)",
             "chineseName": "旬(幼女)",
             "fileName": "Student_Portrait_CH0066.png"
         },
         {
-            "source": "Shiroko Cycling",
+            "source": "Shiroko (Cycling)",
             "chineseName": "白子(单车)",
             "fileName": "Student_Portrait_Shiroko_ridingsuit.png"
         },
         {
-            "source": "Hifumi Swimsuit",
+            "source": "Hifumi (Swimsuit)",
             "chineseName": "日步美(泳装)",
             "fileName": "Student_Portrait_CH0058.png"
         },
@@ -320,10 +345,5 @@
             "fileName": "Student_Portrait_Saya.png"
         }
     ],
-    "starString": [
-        "☆☆☆",
-        "★☆☆",
-        "★★☆",
-        "★★★"
-    ]
+    "starString": ["☆☆☆", "★☆☆", "★★☆", "★★★"]
 }

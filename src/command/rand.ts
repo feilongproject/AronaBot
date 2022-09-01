@@ -15,13 +15,16 @@ const adminId = "7681074728704576201";
 
 export async function commandRand(pusher: Databaser, messager: Messager, userChoice: number): Promise<void> {
 
-    if (findChannel(pusher.saveGuildsTree, messager.msg.channel_id) || messager.msg.guildName == "QQ频道机器人测试频道") {
+    if (findChannel(messager.msg.channel_id)) {
 
         var index = userHistory.findIndex((i) => { return i.id == messager.msg.author.id });
         var nowTime = new Date().getTime();
         await pusher.databaseSearch("authRand", "userId", messager.msg.author.id).then((datas: DatabaseAuthRand[]) => {
+            //log.debug(datas);
             if (datas[0]?.userId == messager.msg.author.id) {
                 authTime = 1000 * datas[0].lessTime;
+            } else {
+                authTime = 0;
             }
         }).catch(err => {
             log.error(err);
@@ -44,12 +47,12 @@ export async function commandRand(pusher: Databaser, messager: Messager, userCho
                 userHistory[index].lastTime = nowTime;
             }
         } else {
-            pusher.sendMsg(messager, `请求时间过短，还有${(userHistory[index].lastTime + maxTime - authTime - nowTime) / 1000}s冷却完毕\n(赞助可以获得更少的冷却时间！)`);
+            pusher.sendMsg(messager, `请求时间过短，还有${(userHistory[index].lastTime + maxTime - authTime - nowTime) / 1000}s冷却完毕\n(因为当前服务器性能不足，所以设置冷却cd，赞助以购买一个更好的服务器，也可以获得更少的冷却时间！)\n（当拥有更高配置的服务器时会取消冷却cd限制！）\n（同时为开发者的女装计划助力！）`);
         }
 
 
     } else {
-        log.warn(`unAuth channel id:${messager.msg.channel_id}|||user:${messager.msg.author.username}`);
+        log.error(`unAuth channel id:${messager.msg.channel_id}|||user:${messager.msg.author.username}`);
         pusher.sendMsg(messager, `当前子频道未授权,请在隔壁使用`);
     }
 
@@ -209,7 +212,7 @@ async function analyzeRandData(pusher: Databaser, messager: Messager, data: { na
                 `今日出货概率${((_Today.star3 / (_Today.star1 + _Today.star2 + _Today.star3)) * 100).toFixed(2)}%，` +
                 `累计出货概率${((_All.star3 / (_All.star1 + _All.star2 + _All.star3)) * 100).toFixed(2)}%`;
         } else {
-            return `未开启抽卡统计，当次抽卡不会记录\n(使用指令"/抽卡设置 重置"初始化设置)`;
+            return `未开启抽卡统计，当次抽卡不会记录\n(@机器人后使用指令"/抽卡设置 重置"初始化设置)`;
         }
     }).catch(err => {
         log.error(err);
