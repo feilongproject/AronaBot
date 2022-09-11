@@ -165,6 +165,16 @@
     ],
     "star3": [
         {
+            "source": "Sena",
+            "chineseName": "濑名",
+            "fileName": "Student_Portrait_Sena.png"
+        },
+        {
+            "source": "Chihiro",
+            "chineseName": "千寻",
+            "fileName": "Student_Portrait_CH0160.png"
+        },
+        {
             "source": "Serika (New Year)",
             "chineseName": "茜香(正月)",
             "fileName": "Student_Portrait_Serika_Newyear.png"
