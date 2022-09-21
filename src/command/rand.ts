@@ -15,7 +15,7 @@ const adminId = "7681074728704576201";
 
 export async function commandRand(pusher: Databaser, messager: Messager, userChoice: number): Promise<void> {
 
-    if (findChannel(messager.msg.channel_id)) {
+    if (findChannel(messager.msg.channel_id) || messager.msg.guild_id == "5237615478283154023") {
 
         var index = userHistory.findIndex((i) => { return i.id == messager.msg.author.id });
         var nowTime = new Date().getTime();

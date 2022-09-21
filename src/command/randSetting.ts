@@ -9,7 +9,7 @@ import { Databaser, DatabaseUserPoolSetting } from "../mod/databaser";
 
 export async function commandRandSetting(pusher: Databaser, messager: Messager, opts: string[]): Promise<void> {
 
-    if (findChannel(messager.msg.channel_id)) {
+    if (findChannel(messager.msg.channel_id) || messager.msg.guild_id == "5237615478283154023") {
         pusher.databaseSearch("userPoolSetting", "userId", messager.msg.author.id).then((data: DatabaseUserPoolSetting[]) => {
             if (data[0]?.userId.toString() == messager.msg.author.id) {
 
