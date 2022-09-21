@@ -4,7 +4,7 @@ import { DatabaseAuthALA, Databaser } from "../mod/databaser";
 import log from "../mod/logger";
 import { Messager } from "../mod/messager";
 
-var allowLen = 15;
+var allowLen = 20;
 var authLen = 0;
 
 export async function commandALA(pusher: Databaser, messager: Messager, content: string) {
@@ -24,17 +24,19 @@ export async function commandALA(pusher: Databaser, messager: Messager, content:
 
             //gm()
             if (alaQueue.length == 0) {
-                pusher.sendMsg(messager, `未找到奥利奥`);
+                pusher.sendMsg(messager, `未找到奥利奥，请确认指令中出现"爱丽丝"其中任何一个字符（可重复）`);
             } else {
                 buildImage(alaQueue).then(outPath => {
                     pusher.sendImage(messager, outPath);
+                }).catch(err => {
+                    log.error(err);
                 });
             }
         } else {
             pusher.sendMsg(messager, `奥利奥过长(${alaQueue.length}字符),最长可允许长度为${allowLen + authLen}字符\n含${allowLen}字符基础长度${authLen == 0 ? `(赞助可以获得更多长度)` : `+${authLen}字符赞助长度`}`);
         }
     } else {
-        pusher.sendMsg(messager, `未找到奥利奥`);
+        pusher.sendMsg(messager, `未找到奥利奥，在本指令后输入"爱丽丝"三个字符中其中任意一个字符即可生成（可重复）`);
     }
 
 }
@@ -97,14 +99,14 @@ async function buildImage(alaQueue: ("01" | "10" | "02" | "20" | "12" | "21")[])
         files.push({
             input: `${config.picPath.cutAris}/${id}.jpg`,
             top: iv * 200,
-            left: (alaQueue.length / 2) * 100 - 100,
+            left: Math.max((alaQueue.length / 2) * 100 - 100, 0),
         });
     });
 
     return sharp({
         create: {
-            width: 100 * alaQueue.length,
-            height: 200 * alaQueue.length,
+            width: Math.max(100 * alaQueue.length, 200),
+            height: Math.max(200 * alaQueue.length, 200),
             channels: 3,
             background: "#FFFFFF",
         }
