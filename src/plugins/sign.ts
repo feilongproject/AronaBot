@@ -1,12 +1,9 @@
 import fs from "fs";
 import fetch from "node-fetch";
-import log from "../mod/logger";
-import { Messager } from "../mod/messager";
-import { Databaser } from "../mod/databaser";
-
+import { IMessageEx } from "../libs/IMessageEx";
 const signDataFile = "./data/signData.json";
 
-export async function commandSign(pusher: Databaser, messager: Messager) {
+export async function sign(msg: IMessageEx) {
 
     var data = fs.readFileSync(signDataFile, { encoding: "utf-8" });
     if (data.trim() == "") data = "{}";
@@ -28,7 +25,7 @@ export async function commandSign(pusher: Databaser, messager: Messager) {
     var sendStr = `————————签到结果————————\n`;
 
     signData.users.forEach((user, index) => {
-        if (user.base.id == messager.msg.author.id) {//found
+        if (user.base.id == msg.author.id) {//found
 
             if (user.signHistory[user.signHistory.length - 1].todayDate == todayDate.getTime()) {//3:already signed at today 
                 log.debug("type:3,found and already signed at today");
@@ -72,12 +69,12 @@ export async function commandSign(pusher: Databaser, messager: Messager) {
             }
 
         }
-    })
+    });
 
     if (ststus == 0) {//0:not found in sign users(create a user)
         log.debug("type:0,not found in sign users(create a user)");
         signData.users.push({
-            base: { id: messager.msg.author.id, name: messager.msg.author.username, },
+            base: { id: msg.author.id, name: msg.author.username, },
             exp: {
                 total: 10,
                 history: [{ date: nowDate.getTime(), num: 10, why: "初次使用签到功能", }],
@@ -101,18 +98,13 @@ export async function commandSign(pusher: Databaser, messager: Messager) {
     if (ststus == 2 || ststus == 1 || ststus == 0) {
         try {
             if (!signData.randomPoem) signData.randomPoem = { token: await getRandomPoemToken() };
-
-            var poem: RandomPoemSentence = await getRandomPoem(signData.randomPoem.token);
+            const poem: RandomPoemSentence | null = await getRandomPoem(signData.randomPoem.token);
             if (poem.data) {
                 sendStr +=
                     `\n————————今日诗词————————\n` +
                     `《${poem.data.origin.title}》${poem.data.origin.author}\n`;
-                poem.data.origin.content.forEach((value, index, array) => {
-                    sendStr +=
-                        index == array.length - 1 ? `${value}` : `${value}\n`
-                });
-                //log.debug(poem.data.origin.content);
-                //`${poem.data.content}\n`;
+
+                sendStr += poem.data.origin.content.join("\n");
             } else {
                 sendStr += poem;
             }
@@ -121,14 +113,9 @@ export async function commandSign(pusher: Databaser, messager: Messager) {
         }
     }
 
-
-
-
-    pusher.sendMsg(messager, sendStr);
-
+    msg.sendMsgExRef({ content: sendStr });
     fs.writeFileSync(signDataFile, JSON.stringify(signData), { encoding: "utf-8" });
 
-    //sendMsg(client, msg.channel_id, msg.id, "签到正在复活");
 }
 
 function getRandomPoem(token: RandomPoemToken): Promise<RandomPoemSentence> {
@@ -140,6 +127,8 @@ function getRandomPoem(token: RandomPoemToken): Promise<RandomPoemSentence> {
         },
     }).then(res => {
         return res.json();
+    }).catch(err => {
+        log.error(err);
     });
     return sentence;
 

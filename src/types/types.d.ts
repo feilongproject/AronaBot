@@ -1,21 +1,53 @@
-import { IGuild, IMessage, MessageAPI, MessageAttachment, OpenAPI, WebsocketClient } from "qq-guild-bot"
-
-export { }
+import log4js from "log4js";
+import {
+  IGuild,
+  IMessage,
+  MessageAPI,
+  MessageAttachment,
+  OpenAPI,
+  WebsocketClient
+} from "qq-guild-bot";
+//import { Browser } from "puppeteer";
+import { RedisClientType } from "@redis/client";
 
 
 declare global {
 
+  var adminId: string;
+  var log: log4js.Logger;
+  var _path: string;
   var client: OpenAPI;
   var ws: WebsocketClient;
   var meId: string;
-  var saveGuildsTree: SaveGuild[];
-
-  interface IntentMessage {
-    eventType: string,
-    eventId: string,
-    msg: IMessage,
+  var redis: RedisClientType;
+  //var browser: Browser | null;
+  var botStatus: {
+    startTime: Date;
+    msgSendNum: number;
+    imageRenderNum: number;
   }
 
+  interface IntentMessage {
+    eventType: "MESSAGE_CREATE" | "PUBLIC_MESSAGE_DELETE" | "GUILD_MEMBER_REMOVE" | "GUILD_MEMBER_ADD" | "GUILD_MEMBER_UPDATE",
+    eventId: string,
+    msg: IMessage & GUILD_MEMBER,
+  }
+
+  interface GUILD_MEMBER {
+    guild_id: string;
+    joined_at: string;
+    nick: string;
+    op_user_id: string;
+    roles?: string[];
+    user: {
+      avatar: string;
+      bot: boolean;
+      id: string;
+      username: string;
+    };
+  }
+
+  var saveGuildsTree: SaveGuild[];
   interface SaveGuild {
     name: string,
     id: string,

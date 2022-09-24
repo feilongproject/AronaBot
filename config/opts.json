@@ -1,0 +1,62 @@
+{
+    "desc": "命令总览json,按照顺序进行匹配",
+    "command": {
+        "admin": {
+            "ping": {
+                "reg": "^/?ping$",
+                "fnc": "ping",
+                "describe": "检测数据库是否正常"
+            },
+            "status": {
+                "reg": "^/?(状态|status)$",
+                "fnc": "status",
+                "describe": "查询bot与服务器状态"
+            }
+        },
+        "gacha": {
+            "gachaON": {
+                "reg": "^/?单抽出奇迹$",
+                "fnc": "gachaHandler",
+                "data": "0b00",
+                "describe": "单抽出奇迹"
+            },
+            "gachaTN": {
+                "reg": "^/?十连大保底$",
+                "fnc": "gachaHandler",
+                "data": "0b01",
+                "describe": "十连大保底"
+            },
+            "gachaOY": {
+                "reg": "^/?单抽奇迹图$",
+                "fnc": "gachaHandler",
+                "data": "0b10",
+                "describe": "单抽奇迹图"
+            },
+            "gachaTY": {
+                "reg": "^/?十连保底图$",
+                "fnc": "gachaHandler",
+                "data": "0b11",
+                "describe": "十连保底图"
+            },
+            "gachaSetting": {
+                "reg": "^/?抽卡设置",
+                "fnc": "gachaSetting",
+                "describe": "抽卡设置"
+            }
+        },
+        "ALA": {
+            "generateALA": {
+                "reg": "^/?奥利奥",
+                "fnc": "generateALA",
+                "describe": "生成奥利奥"
+            }
+        },
+        "sign": {
+            "sign": {
+                "reg": "^/?签到$",
+                "fnc": "sign",
+                "describe": "进行一次签到"
+            }
+        }
+    }
+}

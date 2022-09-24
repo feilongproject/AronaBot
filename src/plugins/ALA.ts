@@ -1,57 +1,49 @@
 import sharp from "sharp";
-import config from "../../data/config.json";
-import { DatabaseAuthALA, Databaser } from "../mod/databaser";
-import log from "../mod/logger";
-import { Messager } from "../mod/messager";
+import { IMessageEx } from "../libs/IMessageEx";
+import { findChannel } from "../libs/findChannel";
+import config from "../../config/config.json";
 
 var allowLen = 20;
 var authLen = 0;
 
-export async function commandALA(pusher: Databaser, messager: Messager, content: string) {
+export async function generateALA(msg: IMessageEx) {
 
-    await pusher.databaseSearch("authALA", "userId", messager.msg.author.id).then((datas: DatabaseAuthALA[]) => {
-        if (datas[0]?.userId == messager.msg.author.id) {
-            authLen = datas[0].lessLen;
-        }
-    }).catch(err => {
-        log.error(err);
-    });
+    if (findChannel(msg.channel_id) || msg.guild_id == "5237615478283154023") {
 
-    //var content = msg.content;
-    if (content) {
-        const alaQueue = buildALA(content);
+        const alaQueue = buildALA(msg.content.replace(RegExp("/?奥利奥"), "").replace(`<@!${meId}>`, "").trim());
         if (alaQueue.length <= (allowLen + authLen)) {
 
-            //gm()
             if (alaQueue.length == 0) {
-                pusher.sendMsg(messager, `未找到奥利奥，请确认指令中出现"爱丽丝"其中任何一个字符（可重复）`);
-            } else {
-                buildImage(alaQueue).then(outPath => {
-                    pusher.sendImage(messager, outPath);
-                }).catch(err => {
-                    log.error(err);
-                });
+                msg.sendMsgExRef({ content: `未找到奥利奥，在本指令后输入"爱丽丝"三个字符中其中任意一个字符即可生成（可重复）` });
+                return;
             }
+            return buildImage(alaQueue).then(outPath => {
+                return msg.sendMsgEx({ imagePath: outPath });
+            }).catch(err => {
+                log.error(err);
+            });
+
         } else {
-            pusher.sendMsg(messager, `奥利奥过长(${alaQueue.length}字符),最长可允许长度为${allowLen + authLen}字符\n含${allowLen}字符基础长度${authLen == 0 ? `(赞助可以获得更多长度)` : `+${authLen}字符赞助长度`}`);
+            return msg.sendMsgExRef({
+                content: `奥利奥过长(${alaQueue.length}字符),最长可允许长度为${allowLen + authLen}字符` +
+                    `\n含${allowLen}字符基础长度${authLen == 0 ? `(赞助可以获得更多长度)` : `+${authLen}字符赞助长度`}`
+            });
+
         }
     } else {
-        pusher.sendMsg(messager, `未找到奥利奥，在本指令后输入"爱丽丝"三个字符中其中任意一个字符即可生成（可重复）`);
+        log.error(`unAuth channel id:${msg.channel_id}|||user:${msg.author.username}`);
+        msg.sendMsgExRef({ content: `当前子频道未授权,请在隔壁使用` });
     }
 
 }
 
 function buildALA(content: string) {
-    //log.debug(content);
+
     var sp = content.split("");
-    //log.debug(sp);
+    const alaQueue: ("01" | "10" | "02" | "20" | "12" | "21")[] = [];
 
-    var alaQueue: ("01" | "10" | "02" | "20" | "12" | "21")[] = [];
-    sp.forEach((word, iv) => {
-        //var word: "爱" | "丽" | "丝" = w as any;
+    for (const word of sp) {
         var pop = alaQueue.pop();
-
-
         switch (word) {
             case "艾":
             case "爱":
@@ -88,7 +80,7 @@ function buildALA(content: string) {
                 }
                 log.error(`error word${word}`);
         }
-    });
+    }
     return alaQueue;
 }
 
