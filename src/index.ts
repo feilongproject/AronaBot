@@ -1,7 +1,7 @@
 import { init } from './init';
 import { findOpts } from './libs/findOpts';
 import { IMessageEx } from './libs/IMessageEx';
-import { findChannel, findGuilds } from './libs/findChannel';
+import { findChannel } from './libs/findChannel';
 
 
 
@@ -20,10 +20,11 @@ init().then(() => {
             const content = _content;
             const opts = content.trim().split(" ");
             const opt = await findOpts(opts[0]);
-            if (opt.path != "err") log.debug(`./plugins/${opt.path}:${opt.fnc}`);
+            if (opt.path == "err") return;
+            log.debug(`./plugins/${opt.path}:${opt.fnc}`);
 
             try {
-                if ((findGuilds(msg.guild_id) || msg.author.username == adminId) && (opt.path != "err")) {
+                if (findChannel(msg.channel_id) || msg.author.username == adminId || msg.guild_id == "5237615478283154023") {
                     const plugin = await import(`./plugins/${opt.path}.ts`);
                     if (typeof plugin[opt.fnc] == "function") {
                         (plugin[opt.fnc] as PluginFnc)(msg, opt.data).catch(err => {

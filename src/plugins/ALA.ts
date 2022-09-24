@@ -1,6 +1,5 @@
 import sharp from "sharp";
 import { IMessageEx } from "../libs/IMessageEx";
-import { findChannel } from "../libs/findChannel";
 import config from "../../config/config.json";
 
 var allowLen = 20;
@@ -8,33 +7,25 @@ var authLen = 0;
 
 export async function generateALA(msg: IMessageEx) {
 
-    if (findChannel(msg.channel_id) || msg.guild_id == "5237615478283154023") {
+    const alaQueue = buildALA(msg.content.replace(RegExp("/?奥利奥"), "").replace(`<@!${meId}>`, "").trim());
+    if (alaQueue.length <= (allowLen + authLen)) {
 
-        const alaQueue = buildALA(msg.content.replace(RegExp("/?奥利奥"), "").replace(`<@!${meId}>`, "").trim());
-        if (alaQueue.length <= (allowLen + authLen)) {
-
-            if (alaQueue.length == 0) {
-                msg.sendMsgExRef({ content: `未找到奥利奥，在本指令后输入"爱丽丝"三个字符中其中任意一个字符即可生成（可重复）` });
-                return;
-            }
-            return buildImage(alaQueue).then(outPath => {
-                return msg.sendMsgEx({ imagePath: outPath });
-            }).catch(err => {
-                log.error(err);
-            });
-
-        } else {
-            return msg.sendMsgExRef({
-                content: `奥利奥过长(${alaQueue.length}字符),最长可允许长度为${allowLen + authLen}字符` +
-                    `\n含${allowLen}字符基础长度${authLen == 0 ? `(赞助可以获得更多长度)` : `+${authLen}字符赞助长度`}`
-            });
-
+        if (alaQueue.length == 0) {
+            msg.sendMsgExRef({ content: `未找到奥利奥，在本指令后输入"爱丽丝"三个字符中其中任意一个字符即可生成（可重复）` });
+            return;
         }
-    } else {
-        log.error(`unAuth channel id:${msg.channel_id}|||user:${msg.author.username}`);
-        msg.sendMsgExRef({ content: `当前子频道未授权,请在隔壁使用` });
-    }
+        return buildImage(alaQueue).then(outPath => {
+            return msg.sendMsgEx({ imagePath: outPath });
+        }).catch(err => {
+            log.error(err);
+        });
 
+    } else {
+        return msg.sendMsgExRef({
+            content: `奥利奥过长(${alaQueue.length}字符),最长可允许长度为${allowLen + authLen}字符` +
+                `\n含${allowLen}字符基础长度${authLen == 0 ? `(赞助可以获得更多长度)` : `+${authLen}字符赞助长度`}`
+        });
+    }
 }
 
 function buildALA(content: string) {
