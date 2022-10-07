@@ -18,6 +18,11 @@ export async function init() {
         imageRenderNum: 0,
     }
 
+    if (process.argv.includes("--dev")) {
+        log.mark("当前环境处于开发环境，请注意！");
+        global.devEnv = true;
+    }
+
     //log.info(`初始化：正在创建定时任务`);
     //schedule.scheduleJob("0 * * * * ? ", async () => (await import("./plugins/biliDynamic")).taskPushBili());
 

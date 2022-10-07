@@ -9,6 +9,7 @@ init().then(() => {
 
     global.ws.on('GUILD_MESSAGES', async (data: IntentMessage) => {
 
+        if (devEnv && data.msg.author.id != adminId) { return };
         if (data.eventType == 'MESSAGE_CREATE') {
             const msg = new IMessageEx(data.msg, "GUILD");// = data.msg as any;
             global.redis.set("lastestMsgId", msg.id, { EX: 5 * 60 });
