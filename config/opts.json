@@ -57,6 +57,13 @@
                 "fnc": "sign",
                 "describe": "进行一次签到"
             }
+        },
+        "sponsor": {
+            "sponsor": {
+                "reg": "^/?赞助$",
+                "fnc": "sponsor",
+                "describe": "赞助！是赞助！"
+            }
         }
     },
     "channelAllows": {
