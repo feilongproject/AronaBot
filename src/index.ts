@@ -1,9 +1,6 @@
 import { init } from './init';
 import { findOpts } from './libs/findOpts';
 import { IMessageEx } from './libs/IMessageEx';
-import { findChannel } from './libs/findChannel';
-
-
 
 init().then(() => {
 
@@ -25,21 +22,13 @@ init().then(() => {
             if (global.devEnv) log.debug(`./plugins/${opt.path}:${opt.fnc}`);
 
             try {
-                if (findChannel(msg.channel_id) || msg.author.username == adminId || msg.guild_id == "5237615478283154023") {
-                    const plugin = await import(`./plugins/${opt.path}.ts`);
-                    if (typeof plugin[opt.fnc] == "function") {
-                        (plugin[opt.fnc] as PluginFnc)(msg, opt.data).catch(err => {
-                            log.error(err);
-                        });
-                        /* if (opt.data) (plugin[opt.fnc] as PluginFnc)(msg, opt.data).catch(err => {
-                            log.error(err);
-                        });
-                        else (plugin[opt.fnc] as PluginFnc)(msg).catch(err => {
-                            log.error(err);
-                        }); */
-                    } else {
-                        log.error(`not found function ${opt.fnc}() at "${global._path}/src/plugins/${opt.path}.ts"`);
-                    }
+                const plugin = await import(`./plugins/${opt.path}.ts`);
+                if (typeof plugin[opt.fnc] == "function") {
+                    (plugin[opt.fnc] as PluginFnc)(msg, opt.data).catch(err => {
+                        log.error(err);
+                    });
+                } else {
+                    log.error(`not found function ${opt.fnc}() at "${global._path}/src/plugins/${opt.path}.ts"`);
                 }
             } catch (err) {
                 log.error(err);
