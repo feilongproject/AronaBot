@@ -72,25 +72,25 @@ export class IMessageEx implements IMessage {
     async sendMsgEx(option: SendMsgOption) {
         global.botStatus.msgSendNum++;
         const { ref, imagePath, content, initiative } = option;
-        const { id, guild_id, channel_id } = this;
+        option.messageType = option.messageType || this.messageType;
+        option.msgId = option.msgId || this.id;
+        option.guildId = option.guildId || this.guild_id;
+        option.channelId = option.channelId || this.channel_id;
+        option.sendType = option.sendType || this.messageType;
         if (imagePath) {
-            option.messageType = option.messageType || this.messageType;
-            option.msgId = option.msgId || this.id;
-            option.guildId = option.guildId || this.guild_id;
-            option.channelId = option.channelId || this.channel_id;
             return sendImage(option).catch(err => {
                 log.error(err);
             });
         } else {
-            if (this.messageType == "GUILD") {
-                return global.client.messageApi.postMessage(channel_id, {
+            if (option.sendType == "GUILD") {
+                return global.client.messageApi.postMessage(option.channelId, {
                     content: content,
-                    msg_id: initiative ? undefined : id,
-                    message_reference: ref ? { message_id: id, } : undefined
+                    msg_id: initiative ? undefined : this.id,
+                    message_reference: ref ? { message_id: this.id, } : undefined
                 });
             } else {
-                return global.client.directMessageApi.postDirectMessage(guild_id, {
-                    msg_id: initiative ? undefined : id,
+                return global.client.directMessageApi.postDirectMessage(option.guildId!, {
+                    msg_id: initiative ? undefined : this.id,
                     content: content,
                 });
             }
@@ -103,11 +103,11 @@ export class IMessageEx implements IMessage {
     }
 }
 
-export async function sendImage(option: SendMsgOption) {
+async function sendImage(option: SendMsgOption) {
     const { messageType, initiative, content, imagePath, msgId, guildId, channelId } = option;
     if (!imagePath) return;
     var pushUrl =
-        messageType == "DIRECT" ?
+        (messageType == "DIRECT" || option.sendType == "DIRECT") ?
             `https://api.sgroup.qq.com/dms/${guildId}/messages` :
             `https://api.sgroup.qq.com/channels/${channelId}/messages`;
     const formdata = new FormData();
@@ -136,6 +136,7 @@ interface SendMsgOption {
     content?: string;
     initiative?: boolean;
     messageType?: "DIRECT" | "GUILD";
+    sendType?: "DIRECT" | "GUILD";
     msgId?: string;
     guildId?: string;
     channelId?: string;
