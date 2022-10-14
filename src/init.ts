@@ -2,7 +2,7 @@ import fs from 'fs';
 import { createClient } from 'redis';
 import schedule from "node-schedule";
 import { createOpenAPI, createWebsocket, OpenAPI } from 'qq-guild-bot';
-import _log from './libs/logger';
+import _log, { setDevLog } from './libs/logger';
 import config from '../config/config.json';
 
 export async function init() {
@@ -21,7 +21,8 @@ export async function init() {
     if (process.argv.includes("--dev")) {
         log.mark("当前环境处于开发环境，请注意！");
         global.devEnv = true;
-    }
+        setDevLog();
+    } else global.devEnv = false;
 
     //log.info(`初始化：正在创建定时任务`);
     //schedule.scheduleJob("0 * * * * ? ", async () => (await import("./plugins/biliDynamic")).taskPushBili());
@@ -84,13 +85,4 @@ export async function init() {
     global.client.meApi.me().then(res => {
         global.meId = res.data.id;
     });
-    /*
-    return new Databaser({
-        host: "127.0.0.1",
-        port: 13306,
-        user: "root",
-        password: "P@ssWord14789",
-        database: "AronaBot",
-        connectTimeout: 5,
-    }, config.initConfig); */
 }
