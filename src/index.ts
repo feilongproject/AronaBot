@@ -17,7 +17,7 @@ init().then(() => {
             while (_content.includes("  ")) _content = _content.replace("  ", " ");
             const content = _content;
             const opts = content.trim().split(" ");
-            const opt = await findOpts(opts[0]);
+            const opt = await findOpts(opts[0], msg.channel_id);
             if (opt.path == "err") return;
             if (global.devEnv) log.debug(`./plugins/${opt.path}:${opt.fnc}`);
 
