@@ -9,7 +9,7 @@ init().then(() => {
 
     global.ws.on('GUILD_MESSAGES', async (data: IntentMessage) => {
 
-        if (devEnv && data.msg.author.id != adminId) { return };
+        if (data.eventType == 'MESSAGE_CREATE' && devEnv && data.msg.author.id != adminId) { return };
         if (data.eventType == 'MESSAGE_CREATE') {
             const msg = new IMessageEx(data.msg, "GUILD");// = data.msg as any;
             global.redis.set("lastestMsgId", msg.id, { EX: 5 * 60 });
@@ -22,7 +22,7 @@ init().then(() => {
             const opts = content.trim().split(" ");
             const opt = await findOpts(opts[0]);
             if (opt.path == "err") return;
-            log.debug(`./plugins/${opt.path}:${opt.fnc}`);
+            if (global.devEnv) log.debug(`./plugins/${opt.path}:${opt.fnc}`);
 
             try {
                 if (findChannel(msg.channel_id) || msg.author.username == adminId || msg.guild_id == "5237615478283154023") {

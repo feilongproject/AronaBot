@@ -14,12 +14,14 @@
     "devDependencies": {
         "@types/node": "^17.0.35",
         "@types/node-fetch": "^2.6.2",
+        "@types/node-schedule": "^2.1.0",
         "@types/sharp": "^0.30.4",
         "@types/ws": "^8.5.3"
     },
     "dependencies": {
         "log4js": "^6.5.2",
         "node-fetch": "^2.6.6",
+        "node-schedule": "^2.1.0",
         "nodemon": "^2.0.16",
         "qq-guild-bot": "^2.9.5",
         "redis": "^4.3.1",
