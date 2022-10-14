@@ -29,7 +29,11 @@ declare global {
   }
 
   interface IntentMessage {
-    eventType: "MESSAGE_CREATE" | "PUBLIC_MESSAGE_DELETE" | "GUILD_MEMBER_REMOVE" | "GUILD_MEMBER_ADD" | "GUILD_MEMBER_UPDATE",
+    eventType:
+    "MESSAGE_CREATE" | "MESSAGE_DELETE" |
+    "AT_MESSAGE_CREATE" | "PUBLIC_MESSAGE_DELETE" |
+    "DIRECT_MESSAGE_CREATE" | "DIRECT_MESSAGE_DELETE" |
+    "GUILD_MEMBER_REMOVE" | "GUILD_MEMBER_ADD" | "GUILD_MEMBER_UPDATE",
     eventId: string,
     msg: IMessage & GUILD_MEMBER,
   }
