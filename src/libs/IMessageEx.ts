@@ -45,7 +45,7 @@ export class IMessageEx implements IMessage {
         this.messageType = messageType;
 
         if (messageType == "DIRECT") {
-            log.info(`私信{${msg.guild_id}}[${msg.channel_id}](${msg.author.username}):${msg.content}`);
+            log.info(`私信{${msg.guild_id}}[${msg.channel_id}](${msg.author.username}|${this.author.id}):${msg.content}`);
             return;
         }
 
