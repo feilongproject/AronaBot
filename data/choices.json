@@ -165,6 +165,31 @@
     ],
     "star3": [
         {
+            "source": "Cherino",
+            "chineseName": "切里诺",
+            "fileName": "Student_Portrait_Cherino.png"
+        },
+        {
+            "source": "Marina",
+            "chineseName": "玛利娜",
+            "fileName": "Student_Portrait_Marina.png"
+        },
+        {
+            "source": "Ui",
+            "chineseName": "忧",
+            "fileName": "Student_Portrait_CH0169.png"
+        },
+        {
+            "source": "Hinata",
+            "chineseName": "日向",
+            "fileName": "Student_Portrait_Hinata.png"
+        },
+        {
+            "source": "Mimori",
+            "chineseName": "三森",
+            "fileName": "Student_Portrait_Mimori.png"
+        },
+        {
             "source": "Sena",
             "chineseName": "濑名",
             "fileName": "Student_Portrait_Sena.png"
