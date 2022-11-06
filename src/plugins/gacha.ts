@@ -92,12 +92,7 @@ export async function gachaSetting(msg: IMessageEx) {
             content: `未找到用户设置，请@bot后输入"/抽卡设置 重置"开始初始化设置` +
                 `\n（如果之后要恢复默认也可使用该命令）`
         });
-
     }
-
-
-
-
 }
 
 /**
@@ -207,8 +202,8 @@ function second(star: number): Character {
 
 async function analyzeRandData(uid: string, data: { name: Character, star: number }[]): Promise<string> {
 
-    const gachaSetting = await redis.hGet(`setting:gacha`, `${uid}`);
-    if (!gachaSetting || gachaSetting.split(",")[2] == "1") return "";
+    const gachaSetting = await redis.hGet(`setting:gacha`, `${uid}`) || `1,0,0,0`;
+    if (gachaSetting.split(",")[1] == "1") return "";
 
     const gachaData: {
         all: string[] | number[],
