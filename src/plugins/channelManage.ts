@@ -4,6 +4,7 @@ import { IMessageEx } from "../libs/IMessageEx";
 export async function meituChannel(msg: IMessageEx) {
     //log.debug(msg.content, msg.attachments);
 
+    if (msg.content == "当前版本不支持查看，请升级QQ版本") return;
     if (!msg.attachments) {
 
         msg.sendMsgEx({
