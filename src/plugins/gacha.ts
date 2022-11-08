@@ -3,7 +3,7 @@ import { IMessageEx } from "../libs/IMessageEx";
 import config from '../../config/config.json';
 import choicesList from "../../data/choices.json";
 
-var maxTime = 60;
+var maxTime = 30;
 
 export async function gachaHandler(msg: IMessageEx, data: string) {
 

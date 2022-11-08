@@ -165,9 +165,19 @@
     ],
     "star3": [
         {
-            "source": "Cherino",
-            "chineseName": "切里诺",
-            "fileName": "Student_Portrait_Cherino.png"
+            "source": "Miyako",
+            "chineseName": "都子",
+            "fileName": "Student_Portrait_Miyako.png"
+        },
+        {
+            "source": "Saki",
+            "chineseName": "咲希",
+            "fileName": "Student_Portrait_CH0144.png"
+        },
+        {
+            "source": "Miyu",
+            "chineseName": "美游",
+            "fileName": "Student_Portrait_CH0145.png"
         },
         {
             "source": "Marina",
