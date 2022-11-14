@@ -99,7 +99,31 @@ export class IMessageEx implements IMessage {
 
     async sendMsgExRef(option: SendMsgOption) {
         option.ref = true;
-        this.sendMsgEx(option);
+        return this.sendMsgEx(option);
+    }
+
+    async sendMarkdown(templateId: string, _params?: { [key: string]: string }, keyboardId?: string) {
+        const params: { key: string; values: [string]; }[] = [];
+        for (const key in _params) params.push({ key, values: [_params[key]] });
+        return fetch(`https://api.sgroup.qq.com/channels/${this.channel_id}/messages`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bot ${config.initConfig.appID}.${config.initConfig.token}`,
+            }, body: JSON.stringify({
+                markdown: {
+                    custom_template_id: templateId,
+                    params: params,
+                },
+                keyboard: {
+                    id: keyboardId,
+                },
+            }),
+        }).then(res => {
+            return res.json();
+        }).catch(err => {
+            log.error(err);
+        });
     }
 }
 
