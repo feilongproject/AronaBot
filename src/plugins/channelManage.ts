@@ -15,7 +15,7 @@ export async function meituChannel(msg: IMessageEx) {
                 `\n子频道：${msg.channel_name}` +
                 `\n内容：${msg.content}` +
                 `\n原因：无配图文字`,
-            guildId: await global.redis.hGet(`directGuildId`, adminId),
+            guildId: await global.redis.hGet(`directUid->Gid`, adminId),
             sendType: "DIRECT",
         }).then(() => {
 

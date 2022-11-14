@@ -1,7 +1,7 @@
 import fs from "fs";
 import fetch from 'node-fetch';
 import FormData from 'form-data';
-import { Ark, Embed, IMember, IMessage, IUser, MessageAttachment } from "qq-guild-bot";
+import { Ark, Embed, IMember, IMessage, IUser, MessageAttachment, MessageReference, MessageToCreate } from "qq-guild-bot";
 import config from '../../config/config.json';
 
 export class IMessageEx implements IMessage {
@@ -20,12 +20,15 @@ export class IMessageEx implements IMessage {
     ark: Ark;
     seq?: number;
     seq_in_channel?: string;
+    direct_message: boolean;
+    src_guild_id?: string;
+    message_reference?: MessageReference;
 
     guild_name?: string;
     channel_name?: string;
     messageType: "DIRECT" | "GUILD";
 
-    constructor(msg: IMessage, messageType: "DIRECT" | "GUILD") {
+    constructor(msg: IMessage & DirectMessage & MessageToCreate, messageType: "DIRECT" | "GUILD") {
         this.id = msg.id;
         this.channel_id = msg.channel_id;
         this.guild_id = msg.guild_id;
@@ -41,6 +44,9 @@ export class IMessageEx implements IMessage {
         this.ark = msg.ark;
         this.seq = msg.seq;
         this.seq_in_channel = msg.seq_in_channel;
+        this.src_guild_id = msg.src_guild_id;
+        this.direct_message = msg.direct_message;
+        this.message_reference = msg.message_reference;
 
         this.messageType = messageType;
 

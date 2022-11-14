@@ -35,7 +35,7 @@ declare global {
     "DIRECT_MESSAGE_CREATE" | "DIRECT_MESSAGE_DELETE" |
     "GUILD_MEMBER_REMOVE" | "GUILD_MEMBER_ADD" | "GUILD_MEMBER_UPDATE",
     eventId: string,
-    msg: IMessage & GUILD_MEMBER,
+    msg: IMessage & GUILD_MEMBER & DirectMessage,
   }
 
   interface GUILD_MEMBER {
@@ -50,6 +50,11 @@ declare global {
       id: string;
       username: string;
     };
+  }
+
+  interface DirectMessage {
+    direct_message: boolean;
+    src_guild_id: string;
   }
 
   var saveGuildsTree: SaveGuild[];

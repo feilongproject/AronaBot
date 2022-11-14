@@ -35,6 +35,36 @@ init().then(() => {
             }
         }
     });
+
+    global.ws.on("DIRECT_MESSAGE", async (data: IntentMessage) => {
+
+        if (data.eventType == 'DIRECT_MESSAGE_CREATE') {
+            const msg = new IMessageEx(data.msg, "DIRECT");// = data.msg as any;
+            global.redis.set("lastestMsgId", msg.id, { EX: 5 * 60 });
+            global.redis.hSet(`directUid->Gid`, msg.author.id, msg.guild_id);
+            if (msg.author.id == adminId) {
+                //log.debug(`refMid:${msg.message_reference?.message_id}`);
+                const refMsgGid = await redis.hGet(`directMid->Gid`, msg.message_reference?.message_id || `0`);
+                //log.debug(refMsgGid);
+                if (!refMsgGid) return;
+                return msg.sendMsgEx({
+                    content: msg.content,
+                    guildId: refMsgGid,
+                });
+            }
+
+            return msg.sendMsgEx({
+                content: `用户：${msg.author.username}发送了一条信息` +
+                    `\n用户id：${msg.author.id}` +
+                    `\n源频道：${msg.src_guild_id}` +
+                    `\n内容：${msg.content}`,
+                guildId: await global.redis.hGet(`directUid->Gid`, adminId),
+            }).then((m) => {
+                return redis.hSet(`directMid->Gid`, m.data.id, msg.guild_id);
+            });
+
+        }
+    });
 });
 
 type PluginFnc = (msg: IMessageEx, data?: string | number) => Promise<any>
