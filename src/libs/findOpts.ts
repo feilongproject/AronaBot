@@ -30,12 +30,12 @@ export async function findOpts(msg: IMessageEx, channelId: string): Promise<{ pa
             if (!RegExp(opt.reg).test(msg.content.replace(/<@!\d*>/g, "").trim())) continue;
 
             const allowKeys = opt.channelAllows || ["common"];
-            var allowChannel = false;
+            var allowChannel = msg.messageType == "DIRECT" || false;
             for (const allowKey of allowKeys)
                 for (const channel of channelAllows[allowKey])
                     if (channel.id == channelId) allowChannel = true;
 
-            if (allowKeys[0] == "all" || allowChannel || msg.author.id == adminId) return {
+            if (allowKeys[0] == "all" || allowChannel) return {
                 path: keyFather,
                 fnc: opt.fnc,
                 data: opt.data,
