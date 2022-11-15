@@ -27,6 +27,7 @@ declare global {
     msgSendNum: number;
     imageRenderNum: number;
   }
+  var hotLoadStatus: boolean;
 
   interface IntentMessage {
     eventType:

@@ -17,6 +17,7 @@ export async function init() {
         msgSendNum: 0,
         imageRenderNum: 0,
     }
+    global.hotLoadStatus = false;
 
     if (process.argv.includes("--dev")) {
         log.mark("当前环境处于开发环境，请注意！");
@@ -35,6 +36,7 @@ export async function init() {
     fs.watch(`${global._path}/src/plugins/`, async (event, filename) => {
         //log.debug(event, filename);
         if (event != "change") return;
+        if (!devEnv && !hotLoadStatus) return;
         log.mark(`文件${global._path}/src/plugins/${filename}正在进行热更新`);
         if (require.cache[`${global._path}/src/plugins/${filename}`]) {
             delete require.cache[`${global._path}/src/plugins/${filename}`];
@@ -48,6 +50,7 @@ export async function init() {
     log.info(`初始化：正在创建指令文件热加载监听`);
     const optFile = `${global._path}/config/opts.json`;
     fs.watchFile(optFile, async () => {
+        if (!devEnv && !hotLoadStatus) return;
         log.mark(`指令配置文件正在进行热更新`);
         if (require.cache[optFile]) {
             delete require.cache[optFile];

@@ -22,6 +22,15 @@ export async function ping(msg: IMessageEx) {
     msg.sendMsgEx({ content: await global.redis.ping() });
 }
 
+export async function hotLoad(msg: IMessageEx) {
+    if (msg.author.id != adminId) return;
+    const type = /^\/?(开启|关闭)热(加载|更新)$/.exec(msg.content)![1];
+    hotLoadStatus = type.includes("开") ? true : false;
+    return msg.sendMsgEx({
+        content: `已${msg.content}`,
+    });
+}
+
 export async function directToAdmin(msg: IMessageEx) {
     if (msg.author.id == adminId) {
         //log.debug(`refMid:${msg.message_reference?.message_id}`);
