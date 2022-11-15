@@ -77,16 +77,14 @@ export class IMessageEx implements IMessage {
 
     async sendMsgEx(option: SendMsgOption) {
         global.botStatus.msgSendNum++;
-        const { ref, imagePath, content, initiative } = option;
+        const { ref, content, initiative } = option;
         option.messageType = option.messageType || this.messageType;
         option.msgId = option.msgId || this.id;
         option.guildId = option.guildId || this.guild_id;
         option.channelId = option.channelId || this.channel_id;
         option.sendType = option.sendType || this.messageType;
-        if (imagePath) {
-            return sendImage(option).catch(err => {
-                log.error(err);
-            });
+        if (option.imagePath) {
+            return sendImage(option);
         } else {
             if (option.sendType == "GUILD") {
                 return global.client.messageApi.postMessage(option.channelId, {
@@ -127,15 +125,15 @@ export class IMessageEx implements IMessage {
             }),
         }).then(res => {
             return res.json();
-        }).catch(err => {
-            log.error(err);
+        }).then(json => {
+            if (json.code) throw json;
+            else return json;
         });
     }
 }
 
-async function sendImage(option: SendMsgOption) {
+async function sendImage(option: SendMsgOption): Promise<IMessage> {
     const { messageType, initiative, content, imagePath, msgId, guildId, channelId } = option;
-    if (!imagePath) return;
     var pushUrl =
         (messageType == "DIRECT" || option.sendType == "DIRECT") ?
             `https://api.sgroup.qq.com/dms/${guildId}/messages` :
@@ -143,7 +141,7 @@ async function sendImage(option: SendMsgOption) {
     const formdata = new FormData();
     if (!initiative) formdata.append("msg_id", msgId);
     if (content) formdata.append("content", content);
-    formdata.append("file_image", fs.createReadStream(imagePath));
+    formdata.append("file_image", fs.createReadStream(imagePath!));
     return fetch(pushUrl, {
         method: "POST",
         headers: {
