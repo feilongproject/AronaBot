@@ -5,11 +5,13 @@
             "ping": {
                 "reg": "^/?ping$",
                 "fnc": "ping",
+                "type": ["GUILD", "DIRECT"],
                 "describe": "检测数据库是否正常"
             },
             "status": {
                 "reg": "^/?(状态|status)$",
                 "fnc": "status",
+                "type": ["GUILD", "DIRECT"],
                 "describe": "查询bot与服务器状态"
             }
         },
@@ -18,29 +20,34 @@
                 "reg": "^/?单抽出奇迹$",
                 "fnc": "gachaHandler",
                 "data": "0b00",
+                "type": ["GUILD"],
                 "describe": "单抽出奇迹"
             },
             "gachaTN": {
                 "reg": "^/?十连大保底$",
                 "fnc": "gachaHandler",
                 "data": "0b01",
+                "type": ["GUILD"],
                 "describe": "十连大保底"
             },
             "gachaOY": {
                 "reg": "^/?单抽奇迹图$",
                 "fnc": "gachaHandler",
                 "data": "0b10",
+                "type": ["GUILD"],
                 "describe": "单抽奇迹图"
             },
             "gachaTY": {
                 "reg": "^/?十连保底图$",
                 "fnc": "gachaHandler",
                 "data": "0b11",
+                "type": ["GUILD"],
                 "describe": "十连保底图"
             },
             "gachaSetting": {
                 "reg": "^/?抽卡设置",
                 "fnc": "gachaSetting",
+                "type": ["GUILD"],
                 "describe": "抽卡设置"
             }
         },
@@ -48,6 +55,7 @@
             "generateALA": {
                 "reg": "^/?奥利奥",
                 "fnc": "generateALA",
+                "type": ["GUILD"],
                 "describe": "生成奥利奥"
             }
         },
@@ -55,6 +63,7 @@
             "sign": {
                 "reg": "^/?签到$",
                 "fnc": "sign",
+                "type": ["GUILD"],
                 "describe": "进行一次签到"
             }
         },
@@ -62,6 +71,7 @@
             "sponsor": {
                 "reg": "^/?(赞助|用爱发电|为爱发电)$",
                 "fnc": "sponsor",
+                "type": ["GUILD", "DIRECT"],
                 "describe": "赞助！是赞助！"
             }
         },
@@ -70,6 +80,7 @@
                 "reg": ".*",
                 "fnc": "meituChannel",
                 "channelAllows": ["meitu"],
+                "type": ["GUILD"],
                 "describe": "美图区自动禁言纯文字发言"
             }
         }

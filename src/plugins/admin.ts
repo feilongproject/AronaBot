@@ -1,5 +1,5 @@
-import child_process from "child_process";
 import os from "os";
+import child_process from "child_process";
 import { IMessageEx } from "../libs/IMessageEx";
 
 export async function status(msg: IMessageEx) {
@@ -17,10 +17,32 @@ export async function status(msg: IMessageEx) {
     });
 }
 
-
 export async function ping(msg: IMessageEx) {
     if (msg.author.id != adminId) return;
     msg.sendMsgEx({ content: await global.redis.ping() });
+}
+
+export async function directToAdmin(msg: IMessageEx) {
+    if (msg.author.id == adminId) {
+        //log.debug(`refMid:${msg.message_reference?.message_id}`);
+        const refMsgGid = await redis.hGet(`directMid->Gid`, msg.message_reference?.message_id || `0`);
+        //log.debug(refMsgGid);
+        if (!refMsgGid) return;
+        return msg.sendMsgEx({
+            content: msg.content,
+            guildId: refMsgGid,
+        });
+    }
+
+    return msg.sendMsgEx({
+        content: `用户：${msg.author.username}发送了一条信息` +
+            `\n用户id：${msg.author.id}` +
+            `\n源频道：${msg.src_guild_id}` +
+            `\n内容：${msg.content}`,
+        guildId: await global.redis.hGet(`directUid->Gid`, adminId),
+    }).then((m) => {
+        return redis.hSet(`directMid->Gid`, m.data.id, msg.guild_id);
+    });
 }
 
 function timeConver(time: number) {
