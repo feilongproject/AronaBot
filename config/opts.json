@@ -60,12 +60,12 @@
         },
         "sponsor": {
             "sponsor": {
-                "reg": "^/?赞助$",
+                "reg": "^/?(赞助|用爱发电|为爱发电)$",
                 "fnc": "sponsor",
                 "describe": "赞助！是赞助！"
             }
         },
-        "channelManage": {
+        "channelManager": {
             "meituChannel": {
                 "reg": ".*",
                 "fnc": "meituChannel",
