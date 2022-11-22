@@ -22,31 +22,21 @@
             }
         },
         "gacha": {
-            "gachaON": {
-                "reg": "^/?单抽出奇迹$",
-                "fnc": "gachaHandler",
-                "data": "0b00",
+            "test": {
+                "reg": "^/?md$",
+                "fnc": "gachaImage",
                 "type": ["GUILD"],
-                "describe": "单抽出奇迹"
+                "describe": "十连保底图"
             },
-            "gachaTN": {
-                "reg": "^/?十连大保底$",
-                "fnc": "gachaHandler",
-                "data": "0b01",
+            "gachaString": {
+                "reg": "^/?(单抽出奇迹|十连大保底)$",
+                "fnc": "gachaString",
                 "type": ["GUILD"],
-                "describe": "十连大保底"
+                "describe": "纯字符抽卡"
             },
-            "gachaOY": {
-                "reg": "^/?单抽奇迹图$",
-                "fnc": "gachaHandler",
-                "data": "0b10",
-                "type": ["GUILD"],
-                "describe": "单抽奇迹图"
-            },
-            "gachaTY": {
+            "gachaImage": {
                 "reg": "^/?十连保底图$",
-                "fnc": "gachaHandler",
-                "data": "0b11",
+                "fnc": "gachaImage",
                 "type": ["GUILD"],
                 "describe": "十连保底图"
             },
