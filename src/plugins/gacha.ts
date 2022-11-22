@@ -25,7 +25,8 @@ export async function gachaImage(msg: IMessageEx) {
 
     if (await hasCd(msg)) return;
 
-    const o = cTime(10);
+
+    const o = cTime(10, msg.author.id == adminId ? Number(msg.content.match(/\d$/)) as 1 | 2 | 3 : undefined);
 
     /* return msg.sendMarkdown("102024160_1668504873", {
         at_user: `<@${msg.author.id}>`,
@@ -58,24 +59,18 @@ async function hasCd(msg: IMessageEx) {
     return null;
 }
 
-function cTime(times: 1 | 10): { name: Character, star: number }[] {
+function cTime(times: 1 | 10, testStar?: 1 | 2 | 3): { name: Character, star: number }[] {
 
     var ret: { name: Character, star: number }[] = [];
     if (times == 1) {
         ret.push(once());
     } else if (times == 10) {
         var must = true;
-        var _arr = Array.from({ length: 10 }, (v, k) => k);
-
-        _arr.forEach((value, index) => {
-            if (index == 9 && must == true) {
-                ret.push(once(2));
-            } else {
-                var o = once();
-                if (o.star > 1) must = false;
-                ret.push(o);
-            }
-        });
+        for (var i = 1; i <= 10; i++) {
+            ret.push(once(testStar));
+            if (ret[ret.length - 1].star > 1) must = false;
+        }
+        if (must) ret[9] = once(2);
     }
     return ret;
 }
