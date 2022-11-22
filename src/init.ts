@@ -37,8 +37,8 @@ export async function init() {
         //log.debug(event, filename);
         if (event != "change") return;
         if (!devEnv && !hotLoadStatus) return;
-        log.mark(`文件${global._path}/src/plugins/${filename}正在进行热更新`);
         if (require.cache[`${global._path}/src/plugins/${filename}`]) {
+            log.mark(`文件${global._path}/src/plugins/${filename}正在进行热更新`);
             delete require.cache[`${global._path}/src/plugins/${filename}`];
             if (!devEnv) return client.directMessageApi.postDirectMessage((await redis.hGet(`directUid->Gid`, adminId))!, {
                 content: `文件${global._path}/src/plugins/${filename}正在进行热更新`.replaceAll(".", ". "),
@@ -51,8 +51,8 @@ export async function init() {
     const optFile = `${global._path}/config/opts.json`;
     fs.watchFile(optFile, async () => {
         if (!devEnv && !hotLoadStatus) return;
-        log.mark(`指令配置文件正在进行热更新`);
         if (require.cache[optFile]) {
+            log.mark(`指令配置文件正在进行热更新`);
             delete require.cache[optFile];
             if (!devEnv) return client.directMessageApi.postDirectMessage((await redis.hGet(`directUid->Gid`, adminId))!, {
                 content: `指令配置文件正在进行热更新`,

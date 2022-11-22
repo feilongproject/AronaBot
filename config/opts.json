@@ -29,13 +29,13 @@
                 "describe": "十连保底图"
             },
             "gachaString": {
-                "reg": "^/?(单抽出奇迹|十连大保底)$",
+                "reg": "^/?(单抽出奇迹|十连大保底)",
                 "fnc": "gachaString",
                 "type": ["GUILD"],
                 "describe": "纯字符抽卡"
             },
             "gachaImage": {
-                "reg": "^/?十连保底图$",
+                "reg": "^/?十连保底图",
                 "fnc": "gachaImage",
                 "type": ["GUILD"],
                 "describe": "十连保底图"
