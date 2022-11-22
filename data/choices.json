@@ -165,164 +165,24 @@
     ],
     "star3": [
         {
-            "source": "Miyako",
-            "chineseName": "都子",
-            "fileName": "Student_Portrait_Miyako.png"
-        },
-        {
-            "source": "Saki",
-            "chineseName": "咲希",
-            "fileName": "Student_Portrait_CH0144.png"
-        },
-        {
-            "source": "Miyu",
-            "chineseName": "美游",
-            "fileName": "Student_Portrait_CH0145.png"
-        },
-        {
-            "source": "Marina",
-            "chineseName": "玛利娜",
-            "fileName": "Student_Portrait_Marina.png"
-        },
-        {
-            "source": "Ui",
-            "chineseName": "忧",
-            "fileName": "Student_Portrait_CH0169.png"
-        },
-        {
-            "source": "Hinata",
-            "chineseName": "日向",
-            "fileName": "Student_Portrait_Hinata.png"
-        },
-        {
-            "source": "Mimori",
-            "chineseName": "三森",
-            "fileName": "Student_Portrait_Mimori.png"
-        },
-        {
-            "source": "Sena",
-            "chineseName": "濑名",
-            "fileName": "Student_Portrait_Sena.png"
-        },
-        {
-            "source": "Chihiro",
-            "chineseName": "千寻",
-            "fileName": "Student_Portrait_CH0160.png"
-        },
-        {
-            "source": "Serika (New Year)",
-            "chineseName": "茜香(正月)",
-            "fileName": "Student_Portrait_Serika_Newyear.png"
-        },
-        {
-            "source": "Nodoka (Hot Spring)",
-            "chineseName": "和香(温泉)",
-            "fileName": "Student_Portrait_CH0165.png"
-        },
-        {
-            "source": "Chinatsu (Hot Spring)",
-            "chineseName": "千夏(温泉)",
-            "fileName": "Student_Portrait_CH0163.png"
-        },
-        {
-            "source": "Cherino (Hot Spring)",
-            "chineseName": "潔莉諾(温泉)",
-            "fileName": "Student_Portrait_CH0164.png"
-        },
-        {
-            "source": "Ako",
-            "chineseName": " 亚子",
-            "fileName": "Student_Portrait_Ako.png"
-        },
-        {
-            "source": "Natsu",
-            "chineseName": "夏",
-            "fileName": "Student_Portrait_CH0155.png"
-        },
-        {
-            "source": "Asuna (Bunny)",
-            "chineseName": "明日奈(兔女郎)",
-            "fileName": "Student_Portrait_CH0098.png"
-        },
-        {
-            "source": "Saya (Casual)",
-            "chineseName": "沙耶(私服)",
-            "fileName": "Student_Portrait_Saya_casual.png"
-        },
-        {
-            "source": "Shun (Small)",
-            "chineseName": "旬(幼女)",
-            "fileName": "Student_Portrait_CH0066.png"
-        },
-        {
-            "source": "Shiroko (Cycling)",
-            "chineseName": "白子(单车)",
-            "fileName": "Student_Portrait_Shiroko_ridingsuit.png"
-        },
-        {
             "source": "Hifumi (Swimsuit)",
             "chineseName": "日步美(泳装)",
             "fileName": "Student_Portrait_CH0058.png"
         },
         {
-            "source": "Hifumi",
-            "chineseName": "日步美",
-            "fileName": "Student_Portrait_Hihumi.png"
+            "source": "Azusa (Swimsuit)",
+            "chineseName": "梓(泳装)",
+            "fileName": "Student_Portrait_Azusa_Swimsuit.png"
         },
         {
-            "source": "Koharu",
-            "chineseName": "小春",
-            "fileName": "Student_Portrait_Koharu.png"
-        },
-        {
-            "source": "Hibiki",
-            "chineseName": "响",
-            "fileName": "Student_Portrait_Hibiki.png"
-        },
-        {
-            "source": "Azusa",
-            "chineseName": "梓",
-            "fileName": "Student_Portrait_Azusa.png"
-        },
-        {
-            "source": "Karin",
-            "chineseName": "花凛",
-            "fileName": "Student_Portrait_Karin.png"
-        },
-        {
-            "source": "Cherino",
-            "chineseName": "洁莉诺",
-            "fileName": "Student_Portrait_Cherino.png"
-        },
-        {
-            "source": "Aris",
-            "chineseName": "爱丽丝",
-            "fileName": "Student_Portrait_Aris.png"
-        },
-        {
-            "source": "Yuzu",
-            "chineseName": "柚子",
-            "fileName": "Student_Portrait_Yuzu.png"
-        },
-        {
-            "source": "Midori",
-            "chineseName": "绿",
-            "fileName": "Student_Portrait_Midori.png"
-        },
-        {
-            "source": "Izuna",
-            "chineseName": "伊树菜",
-            "fileName": "Student_Portrait_Izuna.png"
+            "source": "Mashiro (Swimsuit)",
+            "chineseName": "麻白(泳装)",
+            "fileName": "Student_Portrait_Mashiro_Swimsuit.png"
         },
         {
             "source": "Aru",
             "chineseName": "亚瑠",
             "fileName": "Student_Portrait_Aru.png"
-        },
-        {
-            "source": "Mashiro",
-            "chineseName": "麻白",
-            "fileName": "Student_Portrait_Mashiro.png"
         },
         {
             "source": "Eimi",
@@ -333,6 +193,11 @@
             "source": "Haruna",
             "chineseName": "羽留奈",
             "fileName": "Student_Portrait_Haruna.png"
+        },
+        {
+            "source": "Hifumi",
+            "chineseName": "日步美",
+            "fileName": "Student_Portrait_Hihumi.png"
         },
         {
             "source": "Hina",
@@ -385,9 +250,154 @@
             "fileName": "Student_Portrait_Tsurugi.png"
         },
         {
+            "source": "Izuna",
+            "chineseName": "伊树菜",
+            "fileName": "Student_Portrait_Izuna.png"
+        },
+        {
+            "source": "Aris",
+            "chineseName": "爱丽丝",
+            "fileName": "Student_Portrait_Aris.png"
+        },
+        {
+            "source": "Midori",
+            "chineseName": "绿",
+            "fileName": "Student_Portrait_Midori.png"
+        },
+        {
+            "source": "Cherino",
+            "chineseName": "洁莉诺",
+            "fileName": "Student_Portrait_Cherino.png"
+        },
+        {
+            "source": "Yuzu",
+            "chineseName": "柚子",
+            "fileName": "Student_Portrait_Yuzu.png"
+        },
+        {
+            "source": "Azusa",
+            "chineseName": "梓",
+            "fileName": "Student_Portrait_Azusa.png"
+        },
+        {
+            "source": "Koharu",
+            "chineseName": "小春",
+            "fileName": "Student_Portrait_Koharu.png"
+        },
+        {
+            "source": "Shiroko (Cycling)",
+            "chineseName": "白子(单车)",
+            "fileName": "Student_Portrait_Shiroko_ridingsuit.png"
+        },
+        {
+            "source": "Shun (Small)",
+            "chineseName": "旬(幼女)",
+            "fileName": "Student_Portrait_CH0066.png"
+        },
+        {
+            "source": "Asuna (Bunny)",
+            "chineseName": "明日奈(兔女郎)",
+            "fileName": "Student_Portrait_CH0098.png"
+        },
+        {
+            "source": "Natsu",
+            "chineseName": "夏",
+            "fileName": "Student_Portrait_CH0155.png"
+        },
+        {
+            "source": "Chinatsu (Hot Spring)",
+            "chineseName": "千夏(温泉)",
+            "fileName": "Student_Portrait_CH0163.png"
+        },
+        {
+            "source": "Mimori",
+            "chineseName": "三森",
+            "fileName": "Student_Portrait_Mimori.png"
+        },
+        {
+            "source": "Ui",
+            "chineseName": "忧",
+            "fileName": "Student_Portrait_CH0169.png"
+        },
+        {
+            "source": "Hinata",
+            "chineseName": "日向",
+            "fileName": "Student_Portrait_Hinata.png"
+        },
+        {
+            "source": "Marina",
+            "chineseName": "玛利娜",
+            "fileName": "Student_Portrait_Marina.png"
+        },
+        {
+            "source": "Miyako",
+            "chineseName": "都子",
+            "fileName": "Student_Portrait_Miyako.png"
+        },
+        {
+            "source": "Miyu",
+            "chineseName": "美游",
+            "fileName": "Student_Portrait_CH0145.png"
+        },
+        {
+            "source": "Hibiki",
+            "chineseName": "响",
+            "fileName": "Student_Portrait_Hibiki.png"
+        },
+        {
+            "source": "Karin",
+            "chineseName": "花凛",
+            "fileName": "Student_Portrait_Karin.png"
+        },
+        {
             "source": "Saya",
             "chineseName": "沙耶",
             "fileName": "Student_Portrait_Saya.png"
+        },
+        {
+            "source": "Mashiro",
+            "chineseName": "麻白",
+            "fileName": "Student_Portrait_Mashiro.png"
+        },
+        {
+            "source": "Saya (Casual)",
+            "chineseName": "沙耶(私服)",
+            "fileName": "Student_Portrait_Saya_casual.png"
+        },
+        {
+            "source": "Ako",
+            "chineseName": " 亚子",
+            "fileName": "Student_Portrait_Ako.png"
+        },
+        {
+            "source": "Cherino (Hot Spring)",
+            "chineseName": "潔莉諾(温泉)",
+            "fileName": "Student_Portrait_CH0164.png"
+        },
+        {
+            "source": "Nodoka (Hot Spring)",
+            "chineseName": "和香(温泉)",
+            "fileName": "Student_Portrait_CH0165.png"
+        },
+        {
+            "source": "Serika (New Year)",
+            "chineseName": "茜香(正月)",
+            "fileName": "Student_Portrait_Serika_Newyear.png"
+        },
+        {
+            "source": "Sena",
+            "chineseName": "濑名",
+            "fileName": "Student_Portrait_Sena.png"
+        },
+        {
+            "source": "Chihiro",
+            "chineseName": "千寻",
+            "fileName": "Student_Portrait_CH0160.png"
+        },
+        {
+            "source": "Saki",
+            "chineseName": "咲希",
+            "fileName": "Student_Portrait_CH0144.png"
         }
     ],
     "starString": ["☆☆☆", "★☆☆", "★★☆", "★★★"]
