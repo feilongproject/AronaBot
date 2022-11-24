@@ -31,6 +31,36 @@ export async function hotLoad(msg: IMessageEx) {
     });
 }
 
+export async function mute(msg: IMessageEx) {
+    const author = msg.member;
+    if (!author || !author.roles || !(author.roles.includes("2") || author.roles.includes("4") || author.roles.includes("5"))) return;
+
+    const muteMember = (msg.mentions || [])[0];
+    const timeExec = /禁言(\d+)(分钟|小时|天)/.exec(msg.content)!;
+    const muteTime = Number(timeExec[1]) * (timeExec[2].includes("分") ? 60 : timeExec[2].includes("时") ? 60 * 60 : 60 * 60 * 24);
+    if (!muteMember) return msg.sendMsgEx({ content: `未指定禁言对象` });
+
+    return client.muteApi.muteMember(msg.guild_id, muteMember.id, { seconds: muteTime.toString() }).then(() => {
+        return msg.sendMsgExRef({
+            content: `已对成员${muteMember.username}禁言${timeConver(muteTime * 1000)}`,
+        });
+    }).then(async () => {
+        return msg.sendMsgEx({
+            content: `管理执行禁言权限` +
+                `\n权限：${JSON.stringify(msg?.member?.roles)}` +
+                `\n管理：${msg.author.username}(${msg.author.id})` +
+                `\n目标：${muteMember.username}(${muteMember.id})` +
+                `\n子频道：${msg.guild_name}(${msg.guild_id})` +
+                `\n时间：${timeConver(muteTime * 1000)}`,
+            guildId: await global.redis.hGet(`directUid->Gid`, adminId),
+            sendType: "DIRECT",
+        });
+    }).catch(err => {
+        log.error(err);
+        msg.sendMsgEx({ content: JSON.stringify(err), });
+    });
+}
+
 export async function directToAdmin(msg: IMessageEx) {
     if (msg.author.id == adminId) {
         //log.debug(`refMid:${msg.message_reference?.message_id}`);
@@ -54,16 +84,18 @@ export async function directToAdmin(msg: IMessageEx) {
     });
 }
 
-function timeConver(time: number) {
-    time /= 1000;
-    if (time < 60) {
-        return "不足1分钟";
-    }
-    time /= 60;
-    time = parseInt(time.toFixed(0));
-    const m = time % 60;
-    if (time < 60) return `${m}分钟`;
-    time /= 60;
-    time = parseInt(time.toFixed(0));
-    return `${time}小时${m}分钟`;
+function timeConver(ms: number) {
+    ms = Number((ms / 1000).toFixed(0));
+    if (ms < 60) return "不足1分钟";
+
+    const s = ms % 60;
+    ms = (ms - s) / 60;
+
+    const m = ms % 60;
+    ms = (ms - m) / 60;
+
+    const h = ms % 24;
+    ms = (ms - h) / 24;
+
+    return `${ms ? `${ms}天 ` : ``} ${h ? `${h}小时 ` : ``}${m ? `${m}分钟 ` : ``}`;
 }

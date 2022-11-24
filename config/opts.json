@@ -19,6 +19,13 @@
                 "fnc": "hotLoad",
                 "type": ["DIRECT"],
                 "describe": "开启或关闭热加载"
+            },
+            "mute": {
+                "reg": "禁言\\d+(分钟|小时|天)",
+                "fnc": "mute",
+                "channelAllows": ["all"],
+                "type": ["GUILD"],
+                "describe": "管理员对某人禁言"
             }
         },
         "gacha": {
