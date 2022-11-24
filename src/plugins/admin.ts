@@ -50,7 +50,8 @@ export async function mute(msg: IMessageEx) {
                 `\n权限：${JSON.stringify(msg?.member?.roles)}` +
                 `\n管理：${msg.author.username}(${msg.author.id})` +
                 `\n目标：${muteMember.username}(${muteMember.id})` +
-                `\n子频道：${msg.guild_name}(${msg.guild_id})` +
+                `\n频道：${msg.guild_name}(${msg.guild_id})` +
+                `\n子频道：${msg.channel_name}(${msg.channel_id})` +
                 `\n时间：${timeConver(muteTime * 1000)}`,
             guildId: await global.redis.hGet(`directUid->Gid`, adminId),
             sendType: "DIRECT",
