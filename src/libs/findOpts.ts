@@ -26,16 +26,15 @@ export async function findOpts(msg: IMessageEx, channelId: string): Promise<{ pa
     for (const keyFather in commandFathers)
         for (const keyChild in commandFathers[keyFather]) {
             const opt = commandFathers[keyFather][keyChild];
+            const allowKeys = opt.channelAllows || ["common"];
             if (!opt.type.includes(msg.messageType)) continue;
             if (!RegExp(opt.reg).test(msg.content.replace(/<@!\d*>/g, "").trim())) continue;
 
-            const allowKeys = opt.channelAllows || ["common"];
-            var allowChannel = msg.messageType == "DIRECT" || false;
-            for (const allowKey of allowKeys)
-                for (const channel of channelAllows[allowKey])
-                    if (channel.id == channelId) allowChannel = true;
-
-            if (allowKeys[0] == "all" || allowChannel) return {
+            if (allowKeys[0] == "all" || msg.messageType == "DIRECT" || (function () {
+                for (const allowKey of allowKeys)
+                    for (const channel of channelAllows[allowKey])
+                        if (channel.id == channelId) return true;
+            })()) return {
                 path: keyFather,
                 fnc: opt.fnc,
                 data: opt.data,
