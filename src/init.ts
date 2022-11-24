@@ -9,7 +9,7 @@ export async function init() {
 
     console.log(`机器人准备运行，正在初始化`);
 
-    global.adminId = config.admin.uid;
+    global.adminId = ["7681074728704576201", "9540810258706627170"];
     global._path = process.cwd();
     global.log = _log;
     global.botStatus = {
@@ -40,7 +40,7 @@ export async function init() {
         if (require.cache[`${global._path}/src/plugins/${filename}`]) {
             log.mark(`文件${global._path}/src/plugins/${filename}正在进行热更新`);
             delete require.cache[`${global._path}/src/plugins/${filename}`];
-            if (!devEnv) return client.directMessageApi.postDirectMessage((await redis.hGet(`directUid->Gid`, adminId))!, {
+            if (!devEnv) return client.directMessageApi.postDirectMessage((await redis.hGet(`directUid->Gid`, adminId[0]))!, {
                 content: `文件${global._path}/src/plugins/${filename}正在进行热更新`.replaceAll(".", ". "),
                 msg_id: await redis.get("lastestMsgId") || undefined,
             });
@@ -54,7 +54,7 @@ export async function init() {
         if (require.cache[optFile]) {
             log.mark(`指令配置文件正在进行热更新`);
             delete require.cache[optFile];
-            if (!devEnv) return client.directMessageApi.postDirectMessage((await redis.hGet(`directUid->Gid`, adminId))!, {
+            if (!devEnv) return client.directMessageApi.postDirectMessage((await redis.hGet(`directUid->Gid`, adminId[0]))!, {
                 content: `指令配置文件正在进行热更新`,
                 msg_id: await redis.get("lastestMsgId") || undefined,
             });

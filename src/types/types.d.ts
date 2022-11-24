@@ -14,7 +14,7 @@ import { RedisClientType } from "@redis/client";
 declare global {
 
   var devEnv: boolean;
-  var adminId: string;
+  var adminId: string[];
   var log: log4js.Logger;
   var _path: string;
   var client: OpenAPI;

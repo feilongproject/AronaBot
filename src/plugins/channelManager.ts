@@ -2,33 +2,34 @@ import { IMessageEx } from "../libs/IMessageEx";
 
 
 export async function meituChannel(msg: IMessageEx) {
-    //log.debug(msg.content, msg.attachments);
 
     if (msg.content == "当前版本不支持查看，请升级QQ版本") return;
-    if (!msg.attachments) {
+    if (msg.attachments) return;
+    if (msg.member && msg.member.roles && (msg.member.roles.includes("2") || msg.member.roles.includes("4") || msg.member.roles.includes("5"))) return;
 
-        msg.sendMsgEx({
-            content: `频道（${msg.guild_name}->${msg.channel_name}）中发现违规内容` +
-                `\n用户：${msg.author.username}` +
-                `\n用户id：${msg.author.id}` +
-                `\n频道：${msg.guild_name}` +
-                `\n子频道：${msg.channel_name}` +
-                `\n内容：${msg.content}` +
-                `\n原因：无配图文字`,
-            guildId: await global.redis.hGet(`directUid->Gid`, adminId),
-            sendType: "DIRECT",
-        }).then(() => {
+    const sendToChannel = await redis.hGet("muteSendChannel", msg.guild_id);
 
-            // e.g. 禁言 100 秒
-            // let { data } = await client.muteApi.muteMember("xxxxxx", "xxxxxx", { seconds:"100" });
-            // e.g. 禁言到 2022-01-08 10:29:11
-            // let { data } = await client.muteApi.muteMember("xxxxxx", "xxxxxx", { timeTo:"1641608951" });
-            // e.g. 解除禁言
-            // let { data } = await client.muteApi.muteMember("xxxxxx", "xxxxxx", { timeTo:"0" });
-            // e.g. 解除禁言
-            // let { data } = await client.muteApi.muteMember("xxxxxx", "xxxxxx", { seconds:"0" });
-        }).catch(err => {
-            log.error(err);
+    return msg.sendMsgEx({
+        content: `发现无图文字` +
+            `\n用户：${msg.author.username}(${msg.author.id})` +
+            `\n内容：${msg.content}` +
+            `\n原因：无图文字`,
+        guildId: await global.redis.hGet(`directUid->Gid`, adminId[0]),
+        sendType: "DIRECT",
+    }).then(() => {
+        return client.muteApi.muteMember(msg.guild_id, msg.author.id, { seconds: String(1 * 60 * 60) });
+    }).then(() => {
+        return client.messageApi.deleteMessage(msg.channel_id, msg.id);
+    }).then(() => {
+        if (!sendToChannel) return;
+        return msg.sendMsgEx({
+            content: `<@${msg.author.id}>(id:${msg.author.id})` +
+                `\n禁言1h` +
+                `\n原因：无配图文字` +
+                `\n注意：该消息由bot自动发送，如有异议联系<@${adminId[0]}>`,
+            channelId: sendToChannel,
         });
-    }
+    }).catch(err => {
+        log.error(err);
+    });
 }

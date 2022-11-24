@@ -26,7 +26,7 @@ export async function gachaImage(msg: IMessageEx) {
     if (await hasCd(msg)) return;
 
 
-    const o = cTime(10, msg.author.id == adminId ? Number(msg.content.match(/\d$/)) as 1 | 2 | 3 : undefined);
+    const o = cTime(10, adminId.includes(msg.author.id) ? Number(msg.content.match(/\d$/)) as 1 | 2 | 3 : undefined);
 
     /* return msg.sendMarkdown("102024160_1668504873", {
         at_user: `<@${msg.author.id}>`,
@@ -49,7 +49,7 @@ export async function gachaImage(msg: IMessageEx) {
 async function hasCd(msg: IMessageEx) {
     const ttl = await redis.pTTL(`gachaLimitTTL:${msg.author.id}`);
     const payTTL = parseInt(await redis.hGet(`pay:gachaLimitTTL`, `${msg.author.id}`) || "0");
-    if ((ttl - payTTL > 0) && (msg.author.id != adminId))
+    if ((ttl - payTTL > 0) && !adminId.includes(msg.author.id))
         return msg.sendMsgEx({
             content: `请求时间过短，还有${(ttl - payTTL) / 1000}s冷却完毕` +
                 `\n(因为当前服务器性能不足，所以设置冷却cd，赞助以购买一个更好的服务器，也可以获得更少的冷却时间！)` +

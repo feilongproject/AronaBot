@@ -5,7 +5,7 @@ import { IMessageEx } from './libs/IMessageEx';
 init().then(() => {
 
     global.ws.on('GUILD_MESSAGES', async (data: IntentMessage) => {
-        if (data.eventType == 'MESSAGE_CREATE' && global.devEnv && data.msg.author.id != adminId) { return };
+        if (data.eventType == 'MESSAGE_CREATE' && global.devEnv && !adminId.includes(data.msg.author.id)) return;
         if (data.eventType == 'MESSAGE_CREATE') {
             const msg = new IMessageEx(data.msg, "GUILD");// = data.msg as any;
             execute(msg);

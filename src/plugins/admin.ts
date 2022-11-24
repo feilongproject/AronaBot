@@ -18,12 +18,12 @@ export async function status(msg: IMessageEx) {
 }
 
 export async function ping(msg: IMessageEx) {
-    if (msg.author.id != adminId) return;
+    if (!adminId.includes(msg.author.id)) return;
     msg.sendMsgEx({ content: await global.redis.ping() });
 }
 
 export async function hotLoad(msg: IMessageEx) {
-    if (msg.author.id != adminId) return;
+    if (!adminId.includes(msg.author.id)) return;
     const type = /^\/?(开启|关闭)热(加载|更新)$/.exec(msg.content)![1];
     hotLoadStatus = type.includes("开") ? true : false;
     return msg.sendMsgEx({
@@ -42,7 +42,7 @@ export async function mute(msg: IMessageEx) {
 
     return client.muteApi.muteMember(msg.guild_id, muteMember.id, { seconds: muteTime.toString() }).then(() => {
         return msg.sendMsgExRef({
-            content: `已对成员${muteMember.username}禁言${timeConver(muteTime * 1000)}`,
+            content: `已对成员<@${muteMember.id}>禁言${timeConver(muteTime * 1000)}`,
         });
     }).then(async () => {
         return msg.sendMsgEx({
@@ -53,7 +53,7 @@ export async function mute(msg: IMessageEx) {
                 `\n频道：${msg.guild_name}(${msg.guild_id})` +
                 `\n子频道：${msg.channel_name}(${msg.channel_id})` +
                 `\n时间：${timeConver(muteTime * 1000)}`,
-            guildId: await global.redis.hGet(`directUid->Gid`, adminId),
+            guildId: await global.redis.hGet(`directUid->Gid`, adminId[0]),
             sendType: "DIRECT",
         });
     }).catch(err => {
@@ -63,7 +63,7 @@ export async function mute(msg: IMessageEx) {
 }
 
 export async function directToAdmin(msg: IMessageEx) {
-    if (msg.author.id == adminId) {
+    if (adminId.includes(msg.author.id)) {
         //log.debug(`refMid:${msg.message_reference?.message_id}`);
         const refMsgGid = await redis.hGet(`directMid->Gid`, msg.message_reference?.message_id || `0`);
         //log.debug(refMsgGid);
@@ -79,8 +79,8 @@ export async function directToAdmin(msg: IMessageEx) {
             `\n用户id：${msg.author.id}` +
             `\n源频道：${msg.src_guild_id}` +
             `\n内容：${msg.content}`,
-        guildId: await global.redis.hGet(`directUid->Gid`, adminId),
-    }).then((m) => {
+        guildId: await global.redis.hGet(`directUid->Gid`, adminId[0]),
+    }).then((m: any) => {
         return redis.hSet(`directMid->Gid`, m.data.id, msg.guild_id);
     });
 }
