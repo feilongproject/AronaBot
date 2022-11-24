@@ -1,6 +1,6 @@
 import { IMessageEx } from "./IMessageEx";
 
-export async function findOpts(msg: IMessageEx, channelId: string): Promise<{ path: string; fnc: string; data?: string }> {
+export async function findOpts(msg: IMessageEx,): Promise<{ path: string; fnc: string; data?: string }> {
     if (!msg.content) return { path: "err", fnc: "err" };
 
     const configOpt = await import("../../config/opts.json");
@@ -33,7 +33,7 @@ export async function findOpts(msg: IMessageEx, channelId: string): Promise<{ pa
             if (allowKeys[0] == "all" || msg.messageType == "DIRECT" || (function () {
                 for (const allowKey of allowKeys)
                     for (const channel of channelAllows[allowKey])
-                        if (channel.id == channelId) return true;
+                        if (channel.id == msg.channel_id) return true;
             })()) return {
                 path: keyFather,
                 fnc: opt.fnc,
