@@ -1,10 +1,10 @@
-import { init } from './init';
+import { init, loadGuildTree } from './init';
 import { findOpts } from './libs/findOpts';
 import { IMessageDIRECT, IMessageGUILD } from './libs/IMessageEx';
 
 init().then(() => {
 
-    global.ws.on('GUILD_MESSAGES', async (data: any/* IntentMessage.GUILD_MESSAGES */) => {
+    global.ws.on('GUILD_MESSAGES', async (data: IntentMessage.GUILD_MESSAGE) => {
         if (data.eventType == 'MESSAGE_CREATE' && global.devEnv && !adminId.includes(data.msg.author.id)) return;
         if (data.eventType == 'MESSAGE_CREATE') {
             const msg = new IMessageGUILD(data.msg);
@@ -12,7 +12,7 @@ init().then(() => {
         }
     });
 
-    global.ws.on("DIRECT_MESSAGE", async (data: any /* IntentMessage.DIRECT_MESSAGE */) => {
+    global.ws.on("DIRECT_MESSAGE", async (data: IntentMessage.DIRECT_MESSAGE) => {
         if (data.eventType == 'DIRECT_MESSAGE_CREATE') {
             const msg = new IMessageDIRECT(data.msg);
             global.redis.hSet(`directUid->Gid`, msg.author.id, msg.guild_id);
@@ -21,6 +21,14 @@ init().then(() => {
         }
     });
 
+    global.ws.on("GUILDS", (data) => {
+        log.mark(`重新加载频道树中`);
+        loadGuildTree().then(() => {
+            log.mark(`频道树加载完毕`);
+        }).catch(err => {
+            log.error(`频道树加载失败`, err);
+        });
+    });
 });
 
 
