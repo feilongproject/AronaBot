@@ -78,20 +78,22 @@ export async function init() {
     global.ws = createWebsocket(config.initConfig as any);
 
     log.info(`初始化：正在创建频道树`);
-    global.saveGuildsTree = [];
-    for (const guild of (await global.client.meApi.meGuilds()).data) {
-        log.mark(`${guild.name}(${guild.id})`);
-        var _guild: SaveChannel[] = [];
-        for (const channel of (await global.client.channelApi.channels(guild.id)).data) {
-            if (channel.name != "") {
-                log.mark(`${guild.name}(${guild.id})-${channel.name}(${channel.id})-father:${channel.parent_id}`);
-            }
-            _guild.push({ name: channel.name, id: channel.id });
-        }
-        global.saveGuildsTree.push({ name: guild.name, id: guild.id, channel: _guild });
-    }
+    await loadGuildTree(true);
 
     global.client.meApi.me().then(res => {
         global.meId = res.data.id;
     });
+}
+
+export async function loadGuildTree(init?: boolean) {
+    global.saveGuildsTree = [];
+    for (const guild of (await global.client.meApi.meGuilds()).data) {
+        if (init) log.mark(`${guild.name}(${guild.id})`);
+        var _guild: SaveChannel[] = [];
+        for (const channel of (await global.client.channelApi.channels(guild.id)).data) {
+            if (init) log.mark(`${guild.name}(${guild.id})-${channel.name}(${channel.id})-father:${channel.parent_id}`);
+            _guild.push({ name: channel.name, id: channel.id });
+        }
+        global.saveGuildsTree.push({ name: guild.name, id: guild.id, channel: _guild });
+    }
 }

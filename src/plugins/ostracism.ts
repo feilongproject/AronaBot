@@ -1,10 +1,13 @@
 import fs from "fs";
-import { IMessageEx } from "../libs/IMessageEx";
+import { IMessageGUILD } from "../libs/IMessageEx";
 import ostracismWord from "../../data/ostracismWord.json";
 const userDataFile = "./data/ostracismData.json";
 
-
-export async function ostracism(msg: IMessageEx) {
+/* 
+TODO
+全部逻辑待优化
+*/
+export async function ostracism(msg: IMessageGUILD) {
 
     var { content } = msg;//
     var command = content.slice(5, 10).trim();
@@ -61,14 +64,14 @@ export async function ostracism(msg: IMessageEx) {
                 type: {
                     id: typeId,
                     seconds: seconds.toString(),
-                    forUser: msg.mentions[1] == null ? undefined : { id: msg.mentions[1].id, name: msg.mentions[1].username, },
+                    forUser: (msg.mentions || [null])[1] == null ? undefined : { id: (msg.mentions || [null])[1]!.id, name: (msg.mentions || [null])[1]!.username, },
                 },
             });
             ostracismData.iv = ostracismData.list.length - 1;
             msg.sendMsgEx({
                 content: `创建完成，类型:${typeId},编号:${ostracismData.iv}` +
                     `\n频道:${msg.guild_name ? msg.guild_name : "null"}(${msg.guild_id})` +
-                    `\n标题:${otherContent}${msg.mentions[1] == null ? "" : `\n目标用户:<@${msg.mentions[1].id}>`}`
+                    `\n标题:${otherContent}${(msg.mentions || [null])[1] == null ? "" : `\n目标用户:<@${(msg.mentions || [null])[1]!.id}>`}`
             })
             break;
         case "编辑议题":

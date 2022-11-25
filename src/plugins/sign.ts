@@ -1,9 +1,9 @@
 import fs from "fs";
 import fetch from "node-fetch";
-import { IMessageEx } from "../libs/IMessageEx";
+import { IMessageGUILD } from "../libs/IMessageEx";
 const signDataFile = "./data/signData.json";
 
-export async function sign(msg: IMessageEx) {
+export async function sign(msg: IMessageGUILD) {
 
     var data = fs.readFileSync(signDataFile, { encoding: "utf-8" });
     if (data.trim() == "") data = "{}";

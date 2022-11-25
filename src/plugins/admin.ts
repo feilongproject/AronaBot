@@ -1,28 +1,30 @@
 import os from "os";
 import child_process from "child_process";
-import { IMessageEx } from "../libs/IMessageEx";
+import { IMessageDIRECT } from "../libs/IMessageEx";
 
-export async function status(msg: IMessageEx) {
-    if (msg.author.id != adminId) return;
-    return msg.sendMsgExRef({
-        content: `------状态------` +
-            `\n系统版本：${child_process.execSync("lsb_release -d").toString().split(/(\t|\n)/)[2]}` +
-            `\n内核版本：${child_process.execSync("uname -a").toString().split(/(\t|\n|\ )/)[4]}` +
-            `\n运行时间：${timeConver(new Date().getTime() - global.botStatus.startTime.getTime())}` +
-            `\n发送消息：${global.botStatus.msgSendNum}条` +
-            `\n生成图片：${global.botStatus.imageRenderNum}次` +
-            `\n内存使用：${(process.memoryUsage().rss / 1024 / 1024).toFixed(2)}MB` +
-            `\n系统内存：${(os.freemem() / 1024 / 1024).toFixed()}MB/${(os.totalmem() / 1024 / 1024).toFixed()}MB (free/total)` +
-            `\n系统已开机：${timeConver(os.uptime() * 1000)}`
+export async function status(msg: IMessageDIRECT) {
+    if (!adminId.includes(msg.author.id)) return;
+    const content = `------状态------` +
+        `\n系统版本：${child_process.execSync("lsb_release -d").toString().split(/(\t|\n)/)[2]}` +
+        `\n内核版本：${child_process.execSync("uname -a").toString().split(/(\t|\n|\ )/)[4]}` +
+        `\n运行时间：${timeConver(new Date().getTime() - global.botStatus.startTime.getTime())}` +
+        `\n发送消息：${global.botStatus.msgSendNum}条` +
+        `\n生成图片：${global.botStatus.imageRenderNum}次` +
+        `\n内存使用：${(process.memoryUsage().rss / 1024 / 1024).toFixed(2)}MB` +
+        `\n系统内存：${(os.freemem() / 1024 / 1024).toFixed()}MB/${(os.totalmem() / 1024 / 1024).toFixed()}MB (free/total)` +
+        `\n系统已开机：${timeConver(os.uptime() * 1000)}`;
+    log.debug(`\n` + content);
+    return msg.sendMsgEx({
+        content
     });
 }
 
-export async function ping(msg: IMessageEx) {
+export async function ping(msg: IMessageDIRECT) {
     if (!adminId.includes(msg.author.id)) return;
     msg.sendMsgEx({ content: await global.redis.ping() });
 }
 
-export async function hotLoad(msg: IMessageEx) {
+export async function hotLoad(msg: IMessageDIRECT) {
     if (!adminId.includes(msg.author.id)) return;
     const type = /^\/?(开启|关闭)热(加载|更新)$/.exec(msg.content)![1];
     hotLoadStatus = type.includes("开") ? true : false;
@@ -31,7 +33,7 @@ export async function hotLoad(msg: IMessageEx) {
     });
 }
 
-export async function mute(msg: IMessageEx) {
+export async function mute(msg: IMessageDIRECT) {
     const author = msg.member;
     if (!author || !author.roles || !(author.roles.includes("2") || author.roles.includes("4") || author.roles.includes("5"))) return;
 
@@ -62,7 +64,7 @@ export async function mute(msg: IMessageEx) {
     });
 }
 
-export async function directToAdmin(msg: IMessageEx) {
+export async function directToAdmin(msg: IMessageDIRECT) {
     if (adminId.includes(msg.author.id)) {
         //log.debug(`refMid:${msg.message_reference?.message_id}`);
         const refMsgGid = await redis.hGet(`directMid->Gid`, msg.message_reference?.message_id || `0`);
@@ -71,9 +73,14 @@ export async function directToAdmin(msg: IMessageEx) {
         return msg.sendMsgEx({
             content: msg.content,
             guildId: refMsgGid,
+        }).then(() => {
+            return msg.sendMsgEx({
+                content: `消息已发送`,
+            });
         });
     }
 
+    log.debug(msg);
     return msg.sendMsgEx({
         content: `用户：${msg.author.username}发送了一条信息` +
             `\n用户id：${msg.author.id}` +

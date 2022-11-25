@@ -1,11 +1,11 @@
 import sharp from "sharp";
-import { IMessageEx } from "../libs/IMessageEx";
+import { IMessageGUILD } from "../libs/IMessageEx";
 import config from '../../config/config.json';
 import choicesList from "../../data/choices.json";
 
 var maxTime = 30;
 
-export async function gachaString(msg: IMessageEx) {
+export async function gachaString(msg: IMessageGUILD) {
 
     const o = cTime(10);
     var sendStr: string[] = [];
@@ -21,7 +21,7 @@ export async function gachaString(msg: IMessageEx) {
     });
 }
 
-export async function gachaImage(msg: IMessageEx) {
+export async function gachaImage(msg: IMessageGUILD) {
 
     if (await hasCd(msg)) return;
 
@@ -46,7 +46,7 @@ export async function gachaImage(msg: IMessageEx) {
     });
 }
 
-async function hasCd(msg: IMessageEx) {
+async function hasCd(msg: IMessageGUILD) {
     const ttl = await redis.pTTL(`gachaLimitTTL:${msg.author.id}`);
     const payTTL = parseInt(await redis.hGet(`pay:gachaLimitTTL`, `${msg.author.id}`) || "0");
     if ((ttl - payTTL > 0) && !adminId.includes(msg.author.id))
@@ -231,7 +231,7 @@ async function buildImage(characterNames: { name: Character, star: number }[]): 
  * @param msg IMessageEx
  * @returns 
  */
-export async function gachaSetting(msg: IMessageEx) {
+export async function gachaSetting(msg: IMessageGUILD) {
 
     if (/重置/.test(msg.content)) {
         return redis.hSet(`setting:gacha`, `${msg.author.id}`, "1,0,0,0").then(() => {

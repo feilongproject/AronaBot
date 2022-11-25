@@ -1,7 +1,7 @@
-import { IMessageEx } from "../libs/IMessageEx";
+import { IMessageDIRECT } from "../libs/IMessageEx";
 
 
-export async function meituChannel(msg: IMessageEx) {
+export async function meituChannel(msg: IMessageDIRECT) {
 
     if (msg.content == "当前版本不支持查看，请升级QQ版本") return;
     if (msg.attachments) return;
@@ -19,7 +19,7 @@ export async function meituChannel(msg: IMessageEx) {
     }).then(() => {
         return client.muteApi.muteMember(msg.guild_id, msg.author.id, { seconds: String(1 * 60 * 60) });
     }).then(() => {
-        return client.messageApi.deleteMessage(msg.channel_id, msg.id);
+        return client.messageApi.deleteMessage(msg.channel_id, msg.id, true);
     }).then(() => {
         if (!sendToChannel) return;
         return msg.sendMsgEx({
@@ -28,6 +28,7 @@ export async function meituChannel(msg: IMessageEx) {
                 `\n原因：无配图文字` +
                 `\n注意：该消息由bot自动发送，如有异议联系<@${adminId[0]}>`,
             channelId: sendToChannel,
+            sendType: "GUILD",
         });
     }).catch(err => {
         log.error(err);

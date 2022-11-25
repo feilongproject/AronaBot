@@ -1,11 +1,11 @@
 import sharp from "sharp";
-import { IMessageEx } from "../libs/IMessageEx";
+import { IMessageGUILD } from "../libs/IMessageEx";
 import config from "../../config/config.json";
 
 var allowLen = 20;
 var authLen = 0;
 
-export async function generateALA(msg: IMessageEx) {
+export async function generateALA(msg: IMessageGUILD) {
 
     const alaQueue = buildALA(msg.content.replace(RegExp("/?奥利奥"), "").replace(`<@!${meId}>`, "").trim());
     if (alaQueue.length <= (allowLen + authLen)) {

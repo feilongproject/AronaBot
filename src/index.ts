@@ -1,29 +1,30 @@
 import { init } from './init';
 import { findOpts } from './libs/findOpts';
-import { IMessageEx } from './libs/IMessageEx';
+import { IMessageDIRECT, IMessageGUILD } from './libs/IMessageEx';
 
 init().then(() => {
 
-    global.ws.on('GUILD_MESSAGES', async (data: IntentMessage) => {
+    global.ws.on('GUILD_MESSAGES', async (data: any/* IntentMessage.GUILD_MESSAGES */) => {
         if (data.eventType == 'MESSAGE_CREATE' && global.devEnv && !adminId.includes(data.msg.author.id)) return;
         if (data.eventType == 'MESSAGE_CREATE') {
-            const msg = new IMessageEx(data.msg, "GUILD");// = data.msg as any;
+            const msg = new IMessageGUILD(data.msg);
             execute(msg);
         }
     });
 
-    global.ws.on("DIRECT_MESSAGE", async (data: IntentMessage) => {
+    global.ws.on("DIRECT_MESSAGE", async (data: any /* IntentMessage.DIRECT_MESSAGE */) => {
         if (data.eventType == 'DIRECT_MESSAGE_CREATE') {
-            const msg = new IMessageEx(data.msg, "DIRECT");// = data.msg as any;
+            const msg = new IMessageDIRECT(data.msg);
             global.redis.hSet(`directUid->Gid`, msg.author.id, msg.guild_id);
             (await import("./plugins/admin")).directToAdmin(msg);
             execute(msg);
         }
     });
+
 });
 
 
-async function execute(msg: IMessageEx) {
+async function execute(msg: IMessageDIRECT | IMessageGUILD) {
     try {
         global.redis.set("lastestMsgId", msg.id, { EX: 4 * 60 });
         const opt = await findOpts(msg);
@@ -40,4 +41,4 @@ async function execute(msg: IMessageEx) {
     }
 }
 
-type PluginFnc = (msg: IMessageEx, data?: string | number) => Promise<any>
+type PluginFnc = (msg: IMessageDIRECT | IMessageGUILD, data?: string | number) => Promise<any>

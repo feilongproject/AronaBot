@@ -1,7 +1,7 @@
-import { IMessageEx } from "../libs/IMessageEx";
+import { IMessageGUILD } from "../libs/IMessageEx";
 import config from '../../config/config.json';
 
-export async function sponsor(msg: IMessageEx) {
+export async function sponsor(msg: IMessageGUILD) {
     msg.sendMsgEx({
         content: `<@!${msg.author.id}>` +
             `\nBA彩奈目前是用爱发电的负收入状态，但运行需要服务器支持，同时出问题时需要开发者抽出时间解决，希望可以通过爱发电平台请作者喝杯茶` +
