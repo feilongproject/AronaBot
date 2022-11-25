@@ -20,6 +20,7 @@
     },
     "dependencies": {
         "log4js": "^6.5.2",
+        "mariadb": "^3.0.2",
         "node-fetch": "^2.6.6",
         "node-schedule": "^2.1.0",
         "nodemon": "^2.0.16",

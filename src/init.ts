@@ -4,6 +4,7 @@ import schedule from "node-schedule";
 import { createOpenAPI, createWebsocket, OpenAPI } from 'qq-guild-bot';
 import _log, { setDevLog } from './libs/logger';
 import config from '../config/config.json';
+import { createPool } from 'mariadb';
 
 export async function init() {
 
@@ -71,6 +72,10 @@ export async function init() {
     }).catch(err => {
         log.error(`初始化：redis数据库连接失败，正在退出程序\n${err}`);
         process.exit();
+    });
+
+    global.mariadb = await createPool(config.mariadb).getConnection().then(conn => {
+        return conn;
     });
 
     log.info(`初始化：正在创建client与ws`);

@@ -3,6 +3,7 @@ import fetch from 'node-fetch';
 import FormData from 'form-data';
 import { Ark, Embed, IMember, IMessage, IUser, MessageAttachment, MessageReference, MessageToCreate } from "qq-guild-bot";
 import config from '../../config/config.json';
+import { pushToDB } from "./common";
 
 
 export class IMessageCommon implements IntentMessage.MessageCommon {
@@ -140,6 +141,25 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
             log.error(error);
         });
     }
+
+    async pushToDB(another: { [key: string]: string }) {
+        const attachments: string[] = [];
+        if (this.attachments)
+            for (const path of this.attachments) attachments.push(path.url);
+        return pushToDB(this.messageType == "DIRECT" ? "directMessage" : "guildMessage", Object.assign({
+            mid: this.id,
+            aid: this.author.id,
+            aAvatar: this.author.avatar,
+            aName: this.author.username,
+            gid: this.guild_id,
+            cid: this.channel_id,
+            seq: this.seq,
+            ts: this.timestamp,
+            content: this.content,
+            attachments: attachments.join(),
+            refer: this.message_reference?.message_id || "",
+        }, another));
+    }
 }
 
 export class IMessageGUILD extends IMessageCommon implements IntentMessage.GUILD_MESSAGE__body {
@@ -147,6 +167,12 @@ export class IMessageGUILD extends IMessageCommon implements IntentMessage.GUILD
     constructor(msg: IntentMessage.GUILD_MESSAGE__body) {
         super(msg, "GUILD");
         this.mentions = msg.mentions;
+
+        var mention: string[] = [];
+        if (this.mentions)
+            for (const user of this.mentions)
+                mention.push(user.id);
+        this.pushToDB({ mentions: mention.join(",") });
     }
 }
 
@@ -158,6 +184,7 @@ export class IMessageDIRECT extends IMessageCommon implements IntentMessage.DIRE
         super(msg, "DIRECT");
         this.direct_message = msg.direct_message;
         this.src_guild_id = msg.src_guild_id;
+        this.pushToDB({ srcGid: this.src_guild_id });
     }
 }
 
