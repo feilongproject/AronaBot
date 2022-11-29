@@ -165,19 +165,19 @@
     ],
     "star3": [
         {
+            "source": "Kaede",
+            "chineseName": "枫",
+            "fileName": "Student_Portrait_Kaede.png"
+        },
+        {
+            "source": "Iroha",
+            "chineseName": "伊吕波",
+            "fileName": "Student_Portrait_CH0156.png"
+        },
+        {
             "source": "Hifumi (Swimsuit)",
             "chineseName": "日步美(泳装)",
             "fileName": "Student_Portrait_CH0058.png"
-        },
-        {
-            "source": "Azusa (Swimsuit)",
-            "chineseName": "梓(泳装)",
-            "fileName": "Student_Portrait_Azusa_Swimsuit.png"
-        },
-        {
-            "source": "Mashiro (Swimsuit)",
-            "chineseName": "麻白(泳装)",
-            "fileName": "Student_Portrait_Mashiro_Swimsuit.png"
         },
         {
             "source": "Aru",
