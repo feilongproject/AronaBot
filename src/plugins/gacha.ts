@@ -22,26 +22,18 @@ export async function gachaString(msg: IMessageGUILD) {
 }
 
 export async function gachaImage(msg: IMessageGUILD) {
-
     if (await hasCd(msg)) return;
 
-
     const o = cTime(10, adminId.includes(msg.author.id) ? Number(msg.content.match(/\d$/)) as 1 | 2 | 3 : undefined);
+    const analyze = await analyzeRandData(msg.author.id, o);
+    const imageName = await buildImage(o);
 
-    /* return msg.sendMarkdown("102024160_1668504873", {
+    return msg.sendMarkdown("102024160_1668504873", {
         at_user: `<@${msg.author.id}>`,
-        today_gacha: "今日x发，共有一星x个，二星x个，三星x个",
-        total_gacha: "累计x发，共有一星x个，二星x个，三星x个",
-        gacha_analyze: "今日出货概率x%，累计出货概率x%",
-        img_size: "img#1700px 980px",
-        img_url: "https://res.feilongproject.com/bot/1665911661651.png",
-    },).then(d => {
-        //log.debug(d);
-    }); */
-    return msg.sendMsgEx({
-        imagePath: await buildImage(o),
-        content: `<@!${msg.author.id}>\n${await analyzeRandData(msg.author.id, o)}`,
-    }).then(() => {
+        ...analyze,
+        img_size: "img #1700px #980px",
+        img_url: `https://res.feilongproject.com/gachaPic/${imageName}`,
+    }, /* "102024160_1668416113" */).then(d => {
         return redis.setEx(`gachaLimitTTL:${msg.author.id}`, maxTime, "1");
     });
 }
@@ -121,10 +113,10 @@ function second(star: number): Character {
 
 }
 
-async function analyzeRandData(uid: string, data: { name: Character, star: number }[]): Promise<string> {
+async function analyzeRandData(uid: string, data: { name: Character, star: number }[]) {
 
     const gachaSetting = await redis.hGet(`setting:gacha`, `${uid}`) || `1,0,0,0`;
-    if (gachaSetting.split(",")[1] == "1") return "";
+    if (gachaSetting.split(",")[1] == "1") return null;
 
     const gachaData: {
         all: string[] | number[],
@@ -153,12 +145,14 @@ async function analyzeRandData(uid: string, data: { name: Character, star: numbe
         _a.push(Number(__a));
     }
 
-    return `抽卡统计：` +
-        //`\n当前：一星${stars[1]}个，二星${stars[2]}个，三星${stars[3]}个` +
-        `\n今日${_t[1] + _t[2] + _t[3]}发，共有一星${_t[1]}个，二星${_t[2]}个，三星${_t[3]}个` +
-        `\n累计${_a[1] + _a[2] + _a[3]}发，共有一星${_a[1]}个，二星${_a[2]}个，三星${_a[3]}个` +
-        `\n今日出货概率${((_t[3] / (_t[1] + _t[2] + _t[3])) * 100).toFixed(2)}%，` +
-        `累计出货概率${((_a[3] / (_a[1] + _a[2] + _a[3])) * 100).toFixed(2)}%`;
+    return {
+        today_gacha: `今日${_t[1] + _t[2] + _t[3]}发，共有一星${_t[1]}个，二星${_t[2]}个，三星${_t[3]}个`,
+        total_gacha: `累计${_a[1] + _a[2] + _a[3]}发，共有一星${_a[1]}个，二星${_a[2]}个，三星${_a[3]}个`,
+        gacha_analyze: `今日出货概率${((_t[3] / (_t[1] + _t[2] + _t[3])) * 100).toFixed(2)}%，` +
+            `累计出货概率${((_a[3] / (_a[1] + _a[2] + _a[3])) * 100).toFixed(2)}%`
+    }
+
+
 }
 
 async function buildImage(characterNames: { name: Character, star: number }[]): Promise<string> {
@@ -167,7 +161,8 @@ async function buildImage(characterNames: { name: Character, star: number }[]): 
         return "";
     } else if (characterNames.length == 10) {
 
-        var tmpOutPath = `${config.picPath.out}/${new Date().getTime()}.png`;
+        const outName = `${new Date().getTime()}.png`;
+        var tmpOutPath = `${config.picPath.out}/${outName}`;
         var files: { input: string, top: number, left: number, }[] = [];
 
         characterNames.forEach((value, index) => {
@@ -218,7 +213,7 @@ async function buildImage(characterNames: { name: Character, star: number }[]): 
             .composite(files)
             .png({ compressionLevel: 6, quality: 5, })
             .toFile(tmpOutPath).then(() => {
-                return tmpOutPath;
+                return outName;
             });
     }
     return "";
@@ -253,16 +248,16 @@ export async function gachaSetting(msg: IMessageGUILD) {
             const type = /今日/.test(msg.content) ? "T" : "A";
             if (type == "T") return redis.set(`data:todayGacha:${msg.author.id}`, "0,0,0,0");
             else return redis.hSet(`data:allGacha`, `${msg.author.id}`, "0,0,0,0");
-        } else if (/(隐藏|显示)/.test(msg.content)) {
-            const hide = /隐藏/.test(msg.content) ? "1" : "0";
+        } else if (/(更改显示)/.test(msg.content)) {
+            //const hide = /隐藏/.test(msg.content) ? "1" : "0";
             const status = await redis.hGet(`setting:gacha`, `${msg.author.id}`);
             if (!status || !status.startsWith("1")) {
                 return msg.sendMsgExRef({ content: `未找到用户设置，请@bot后输入"/抽卡设置 重置"开始初始化设置` });
             } else {
                 const join = status.split(",");
-                join[1] = hide;
+                join[1] = join[1] == "1" ? "0" : "1";
                 return redis.hSet(`setting:gacha`, `${msg.author.id}`, join.join()).then(() => {
-                    return msg.sendMsgExRef({ content: `已${/(隐藏|显示)/.exec(msg.content)![1]}统计信息` });
+                    return msg.sendMsgExRef({ content: `已更改统计信息为: ${join[1] == "1" ? "隐藏" : "显示"}` });
                 });
             }
         } else if (/帮助/.test(msg.content)) {
@@ -276,8 +271,8 @@ export async function gachaSetting(msg: IMessageGUILD) {
                     `介绍：清空今日抽卡统计信息\n\n` +
                     `指令：/抽卡设置 清空全部\n` +
                     `介绍：清空全部抽卡统计信息\n\n` +
-                    `指令：/抽卡设置 隐藏/显示\n` +
-                    `介绍：选择是否隐藏抽卡统计信息（默认显示）`,
+                    `指令：/抽卡设置 更改显示\n` +
+                    `介绍：更改抽卡统计信息显示为当前相反值（默认显示）`,
             });
         } else {
             return msg.sendMsgExRef({ content: `未知抽卡设置选项，使用"/抽卡设置 帮助"获取指令列表` });
