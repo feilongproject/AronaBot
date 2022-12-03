@@ -135,10 +135,8 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
         }).then(res => {
             return res.json();
         }).then(body => {
-            if (body.code) log.error(body);
+            if (body.code) throw body;
             return body;
-        }).catch(error => {
-            log.error(error);
         });
     }
 
