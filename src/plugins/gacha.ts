@@ -24,25 +24,26 @@ export async function gachaString(msg: IMessageGUILD) {
 export async function gachaImage(msg: IMessageGUILD) {
     if (await hasCd(msg)) return;
 
-    const o = cTime(10, adminId.includes(msg.author.id) ? Number(msg.content.match(/\d$/)) as 1 | 2 | 3 : undefined);
-    const analyze = await analyzeRandData(msg.author.id, o);
-    const imageName = await buildImage(o);
-
-    return msg.sendMarkdown("102024160_1668504873", {
-        at_user: `<@${msg.author.id}>`,
-        ...analyze,
-        img_size: "img #1700px #980px",
-        img_url: `https://res.feilongproject.com/gachaPic/${imageName}`,
-    }, /* "102024160_1668416113" */).then(d => {
-        return redis.setEx(`gachaLimitTTL:${msg.author.id}`, maxTime, "1");
-    });
+    return redis.setEx(`gachaLimitTTL:${msg.author.id}`, maxTime, "1").then(async () => {
+        const o = cTime(10, adminId.includes(msg.author.id) ? Number(msg.content.match(/\d$/)) as 1 | 2 | 3 : undefined);
+        const analyze = await analyzeRandData(msg.author.id, o);
+        const imageName = await buildImage(o);
+        return msg.sendMarkdown("102024160_1668504873", {
+            at_user: `<@${msg.author.id}>`,
+            ...analyze,
+            img_size: "img #1700px #980px",
+            img_url: `https://res.feilongproject.com/gachaPic/${imageName}`,
+        });
+    }).catch(err => {
+        log.error(err);
+    })
 }
 
 async function hasCd(msg: IMessageGUILD) {
     const ttl = await redis.pTTL(`gachaLimitTTL:${msg.author.id}`);
     const payTTL = parseInt(await redis.hGet(`pay:gachaLimitTTL`, `${msg.author.id}`) || "0");
     if ((ttl - payTTL > 0) && !adminId.includes(msg.author.id))
-        return msg.sendMsgEx({
+        return msg.sendMsgExRef({
             content: `请求时间过短，还有${(ttl - payTTL) / 1000}s冷却完毕` +
                 `\n(因为当前服务器性能不足，所以设置冷却cd，赞助以购买一个更好的服务器，也可以获得更少的冷却时间！)` +
                 `\n（当拥有更高配置的服务器时会取消冷却cd限制！）` +
