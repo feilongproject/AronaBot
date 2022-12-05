@@ -1,6 +1,8 @@
 import os from "os";
 import child_process from "child_process";
 import { IMessageDIRECT } from "../libs/IMessageEx";
+import { IUser } from "qq-guild-bot";
+
 
 export async function status(msg: IMessageDIRECT) {
     if (!adminId.includes(msg.author.id)) return;
@@ -37,21 +39,34 @@ export async function mute(msg: IMessageDIRECT) {
     const author = msg.member;
     if (!author || !author.roles || !(author.roles.includes("2") || author.roles.includes("4") || author.roles.includes("5"))) return;
 
-    const muteMember = (msg.mentions || [])[0];
-    const timeExec = /禁言(\d+)(分钟|小时|天)/.exec(msg.content)!;
+    const timeExec = /禁言(\d+)((分|m)|(小时|h)|(天|d))/.exec(msg.content)!;
     const muteTime = Number(timeExec[1]) * (timeExec[2].includes("分") ? 60 : timeExec[2].includes("时") ? 60 * 60 : 60 * 60 * 24);
+
+    var muteMember: IUser | null = null;
+    for (const mention of (msg.mentions || [])) if (!mention.bot) muteMember = mention;
     if (!muteMember) return msg.sendMsgEx({ content: `未指定禁言对象` });
+    if (msg.author.id == muteMember.id) return msg.sendMsgExRef({ content: "禁止禁言自己" });
+
+    const alart = await client.guildApi.guildMember(msg.guild_id, muteMember.id).then(res => {
+        const { data } = res;
+        if (!data.roles || !data.roles) return null;
+        const _roles = data.roles;
+        if (_roles.includes("4")) return "无法禁言频道主";
+        if (_roles.includes("2")) return "无法禁言绿管";
+        return null;
+    });
+    if (alart) return msg.sendMsgExRef({ content: alart });
 
     return client.muteApi.muteMember(msg.guild_id, muteMember.id, { seconds: muteTime.toString() }).then(() => {
         return msg.sendMsgExRef({
-            content: `已对成员<@${muteMember.id}>禁言${timeConver(muteTime * 1000)}`,
+            content: `已对成员<@${muteMember?.id}>禁言${timeConver(muteTime * 1000)}`,
         });
     }).then(async () => {
         return msg.sendMsgEx({
             content: `管理执行禁言权限` +
                 `\n权限：${JSON.stringify(msg?.member?.roles)}` +
                 `\n管理：${msg.author.username}(${msg.author.id})` +
-                `\n目标：${muteMember.username}(${muteMember.id})` +
+                `\n目标：${muteMember?.username}(${muteMember?.id})` +
                 `\n频道：${msg.guild_name}(${msg.guild_id})` +
                 `\n子频道：${msg.channel_name}(${msg.channel_id})` +
                 `\n时间：${timeConver(muteTime * 1000)}`,
@@ -60,7 +75,7 @@ export async function mute(msg: IMessageDIRECT) {
         });
     }).catch(err => {
         log.error(err);
-        msg.sendMsgEx({ content: JSON.stringify(err), });
+        msg.sendMsgEx({ content: JSON.stringify(err) });
     });
 }
 

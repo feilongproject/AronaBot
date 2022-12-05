@@ -21,7 +21,7 @@
                 "describe": "开启或关闭热加载"
             },
             "mute": {
-                "reg": "禁言\\d+(分钟|小时|天)",
+                "reg": "禁言(\\d+)((分|m)|(小时|h)|(天|d))",
                 "fnc": "mute",
                 "channelAllows": ["all"],
                 "type": ["GUILD"],
