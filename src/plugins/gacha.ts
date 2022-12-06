@@ -33,7 +33,7 @@ export async function gachaImage(msg: IMessageGUILD) {
             ...analyze,
             img_size: "img #1700px #980px",
             img_url: `https://res.feilongproject.com/gachaPic/${imageName}`,
-        });
+        }, "102024160_1669972662");
     }).catch(err => {
         log.error(err);
     })
@@ -52,9 +52,9 @@ async function hasCd(msg: IMessageGUILD) {
     return null;
 }
 
-function cTime(times: 1 | 10, testStar?: 1 | 2 | 3): { name: Character, star: number }[] {
+function cTime(times: 1 | 10, testStar?: 1 | 2 | 3): GachaPools {
 
-    var ret: { name: Character, star: number }[] = [];
+    var ret: GachaPools = [];
     if (times == 1) {
         ret.push(once());
     } else if (times == 10) {
@@ -68,7 +68,7 @@ function cTime(times: 1 | 10, testStar?: 1 | 2 | 3): { name: Character, star: nu
     return ret;
 }
 
-function once(mustStar?: 1 | 2 | 3): { name: Character, star: number } {
+function once(mustStar?: 1 | 2 | 3): GachaPool {
     //三星角色（彩色卡背）的抽取概率为2.5，二星角色（金色卡背）为18.5，一星角色（灰色卡背）为79
     if (mustStar) return { name: second(mustStar), star: mustStar };
 
@@ -114,28 +114,26 @@ function second(star: number): Character {
 
 }
 
-async function analyzeRandData(uid: string, data: { name: Character, star: number }[]) {
+async function analyzeRandData(uid: string, data: GachaPools) {
 
-    const gachaSetting = await redis.hGet(`setting:gacha`, `${uid}`) || `1,0,0,0`;
-    if (gachaSetting.split(",")[1] == "1") return null;
+    const nowDay = (new Date()).setHours(0, 0, 0, 0) + 1000 * 60 * 60 * 24;
+    const gachaSetting = await settingConfig(uid, "GET");
+    if (gachaSetting.hide == "1") return null;
 
     const gachaData: {
         all: string[] | number[],
         today: string[] | number[],
     } = {
         all: (await redis.hGet(`data:allGacha`, `${uid}`) || "0,0,0,0").split(","),
-        today: (await redis.get(`data:todayGacha:${uid}`) || "0,0,0,0").split(","),
+        today: (await redis.hGet(`data:todayGacha:${nowDay}`, uid) || "0,0,0,0").split(","),
     }
     for (const o of data) {
         gachaData.all[o.star] = Number(gachaData.all[o.star]) + 1;
         gachaData.today[o.star] = Number(gachaData.today[o.star]) + 1;
     }
     await redis.hSet(`data:allGacha`, `${uid}`, gachaData.all.join());
-    await redis.set(`data:todayGacha:${uid}`, gachaData.today.join(), {
-        PXAT: ((new Date()).setHours(0, 0, 0, 0) + 1000 * 60 * 60 * 24),
-    });
-
-    if (gachaSetting.split(",")[1] == "1") return ``;
+    await redis.hSet(`data:todayGacha:${nowDay}`, uid, gachaData.today.join());
+    await redis.expireAt(`data:todayGacha:${nowDay}`, nowDay);
 
     const _t: number[] = [];
     const _a: number[] = [];
@@ -156,7 +154,7 @@ async function analyzeRandData(uid: string, data: { name: Character, star: numbe
 
 }
 
-async function buildImage(characterNames: { name: Character, star: number }[]): Promise<string> {
+async function buildImage(characterNames: GachaPools): Promise<string> {
 
     if (characterNames.length == 1) {
         return "";
@@ -220,20 +218,14 @@ async function buildImage(characterNames: { name: Character, star: number }[]): 
     return "";
 }
 
-/**
- * key:   setting:gacha
- * field: ${uid}
- * value: 1(init),0(show/hide),0(continue analyze),0(cut cd (?))
- * @param msg IMessageEx
- * @returns 
- */
-export async function gachaSetting(msg: IMessageGUILD) {
 
+export async function gachaSetting(msg: IMessageGUILD) {
+    const nowDay = (new Date()).setHours(0, 0, 0, 0) + 1000 * 60 * 60 * 24;
     if (/重置/.test(msg.content)) {
-        return redis.hSet(`setting:gacha`, `${msg.author.id}`, "1,0,0,0").then(() => {
+        return settingConfig(msg.author.id, "SET", { init: "1", hide: "0", }).then(() => {
             return redis.hSet(`data:allGacha`, `${msg.author.id}`, "0,0,0,0");
         }).then(() => {
-            return redis.set(`data:todayGacha:${msg.author.id}`, "0,0,0,0");
+            return redis.hSet(`data:todayGacha:${nowDay}`, msg.author.id, "0,0,0,0");
         }).then(() => {
             return msg.sendMsgExRef({
                 content: `已重置卡池设置为默认` +
@@ -247,18 +239,16 @@ export async function gachaSetting(msg: IMessageGUILD) {
     if (await redis.hExists(`setting:gacha`, `${msg.author.id}`)) {
         if (/清空(今日|全部)/.test(msg.content)) {
             const type = /今日/.test(msg.content) ? "T" : "A";
-            if (type == "T") return redis.set(`data:todayGacha:${msg.author.id}`, "0,0,0,0");
+            if (type == "T") return redis.hSet(`data:todayGacha:${nowDay}`, msg.author.id, "0,0,0,0");
             else return redis.hSet(`data:allGacha`, `${msg.author.id}`, "0,0,0,0");
         } else if (/(更改显示)/.test(msg.content)) {
-            //const hide = /隐藏/.test(msg.content) ? "1" : "0";
-            const status = await redis.hGet(`setting:gacha`, `${msg.author.id}`);
-            if (!status || !status.startsWith("1")) {
+            const status = await settingConfig(msg.author.id, "GET");
+            if (status.init == "0") {
                 return msg.sendMsgExRef({ content: `未找到用户设置，请@bot后输入"/抽卡设置 重置"开始初始化设置` });
             } else {
-                const join = status.split(",");
-                join[1] = join[1] == "1" ? "0" : "1";
-                return redis.hSet(`setting:gacha`, `${msg.author.id}`, join.join()).then(() => {
-                    return msg.sendMsgExRef({ content: `已更改统计信息为: ${join[1] == "1" ? "隐藏" : "显示"}` });
+                status.hide = status.hide == "1" ? "0" : "1";
+                return settingConfig(msg.author.id, "SET", status).then(() => {
+                    return msg.sendMsgExRef({ content: `已更改统计信息为: ${status.hide == "1" ? "隐藏" : "显示"}` });
                 });
             }
         } else if (/帮助/.test(msg.content)) {
@@ -286,9 +276,56 @@ export async function gachaSetting(msg: IMessageGUILD) {
     }
 }
 
+
+/**
+ * key:   setting:gacha
+ * field: uid
+ * value: 1(init),0(show/hide),0(continue analyze),0(cut cd (?))
+ * @param aid author id
+ * @param types GET or SET
+ * @returns GachaSetting
+ */
+async function settingConfig(aid: string, types: "GET"): Promise<GachaSetting>;
+async function settingConfig(aid: string, types: "SET", set: Partial<GachaSetting>): Promise<GachaSetting>;
+async function settingConfig(aid: string, types: "GET" | "SET", set?: Partial<GachaSetting>): Promise<GachaSetting> {
+
+    var setting: GachaSetting;
+    if (set && set.init && set.hide && set.cancel && set.poolId) {//ASET
+        setting = set as GachaSetting;
+    } else {
+        setting = await redis.hGet("setting:gacha", aid).then(setting => {
+            const splitConfig = (setting || "0,0,0,0").split(",");
+            const config = {
+                init: splitConfig[0] || "0",
+                hide: splitConfig[1] || "0",
+                cancel: splitConfig[2] || "0",
+                poolId: splitConfig[3] || "0",
+            }
+            if (types == "GET") return config;
+            else return Object.assign(config, set);
+        }).catch(err => {
+            log.error(err);
+            return { init: "0", hide: "0", cancel: "0", poolId: "0" };
+        });
+    }
+
+    const splitConfig = [];
+    let key: keyof GachaSetting;
+    for (key in setting) splitConfig.push(setting[key]);
+    return redis.hSet(`setting:gacha`, aid, splitConfig.join()).then(() => {
+        return setting;
+    }).catch(err => {
+        log.error(err);
+        return { init: "0", hide: "0", cancel: "0", poolId: "0" };
+    });
+}
+
 interface GachaSetting {
     init: string;
     hide: string;
     cancel: string;
-    selectPoolId: string;
+    poolId: string;
 }
+
+type GachaPools = GachaPool[];
+interface GachaPool { name: Character; star: number; };
