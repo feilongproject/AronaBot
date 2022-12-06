@@ -23,7 +23,7 @@ reload("local", true).then(d => {
 
 export async function gachaString(msg: IMessageGUILD) {
     const setting = await settingConfig(msg.author.id, "GET");
-    const o = cTime(setting.poolType, 10);
+    const o = cTime(setting.poolType, /十/.test(msg.content) ? 10 : 1);
     var sendStr: string[] = [
         `<@${msg.author.id}> (${setting.poolType == "global" ? "国际服" : "日服"}卡池)`,
         /十/.test(msg.content) ? `————————十连结果————————` : `————————单抽结果————————`
