@@ -5,8 +5,8 @@ import { IMessageDIRECT, IMessageGUILD } from './libs/IMessageEx';
 init().then(() => {
 
     global.ws.on('GUILD_MESSAGES', async (data: IntentMessage.GUILD_MESSAGE) => {
-        if (data.eventType == 'MESSAGE_CREATE' && global.devEnv && !adminId.includes(data.msg.author.id)) return;
         if (data.eventType == 'MESSAGE_CREATE') {
+            if (global.devEnv && !adminId.includes(data.msg.author.id)) return;
             const msg = new IMessageGUILD(data.msg);
             execute(msg);
         }
@@ -29,6 +29,11 @@ init().then(() => {
             log.error(`频道树加载失败`, err);
         });
     });
+
+    global.ws.on("FORUMS_EVENT", (data) => {
+        log.debug(data);
+    });
+
 });
 
 

@@ -61,7 +61,7 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
 
     }
 
-    async sendMsgEx(option: SendMsgOption) {
+    async sendMsgEx(option: Partial<SendMsgOption>) {
         global.botStatus.msgSendNum++;
         const { ref, content, initiative } = option;
         option.msgId = option.msgId || this.id;
@@ -86,7 +86,7 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
         }
     }
 
-    async sendMsgExRef(option: SendMsgOption) {
+    async sendMsgExRef(option: Partial<SendMsgOption>) {
         option.ref = true;
         return this.sendMsgEx(option);
     }
@@ -104,9 +104,7 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
                     custom_template_id: templateId,
                     params: params,
                 },
-                keyboard: {
-                    id: keyboardId,
-                },
+                keyboard: { id: keyboardId },
             }),
         }).then(res => {
             return res.json();
@@ -116,7 +114,7 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
         });
     }
 
-    async sendImage(option: SendMsgOption): Promise<IMessage> {
+    async sendImage(option: Partial<SendMsgOption>): Promise<IMessage> {
         const { sendType, initiative, content, imagePath, msgId, guildId, channelId } = option;
         var pushUrl =
             (sendType == "DIRECT" || this.messageType == "DIRECT") ?
@@ -161,11 +159,9 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
 }
 
 export class IMessageGUILD extends IMessageCommon implements IntentMessage.GUILD_MESSAGE__body {
-
     constructor(msg: IntentMessage.GUILD_MESSAGE__body) {
         super(msg, "GUILD");
         this.mentions = msg.mentions;
-
         var mention: string[] = [];
         if (this.mentions)
             for (const user of this.mentions)
@@ -177,7 +173,6 @@ export class IMessageGUILD extends IMessageCommon implements IntentMessage.GUILD
 export class IMessageDIRECT extends IMessageCommon implements IntentMessage.DIRECT_MESSAGE__body {
     direct_message: true;
     src_guild_id: string;
-
     constructor(msg: IntentMessage.DIRECT_MESSAGE__body) {
         super(msg, "DIRECT");
         this.direct_message = msg.direct_message;
@@ -191,7 +186,7 @@ interface SendMsgOption {
     imagePath?: string;
     content?: string;
     initiative?: boolean;
-    sendType?: "DIRECT" | "GUILD";
+    sendType: "DIRECT" | "GUILD";
     msgId?: string;
     guildId?: string;
     channelId?: string;

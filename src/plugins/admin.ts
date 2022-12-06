@@ -95,7 +95,6 @@ export async function directToAdmin(msg: IMessageDIRECT) {
         });
     }
 
-    log.debug(msg);
     return msg.sendMsgEx({
         content: `用户：${msg.author.username}发送了一条信息` +
             `\n用户id：${msg.author.id}` +

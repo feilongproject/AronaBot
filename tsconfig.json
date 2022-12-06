@@ -1,36 +1,23 @@
 {
-  "compilerOptions": {
-    "outDir": "./dist",
-    "module": "commonjs",
-    "target": "es2021",
-    "lib": [
-      "es2021",
-      "es2016",
-      "es2015",
-      "DOM"
-    ],
-    "moduleResolution": "node",
-    "alwaysStrict": true,
-    //"allowJs": true,
-    "strict": true,
-    "preserveConstEnums": true,
-    "sourceMap": true,
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "types": []
-  },
-  "include": [
-    "src/**/*"
-  ],
-  "typeRoots": [
-    "./src/types"
-  ],
-  "ts-node": {
-    "files": true
-  },
-  "exclude": [
-    "node_modules",
-    "dist",
-    "test"
-  ]
+    "compilerOptions": {
+        "outDir": "./dist",
+        "module": "commonjs",
+        "target": "es2021",
+        "lib": ["es2021", "es2016", "es2015"],
+        "moduleResolution": "node",
+        "alwaysStrict": true,
+        //"allowJs": true,
+        "strict": true,
+        "preserveConstEnums": true,
+        "sourceMap": true,
+        "esModuleInterop": true,
+        "resolveJsonModule": true,
+        "types": []
+    },
+    "include": ["src/**/*"],
+    "typeRoots": ["./src/types"],
+    "ts-node": {
+        "files": true
+    },
+    "exclude": ["node_modules", "dist", "test"]
 }

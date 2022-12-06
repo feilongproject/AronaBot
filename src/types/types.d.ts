@@ -49,12 +49,6 @@ declare global {
     name: string,
   }
 
-  interface Character {
-    source: string,
-    chineseName: string,
-    fileName: string,
-  }
-
   namespace IntentMessage {
     interface EventRespose<T> {
       eventType: "MESSAGE_CREATE" | "MESSAGE_DELETE" |

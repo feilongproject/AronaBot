@@ -52,6 +52,12 @@
                 "fnc": "gachaSetting",
                 "type": ["GUILD"],
                 "describe": "抽卡设置"
+            },
+            "reloadData": {
+                "reg": "^(网络|本地)重加载",
+                "fnc": "reloadData",
+                "type": ["DIRECT"],
+                "describe": "重加载抽卡数据"
             }
         },
         "ALA": {
