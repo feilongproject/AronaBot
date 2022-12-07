@@ -73,6 +73,7 @@ function cTime(poolType: "global" | "jp", times: 1 | 10, testStar?: 1 | 2 | 3): 
     var must = true;
 
     function startRand(type: "pickup" | "common", star: 1 | 2 | 3): GachaPool {
+        if (star != 1) must = false;
         const rNum = Math.random() * 1000000;
         if (type == "common") {
             const _pools = gachaPoolInfo[poolType][type][star];
@@ -87,7 +88,7 @@ function cTime(poolType: "global" | "jp", times: 1 | 10, testStar?: 1 | 2 | 3): 
         //三星角色（彩色）的抽取概率为0.7up 2.3常驻，二星角色（金色）为18，一星角色（灰色）为79
         var rNum = Math.round(Math.random() * 100);
         if (testStar == 3) rNum = rNum % 3;
-
+        if (i == 10 && must) rNum = rNum % 21;
         if (Math.round(Math.random() * 100) <= 0.05) ret.push({ name: "彩奈", pathName: "Arona", devName: "Arona", star: 3, custom: "NPC_Portrait_Arona.png" });//彩蛋
         else if (rNum <= 0.7) ret.push(startRand("pickup", 3));
         else if (rNum <= 3) ret.push(startRand("common", 3));
