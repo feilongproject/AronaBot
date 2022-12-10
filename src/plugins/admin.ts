@@ -39,8 +39,9 @@ export async function mute(msg: IMessageDIRECT) {
     const author = msg.member;
     if (!author || !author.roles || !(author.roles.includes("2") || author.roles.includes("4") || author.roles.includes("5"))) return;
 
-    const timeExec = /禁言(\d+)((分|m)|(小时|h)|(天|d))/.exec(msg.content)!;
-    const muteTime = Number(timeExec[1]) * (timeExec[2].includes("分") ? 60 : timeExec[2].includes("时") ? 60 * 60 : 60 * 60 * 24);
+    const timeExec = /禁言(\d+)((分钟?|m)|(小?时|h)|(天|d))/.exec(msg.content)!;
+    log.debug(timeExec[1], timeExec[2], timeExec[3], timeExec[4], timeExec[5],);
+    const muteTime = Number(timeExec[1]) * (timeExec[3] ? 60 : timeExec[4] ? 60 * 60 : 60 * 60 * 24);
 
     var muteMember: IUser | null = null;
     for (const mention of (msg.mentions || [])) if (!mention.bot) muteMember = mention;
@@ -58,9 +59,8 @@ export async function mute(msg: IMessageDIRECT) {
     if (alart) return msg.sendMsgExRef({ content: alart });
 
     return client.muteApi.muteMember(msg.guild_id, muteMember.id, { seconds: muteTime.toString() }).then(() => {
-        return msg.sendMsgExRef({
-            content: `已对成员<@${muteMember?.id}>禁言${timeConver(muteTime * 1000)}`,
-        });
+        if (muteTime == 0) return msg.sendMsgExRef({ content: `已解除禁言` });
+        else return msg.sendMsgExRef({ content: `已对成员<@${muteMember?.id}>禁言${timeConver(muteTime * 1000)}`, });
     }).then(async () => {
         return msg.sendMsgEx({
             content: `管理执行禁言权限` +
@@ -108,6 +108,8 @@ export async function directToAdmin(msg: IMessageDIRECT) {
 
 function timeConver(ms: number) {
     ms = Number((ms / 1000).toFixed(0));
+
+    if (ms == 0) return "0分钟";
     if (ms < 60) return "不足1分钟";
 
     const s = ms % 60;
