@@ -41,7 +41,8 @@ async function execute(msg: IMessageDIRECT | IMessageGUILD) {
     try {
         global.redis.set("lastestMsgId", msg.id, { EX: 4 * 60 });
         const opt = await findOpts(msg);
-        if (opt.path == "err") return;
+        if (!opt) return;
+        if (typeof opt == "string") return msg.sendMsgExRef({ content: opt });
         if (global.devEnv) log.debug(`./plugins/${opt.path}:${opt.fnc}`);
         const plugin = await import(`./plugins/${opt.path}.ts`);
 
