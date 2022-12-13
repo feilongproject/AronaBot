@@ -75,12 +75,13 @@ export async function init() {
     });
 
     global.mariadb = await createPool(config.mariadb).getConnection().then(conn => {
+        log.info(`初始化：mariadb数据库连接成功`);
         return conn;
     });
 
     log.info(`初始化：正在创建client与ws`);
     global.client = createOpenAPI(config.initConfig);
-    global.ws = createWebsocket(config.initConfig as any);
+    global.ws = createWebsocket(config.initConfig);
 
     log.info(`初始化：正在创建频道树`);
     await loadGuildTree(true);
@@ -95,7 +96,11 @@ export async function loadGuildTree(init?: boolean) {
     for (const guild of (await global.client.meApi.meGuilds()).data) {
         if (init) log.mark(`${guild.name}(${guild.id})`);
         var _guild: SaveChannel[] = [];
-        for (const channel of (await global.client.channelApi.channels(guild.id)).data) {
+        const channelData = await global.client.channelApi.channels(guild.id).catch(err => {
+            log.error(err);
+        });
+        if (!channelData) return;
+        for (const channel of channelData.data) {
             if (init) log.mark(`${guild.name}(${guild.id})-${channel.name}(${channel.id})-father:${channel.parent_id}`);
             _guild.push({ name: channel.name, id: channel.id });
         }
