@@ -49,8 +49,8 @@ export async function gachaImage(msg: IMessageGUILD) {
             img_url: `https://res.feilongproject.com/gachaPic/${imageName}`,
         }, "102024160_1669972662");
     }).catch(err => {
-        log.error(err,);
-        msg.sendMsgExRef({ content: err.toString().replaceAll(".", " .") });
+        log.error(err);
+        return msg.sendMsgExRef({ content: JSON.stringify(err).replaceAll(".", " .") });
     })
 }
 
@@ -179,6 +179,8 @@ export async function reloadData(msg: IMessageDIRECT) {
 }
 
 async function reload(type: "net" | "local", init?: boolean): Promise<string> {
+    const nameToId = { jp: 0, global: 1 };
+    var key: keyof typeof nameToId;
     const _gachaPoolInfo: GachaPoolInfo = {
         global: { common: { 1: [], 2: [], 3: [] }, pickup: { characters: [], start: 0, end: 0 } },
         jp: { common: { 1: [], 2: [], 3: [] }, pickup: { characters: [], start: 0, end: 0 } },
@@ -205,18 +207,18 @@ async function reload(type: "net" | "local", init?: boolean): Promise<string> {
             if (d.IsLimited) continue;
             if (!existsSync(`${config.picPath.characters}/Student_Portrait_${devName}.png`))
                 throw `not found png file in local: Student_Portrait_${devName}`;
-            if (d.IsReleased[0]) _gachaPoolInfo.jp.common[d.StarGrade].push(d.Id);
-            if (d.IsReleased[1]) _gachaPoolInfo.global.common[d.StarGrade].push(d.Id);
+            for (key in nameToId)
+                if (d.IsReleased[nameToId[key]]) _gachaPoolInfo[key].common[d.StarGrade].push(d.Id);
         }
-        _gachaPoolInfo.jp.pickup = common.regions[0].current_gacha[0];
-        _gachaPoolInfo.global.pickup = common.regions[1].current_gacha[0];
-        const pickups: { jp: number[], global: number[] } = { jp: [], global: [] };
-        for (const pick of _gachaPoolInfo.jp.pickup.characters)
-            if (_studentInfo[pick].star == 3) pickups.jp.push(pick);
-        _gachaPoolInfo.jp.pickup.characters = pickups.jp;
-        for (const pick of _gachaPoolInfo.global.pickup.characters)
-            if (_studentInfo[pick].star == 3) pickups.global.push(pick);
-        _gachaPoolInfo.global.pickup.characters = pickups.global;
+
+        const nowTime = new Date().getTime() / 1000;
+        for (key in nameToId) for (const _nowPick of common.regions[nameToId[key]].current_gacha as GachaPoolInfoPickup[])
+            if (_nowPick.start < nowTime && nowTime < _nowPick.end) {
+                for (const pick of _nowPick.characters)
+                    if (_studentInfo[pick].star == 3) _gachaPoolInfo[key].pickup.characters.push(pick);
+                _gachaPoolInfo[key].pickup.start = _nowPick.start;
+                _gachaPoolInfo[key].pickup.end = _nowPick.end;
+            }
 
         gachaPoolInfo = _gachaPoolInfo;
         studentInfo = _studentInfo;
@@ -228,9 +230,9 @@ async function reload(type: "net" | "local", init?: boolean): Promise<string> {
             studentInfo = JSON.parse(readFileSync(config.studentInfo).toString());
             gachaPoolInfo = JSON.parse(readFileSync(config.gachaPoolInfo).toString());
             if (init) log.info("成功从本地重加载");
-        } else {
+        } else
             return reload("net", init);
-        }
+
     }
     return "ok";
 }
@@ -277,9 +279,14 @@ async function settingConfig(aid: string, types: "GET" | "SET", set?: Partial<Ga
 }
 
 export async function gachaSetting(msg: IMessageGUILD) {
+    var optStr: string;
+    const status = await settingConfig(msg.author.id, "GET");
     const nowDay = (new Date()).setHours(0, 0, 0, 0) + 1000 * 60 * 60 * 24;
     if (/重置/.test(msg.content)) {
-        return settingConfig(msg.author.id, "SET", { init: true, hide: false, poolType: "global" }).then(() => {
+        status.init = true;
+        status.poolType = "global";
+        status.hide = false;
+        optStr = await settingConfig(msg.author.id, "SET", status).then(() => {
             return redis.hSet(`data:gacha:all`, [
                 [`${msg.author.id}:global`, "0,0,0,0"],
                 [`${msg.author.id}:jp`, "0,0,0,0"]
@@ -290,71 +297,49 @@ export async function gachaSetting(msg: IMessageGUILD) {
                 [`${msg.author.id}:jp`, "0,0,0,0"]
             ]);
         }).then(() => {
-            return msg.sendMsgExRef({
-                content: `已重置卡池选择为国际服` +
-                    `\n已重置所有统计为空` +
-                    `\n已重置统计信息为显示状态` +
-                    `\n（注: 这是一个不可撤回的操作！）`,
-            })
+            return "已重置所有设置!";
         });
     }
 
-    if (await redis.hExists(`setting:gacha`, `${msg.author.id}`)) {
-        if (/清空(今日|全部)/.test(msg.content)) {
-            const type = /今日/.test(msg.content) ? "T" : "A";
-            if (type == "T") return redis.hSet(`data:gacha:all`, [
-                [`${msg.author.id}:global`, "0,0,0,0"],
-                [`${msg.author.id}:jp`, "0,0,0,0"]
-            ]);
-            else return redis.hSet(`data:gacha:${nowDay}`, [
-                [`${msg.author.id}:global`, "0,0,0,0"],
-                [`${msg.author.id}:jp`, "0,0,0,0"]
-            ]);
-        } else if (/更改显示/.test(msg.content)) {
-            const status = await settingConfig(msg.author.id, "GET");
-            if (!status.init) {
-                return msg.sendMsgExRef({ content: `未找到用户设置，请@bot后输入"/抽卡设置 重置"开始初始化设置` });
-            } else {
-                status.hide = !status.hide;
-                return settingConfig(msg.author.id, "SET", status).then(() => {
-                    return msg.sendMsgExRef({ content: `已更改统计信息为: ${status.hide ? "隐藏" : "显示"}` });
-                });
-            }
-        } else if (/更(改|换)卡池/.test(msg.content)) {
-            const status = await settingConfig(msg.author.id, "GET");
-            if (!status.init) {
-                return msg.sendMsgExRef({ content: `未找到用户设置，请@bot后输入"/抽卡设置 重置"开始初始化设置` });
-            } else {
-                status.poolType = status.poolType == "global" ? "jp" : "global";
-                return settingConfig(msg.author.id, "SET", status).then(() => {
-                    return msg.sendMsgExRef({ content: `已更改卡池为: ${status.poolType == "global" ? "国际服" : "日服"}卡池` });
-                });
-            }
-        } else if (/帮助/.test(msg.content)) {
-            const status = await settingConfig(msg.author.id, "GET");
-            return msg.sendMsgExRef({
-                content: `抽卡设置 - 帮助界面` +
-                    `\n========================` +
-                    `\n指令：/抽卡设置 更改显示` +
-                    `\n介绍：更改抽卡统计信息显示为当前相反值（默认显示）` +
-                    `\n\n指令：/抽卡设置 更改卡池` +
-                    `\n介绍：更改当前卡池为另一卡池（当前为${status.poolType == "global" ? "国际服" : "日服"}卡池）` +
-                    `\n\n指令：/抽卡设置 清空今日` +
-                    `\n介绍：清空今日抽卡统计信息` +
-                    `\n\n指令：/抽卡设置 清空全部` +
-                    `\n介绍：清空全部抽卡统计信息` +
-                    `\n\n指令：/抽卡设置 重置` +
-                    `\n介绍：重置所有卡池设置到默认（卡池选择、统计信息等）`,
-            });
-        } else {
-            return msg.sendMsgExRef({ content: `未知抽卡设置选项，使用"/抽卡设置 帮助"获取指令列表` });
-        }
-    } else {
-        return msg.sendMsgExRef({
-            content: `未找到用户设置，请@bot后输入"/抽卡设置 重置"开始初始化设置` +
-                `\n（如果之后要恢复默认也可使用该命令）`
+    if (/清空今日/.test(msg.content)) {
+        optStr = await redis.hSet(`data:gacha:${nowDay}`, [
+            [`${msg.author.id}:global`, "0,0,0,0"],
+            [`${msg.author.id}:jp`, "0,0,0,0"]
+        ]).then(() => {
+            return `已清空今日统计信息`;
         });
-    }
+    } else if (/清空全部/.test(msg.content)) {
+        optStr = await redis.hSet(`data:gacha:all`, [
+            [`${msg.author.id}:global`, "0,0,0,0"],
+            [`${msg.author.id}:jp`, "0,0,0,0"]
+        ]).then(() => {
+            return redis.hSet(`data:gacha:${nowDay}`, [
+                [`${msg.author.id}:global`, "0,0,0,0"],
+                [`${msg.author.id}:jp`, "0,0,0,0"]
+            ]);
+        }).then(() => {
+            return "已清空全部统计信息";
+        });
+    } else if (/更(改|换)显示/.test(msg.content)) {
+        status.hide = !status.hide;
+        optStr = await settingConfig(msg.author.id, "SET", status).then(() => {
+            return `已${status.hide ? "隐藏" : "显示"}统计信息`;
+        });
+    } else if (/更(改|换)卡池/.test(msg.content)) {
+        status.poolType = status.poolType == "global" ? "jp" : "global";
+        optStr = await settingConfig(msg.author.id, "SET", status).then(() => {
+            return `已更改卡池为${status.poolType == "global" ? "国际服" : "日服"}卡池`;
+        });
+    } else optStr = ``;
+
+    return msg.sendMarkdown("102024160_1668504873", {
+        at_user: `<@${msg.author.id}> ${optStr}`,
+        today_gacha: `当前卡池选择: ${status.poolType == "global" ? "国际服" : "日服"}卡池`,
+        total_gacha: `抽卡分析显示状态: ${status.hide ? "隐藏" : "显示"}`,
+        gacha_analyze: "注: 使用按钮可以快速设置(PC无法使用)",
+        img_size: "img #1px #1px",
+        img_url: "  "
+    }, "102024160_1670355190");
 }
 
 
