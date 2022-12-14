@@ -90,7 +90,7 @@ function cTime(poolType: "global" | "jp", times: 1 | 10, testStar?: 1 | 2 | 3): 
         if (testStar == 3) rNum = rNum % 3;
         if (i == 10 && must) rNum = rNum % 21;
         if (rNum <= 0.05) ret.push({ name: "彩奈", pathName: "Arona", devName: "Arona", star: 3, custom: "NPC_Portrait_Arona.png" });//彩蛋
-        else if (rNum <= 0.7) ret.push(startRand("pickup", 3));
+        else if (rNum <= 0.7 && gachaPoolInfo[poolType].pickup.characters.length > 0) ret.push(startRand("pickup", 3));
         else if (rNum <= 3) ret.push(startRand("common", 3));
         else if (rNum <= 3 + 18) ret.push(startRand("common", 2));
         else ret.push(startRand("common", 1));
