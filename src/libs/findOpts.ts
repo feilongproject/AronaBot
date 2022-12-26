@@ -33,7 +33,7 @@ export async function findOpts(msg: IMessageGUILD | IMessageDIRECT): Promise<{ p
                 for (const allowKey of allowKeys) for (const channel of channelAllows[allowKey]) if (channel.id == msg.channel_id) return true;
             }
             if (allowKeys[0] == "all" || msg.messageType == "DIRECT" || channelAllow()) {
-                if (await redis.hExists("blackList:uid", msg.author.id)) return "黑名单用户!";
+                if (await redis.hExists("blackList:uid", msg.author.id)) return `黑名单用户！如有异议联系<@${adminId[0]}>`;
                 else return { path: keyFather, ...opt, };
 
             }

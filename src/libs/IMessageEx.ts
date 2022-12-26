@@ -1,9 +1,9 @@
 import fs from "fs";
 import fetch from 'node-fetch';
 import FormData from 'form-data';
-import { Ark, Embed, IMember, IMessage, IUser, MessageAttachment, MessageReference, MessageToCreate } from "qq-guild-bot";
-import config from '../../config/config.json';
+import { IMember, IMessage, IUser, MessageAttachment, MessageReference } from "qq-guild-bot";
 import { pushToDB } from "./common";
+import config from '../../config/config.json';
 
 
 export class IMessageCommon implements IntentMessage.MessageCommon {
@@ -40,8 +40,10 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
 
         this.messageType = messageType;
 
+        const atta = this.attachments ? `[图片${this.attachments.length + "张"}]` : "";
+
         if (messageType == "DIRECT") {
-            log.info(`私信{${msg.guild_id}}[${msg.channel_id}](${msg.author.username}|${this.author.id}):${msg.content}`);
+            log.info(`私信{${msg.guild_id}}[${msg.channel_id}](${msg.author.username}|${this.author.id})${atta}: ${msg.content}`);
             return;
         }
 
@@ -51,7 +53,7 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
                     if (channel.id == this.channel_id) {
                         this.guild_name = guild.name;
                         this.channel_name = channel.name;
-                        log.info(`频道{${this.guild_name}}[${this.channel_name}|${this.channel_id}](${this.author.username}|${this.author.id}):${this.content}`);
+                        log.info(`频道{${this.guild_name}}[${this.channel_name}|${this.channel_id}](${this.author.username}|${this.author.id})${atta}: ${this.content}`);
                         return;
                     }
                 }
@@ -63,7 +65,7 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
 
     async sendMsgEx(option: Partial<SendMsgOption>) {
         global.botStatus.msgSendNum++;
-        const { ref, content, initiative } = option;
+        const { ref, content, initiative, imageUrl } = option;
         option.msgId = option.msgId || this.id;
         option.guildId = option.guildId || this.guild_id;
         option.channelId = option.channelId || this.channel_id;
@@ -73,14 +75,16 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
         } else {
             if (option.sendType == "GUILD") {
                 return global.client.messageApi.postMessage(option.channelId, {
-                    content: content,
                     msg_id: initiative ? undefined : this.id,
-                    message_reference: ref ? { message_id: this.id, } : undefined
+                    content: content,
+                    message_reference: ref ? { message_id: this.id, } : undefined,
+                    image: imageUrl,
                 });
             } else {
                 return global.client.directMessageApi.postDirectMessage(option.guildId!, {
                     msg_id: initiative ? undefined : this.id,
                     content: content,
+                    image: imageUrl,
                 });
             }
         }
@@ -184,6 +188,7 @@ export class IMessageDIRECT extends IMessageCommon implements IntentMessage.DIRE
 interface SendMsgOption {
     ref?: boolean;
     imagePath?: string;
+    imageUrl?: string;
     content?: string;
     initiative?: boolean;
     sendType: "DIRECT" | "GUILD";
