@@ -92,18 +92,20 @@ export async function init() {
 }
 
 export async function loadGuildTree(init?: boolean) {
-    global.saveGuildsTree = [];
-    for (const guild of (await global.client.meApi.meGuilds()).data) {
+    if (!global.saveGuildsTree) global.saveGuildsTree = {};
+
+    const guildData = await client.meApi.meGuilds().catch(err => { log.error(err) });
+    if (!guildData) return;
+    for (const guild of guildData.data) {
         if (init) log.mark(`${guild.name}(${guild.id})`);
-        var _guild: SaveChannel[] = [];
-        const channelData = await global.client.channelApi.channels(guild.id).catch(err => {
-            log.error(err);
-        });
+        if (!saveGuildsTree[guild.id]) saveGuildsTree[guild.id] = { ...guild, channel: {} };
+        else saveGuildsTree[guild.id].name = guild.name;
+
+        const channelData = await client.channelApi.channels(guild.id).catch(err => { log.error(err); });
         if (!channelData) return;
         for (const channel of channelData.data) {
             if (init) log.mark(`${guild.name}(${guild.id})-${channel.name}(${channel.id})-father:${channel.parent_id}`);
-            _guild.push({ name: channel.name, id: channel.id });
+            saveGuildsTree[guild.id].channel[channel.id] = { name: channel.name, id: channel.id };
         }
-        global.saveGuildsTree.push({ name: guild.name, id: guild.id, channel: _guild });
     }
 }

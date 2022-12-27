@@ -33,15 +33,15 @@ declare global {
   }
   var hotLoadStatus: boolean;
 
-  var saveGuildsTree: SaveGuild[];
+  var saveGuildsTree: { [guildId: string]: SaveGuild };
   interface SaveGuild {
-    name: string,
-    id: string,
-    channel: SaveChannel[],
+    name: string;
+    id: string;
+    channel: { [channelId: string]: SaveChannel };
   }
   interface SaveChannel {
-    name: string,
-    id: string,
+    name: string;
+    id: string;
   }
 
   interface Member {

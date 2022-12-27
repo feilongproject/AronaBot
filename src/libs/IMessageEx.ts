@@ -15,14 +15,12 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
     author: IUser;
     member: IMember;
     attachments?: MessageAttachment[];
-    mentions?: IUser[];
     seq: number;
     seq_in_channel: string;
     src_guild_id?: string;
     message_reference?: MessageReference;
-    guild_name?: string;
-    channel_name?: string;
 
+    _atta: string;
     messageType: "DIRECT" | "GUILD";
 
     constructor(msg: IntentMessage.MessageCommon, messageType: "DIRECT" | "GUILD") {
@@ -39,28 +37,7 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
         this.message_reference = msg.message_reference;
 
         this.messageType = messageType;
-
-        const atta = this.attachments ? `[图片${this.attachments.length + "张"}]` : "";
-
-        if (messageType == "DIRECT") {
-            log.info(`私信{${msg.guild_id}}[${msg.channel_id}](${msg.author.username}|${this.author.id})${atta}: ${msg.content}`);
-            return;
-        }
-
-        for (const guild of global.saveGuildsTree) {
-            if (guild.id == this.guild_id) {
-                for (const channel of guild.channel) {
-                    if (channel.id == this.channel_id) {
-                        this.guild_name = guild.name;
-                        this.channel_name = channel.name;
-                        log.info(`频道{${this.guild_name}}[${this.channel_name}|${this.channel_id}](${this.author.username}|${this.author.id})${atta}: ${this.content}`);
-                        return;
-                    }
-                }
-            }
-        }
-        log.warn(`unKnown message:{${msg.guild_id}}[${msg.channel_id}](${msg.author.username}):${msg.content}`);
-
+        this._atta = this.attachments ? `[图片${this.attachments.length + "张"}]` : "";
     }
 
     async sendMsgEx(option: Partial<SendMsgOption>) {
@@ -163,14 +140,27 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
 }
 
 export class IMessageGUILD extends IMessageCommon implements IntentMessage.GUILD_MESSAGE__body {
+    mentions?: IUser[];
+    guildName: string;
+    channelName: string;
+
     constructor(msg: IntentMessage.GUILD_MESSAGE__body) {
         super(msg, "GUILD");
         this.mentions = msg.mentions;
-        var mention: string[] = [];
+        this.guildName = saveGuildsTree[this.guild_id]?.name;
+        this.channelName = saveGuildsTree[this.guild_id]?.channel[this.channel_id]?.name;
+
+        log.info(`频道{${this.guildName}}[${this.channelName}|${this.channel_id}](${this.author.username}|${this.author.id})${this._atta}: ${this.content}`);
+
+        const mention: string[] = [];
         if (this.mentions)
             for (const user of this.mentions)
                 mention.push(user.id);
-        this.pushToDB({ mentions: mention.join(",") });
+        this.pushToDB({
+            mentions: mention.join(","),
+            cName: this.channelName,
+        });
+
     }
 }
 
@@ -181,6 +171,9 @@ export class IMessageDIRECT extends IMessageCommon implements IntentMessage.DIRE
         super(msg, "DIRECT");
         this.direct_message = msg.direct_message;
         this.src_guild_id = msg.src_guild_id;
+
+        log.info(`私信{${this.guild_id}}(${this.author.username}|${this.author.id})${this._atta}: ${this.content}`);
+
         this.pushToDB({ srcGid: this.src_guild_id });
     }
 }

@@ -1,6 +1,6 @@
 import fs from "fs";
 import { IMessageGUILD } from "../libs/IMessageEx";
-import ostracismWord from "../../data/ostracismWord.json";
+//import ostracismWord from "../../data/ostracismWord.json";
 const userDataFile = "./data/ostracismData.json";
 
 /* 
@@ -56,7 +56,7 @@ export async function ostracism(msg: IMessageGUILD) {
             }
             ostracismData.list.push({
                 guildId: msg.guild_id,
-                guildName: msg.guild_name ? msg.guild_name : "null",
+                guildName: msg.guildName ? msg.guildName : "null",
                 title: otherContent,
                 infos: [],
                 opinion: { agree: [], against: [], abstain: [], },
@@ -70,7 +70,7 @@ export async function ostracism(msg: IMessageGUILD) {
             ostracismData.iv = ostracismData.list.length - 1;
             msg.sendMsgEx({
                 content: `创建完成，类型:${typeId},编号:${ostracismData.iv}` +
-                    `\n频道:${msg.guild_name ? msg.guild_name : "null"}(${msg.guild_id})` +
+                    `\n频道:${msg.guildName ? msg.guildName : "null"}(${msg.guild_id})` +
                     `\n标题:${otherContent}${(msg.mentions || [null])[1] == null ? "" : `\n目标用户:<@${(msg.mentions || [null])[1]!.id}>`}`
             })
             break;
@@ -174,7 +174,7 @@ function findOpinion(this: any, value: Member, index: number, obj: Member[]): bo
     else return false;
 }
 
-function findCommand(key: string, type: string): boolean {
+/* function findCommand(key: string, type: string): boolean {
     Object.keys(ostracismWord).forEach((obj) => {
         const word = ostracismWord[obj as keyof OstracismWord];
         //log.debug(obj);
@@ -182,7 +182,7 @@ function findCommand(key: string, type: string): boolean {
         //console.log(k, obj[k as keyof Person].toUpperCase());
     })
     return false;
-}
+} */
 
 interface OstracismWord {
     create: {

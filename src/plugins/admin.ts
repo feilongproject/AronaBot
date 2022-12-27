@@ -1,6 +1,6 @@
 import os from "os";
 import child_process from "child_process";
-import { IMessageDIRECT } from "../libs/IMessageEx";
+import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 import { IUser } from "qq-guild-bot";
 
 
@@ -35,7 +35,7 @@ export async function hotLoad(msg: IMessageDIRECT) {
     });
 }
 
-export async function mute(msg: IMessageDIRECT) {
+export async function mute(msg: IMessageGUILD) {
     const author = msg.member;
     if (!author || !author.roles || !(author.roles.includes("2") || author.roles.includes("4") || author.roles.includes("5"))) return;
 
@@ -67,8 +67,8 @@ export async function mute(msg: IMessageDIRECT) {
                 `\n权限：${JSON.stringify(msg?.member?.roles)}` +
                 `\n管理：${msg.author.username}(${msg.author.id})` +
                 `\n目标：${muteMember?.username}(${muteMember?.id})` +
-                `\n频道：${msg.guild_name}(${msg.guild_id})` +
-                `\n子频道：${msg.channel_name}(${msg.channel_id})` +
+                `\n频道：${msg.guildName}(${msg.guild_id})` +
+                `\n子频道：${msg.channelName}(${msg.channel_id})` +
                 `\n时间：${timeConver(muteTime * 1000)}`,
             guildId: await global.redis.hGet(`directUid->Gid`, adminId[0]),
             sendType: "DIRECT",
