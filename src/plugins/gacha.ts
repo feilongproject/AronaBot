@@ -1,11 +1,14 @@
-import sharp, { bool } from "sharp";
+import sharp from "sharp";
+import fetch from "node-fetch";
+import format from "date-format";
+import { existsSync, readFileSync, writeFileSync } from "fs";
 import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 import config from '../../config/config.json';
-import { existsSync, readFileSync, writeFileSync } from "fs";
-import fetch from "node-fetch";
 
 const maxTime = 30;
 const starString = ["☆☆☆", "★☆☆", "★★☆", "★★★"];
+const nameToId = { jp: 0, global: 1 };
+var key: keyof typeof nameToId;
 var studentInfo: { [key: string]: { name: string; pathName: string; devName: string; star: 1 | 2 | 3; } } = {};
 var gachaPoolInfo: GachaPoolInfo = {
     global: { common: { 1: [], 2: [], 3: [] }, pickup: { characters: [], start: 0, end: 0 } },
@@ -51,7 +54,7 @@ export async function gachaImage(msg: IMessageGUILD) {
     }).catch(err => {
         log.error(err);
         return msg.sendMsgExRef({ content: JSON.stringify(err).replaceAll(".", " .") });
-    })
+    });
 }
 
 async function hasCd(msg: IMessageGUILD) {
@@ -163,7 +166,30 @@ export async function reloadData(msg: IMessageDIRECT) {
     if (!adminId.includes(msg.author.id)) return;
     if (msg.content.includes("网络")) {
         await reload("net").then(() => {
-            return msg.sendMsgExRef({ content: `已从网络获取资源并保存\n${JSON.stringify(gachaPoolInfo)}` });
+            const sendStr: string[] = ["已从网络获取资源并保存"];
+            for (key in nameToId) {
+                sendStr.push("==================", `${key}服`);
+
+                const common = gachaPoolInfo[key].common as { [star: number]: number[] };
+                for (const star in common) {
+                    const _all: string[] = [];
+                    for (const _ of common[star]) _all.push(studentInfo[_].name);
+                    sendStr.push(`> ${star}星: ${_all.join(" | ")}`);
+                }
+
+                const pickup = gachaPoolInfo[key].pickup;
+                if (pickup.characters.length) {
+                    const _all: string[] = [];
+                    for (const _ of pickup.characters) _all.push(studentInfo[_].name);
+                    sendStr.push(
+                        `> pickup: ${_all.join()}`,
+                        `> pickup开始时间: ${format.asString(new Date(pickup.start * 1000))}`,
+                        `> pickup结束时间: ${format.asString(new Date(pickup.end * 1000))}`,
+                    );
+                } else sendStr.push(`> 无pickup`);
+            }
+
+            return msg.sendMsgExRef({ content: sendStr.join("\n") });
         }).catch(err => {
             log.error(err);
             return msg.sendMsgExRef({ content: `网络获取资源错误: ${err}` });
@@ -179,8 +205,6 @@ export async function reloadData(msg: IMessageDIRECT) {
 }
 
 async function reload(type: "net" | "local", init?: boolean): Promise<string> {
-    const nameToId = { jp: 0, global: 1 };
-    var key: keyof typeof nameToId;
     const _gachaPoolInfo: GachaPoolInfo = {
         global: { common: { 1: [], 2: [], 3: [] }, pickup: { characters: [], start: 0, end: 0 } },
         jp: { common: { 1: [], 2: [], 3: [] }, pickup: { characters: [], start: 0, end: 0 } },

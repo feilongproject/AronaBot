@@ -19,6 +19,7 @@
         "@types/ws": "^8.5.3"
     },
     "dependencies": {
+        "date-format": "^4.0.14",
         "log4js": "^6.5.2",
         "mariadb": "^3.0.2",
         "node-fetch": "^2.6.6",
