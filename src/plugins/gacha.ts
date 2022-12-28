@@ -166,42 +166,45 @@ export async function reloadData(msg: IMessageDIRECT) {
     if (!adminId.includes(msg.author.id)) return;
     if (msg.content.includes("网络")) {
         await reload("net").then(() => {
-            const sendStr: string[] = ["已从网络获取资源并保存"];
-            for (key in nameToId) {
-                sendStr.push("==================", `${key}服`);
-
-                const common = gachaPoolInfo[key].common as { [star: number]: number[] };
-                for (const star in common) {
-                    const _all: string[] = [];
-                    for (const _ of common[star]) _all.push(studentInfo[_].name);
-                    sendStr.push(`> ${star}星: ${_all.join(" | ")}`);
-                }
-
-                const pickup = gachaPoolInfo[key].pickup;
-                if (pickup.characters.length) {
-                    const _all: string[] = [];
-                    for (const _ of pickup.characters) _all.push(studentInfo[_].name);
-                    sendStr.push(
-                        `> pickup: ${_all.join()}`,
-                        `> pickup开始时间: ${format.asString(new Date(pickup.start * 1000))}`,
-                        `> pickup结束时间: ${format.asString(new Date(pickup.end * 1000))}`,
-                    );
-                } else sendStr.push(`> 无pickup`);
-            }
-
-            return msg.sendMsgExRef({ content: sendStr.join("\n") });
+            return msg.sendMsgExRef({ content: `已从网络重加载资源并保存\n${analyzeLocalDate().join("\n")}` });
         }).catch(err => {
             log.error(err);
             return msg.sendMsgExRef({ content: `网络获取资源错误: ${err}` });
         })
     } else if (msg.content.includes("本地")) {
         return reload("local").then(() => {
-            return msg.sendMsgExRef({ content: `已从文件中重加载` });
+            return msg.sendMsgExRef({ content: `已从本地重加载资源\n${analyzeLocalDate().join("\n")}` });
         }).catch(err => {
             log.error(err);
             return msg.sendMsgExRef({ content: `从本地加载文件错误: ${err}` });
         });
     }
+}
+
+function analyzeLocalDate() {
+    const sendStr: string[] = [];
+    for (key in nameToId) {
+        sendStr.push("==================", `${key}服`);
+
+        const common = gachaPoolInfo[key].common as { [star: number]: number[] };
+        for (const star in common) {
+            const _all: string[] = [];
+            for (const _ of common[star]) _all.push(studentInfo[_].name);
+            sendStr.push(`> ${star}星: ${_all.join(" | ")}`);
+        }
+
+        const pickup = gachaPoolInfo[key].pickup;
+        if (pickup.characters.length) {
+            const _all: string[] = [];
+            for (const _ of pickup.characters) _all.push(studentInfo[_].name);
+            sendStr.push(
+                `> pickup: ${_all.join()}`,
+                `> pickup开始时间: ${format.asString(new Date(pickup.start * 1000))}`,
+                `> pickup结束时间: ${format.asString(new Date(pickup.end * 1000))}`,
+            );
+        } else sendStr.push(`> 无pickup`);
+    }
+    return sendStr;
 }
 
 async function reload(type: "net" | "local", init?: boolean): Promise<string> {
