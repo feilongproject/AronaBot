@@ -9,7 +9,6 @@ export async function sign(msg: IMessageGUILD) {
     if (data.trim() == "") data = "{}";
     var signData: SignData = JSON.parse(data);
 
-
     /**
      * ststus
      * 0:not found in sign users
@@ -17,62 +16,56 @@ export async function sign(msg: IMessageGUILD) {
      * 2:found and continue sign
      * 3:found and already signed at today
      */
-    var nowDate = new Date();
-    var todayDate = new Date(new Date().setHours(0, 0, 0, 0));
-
-    if (!signData.users) signData.users = [];
     var ststus = 0;
+    var nowDate = new Date();
     var sendStr = `————————签到结果————————\n`;
+    var todayDate = new Date(new Date().setHours(0, 0, 0, 0));
+    if (!signData.users) signData.users = [];
 
-    signData.users.forEach((user, index) => {
-        if (user.base.id == msg.author.id) {//found
+    for (const [index, user] of signData.users.entries()) {
+        if (user.base.id != msg.author.id) continue;//not found 
+        if (user.signHistory[user.signHistory.length - 1].todayDate == todayDate.getTime()) {//3:already signed at today 
+            //log.debug("type:3,found and already signed at today");
+            ststus = 3;
+            sendStr += `已签到，请勿重复签到`;
+        } else if (user.signHistory[user.signHistory.length - 1].todayDate + 24 * 60 * 60 * 1000 == todayDate.getTime()) {//2:continue sign
+            //log.debug("type:2,found and continue sign");
+            ststus = 2;
+            signData.users[index].totalSignDay++;
+            signData.users[index].continueSignDay++;//
+            signData.users[index].exp.total += signData.users[index].continueSignDay;
+            signData.users[index].exp.history.push({
+                date: nowDate.getTime(),
+                num: signData.users[index].continueSignDay,
+                why: `续签，exp+${signData.users[index].continueSignDay}`,
+            });
+            signData.users[index].signHistory.push({ nowDate: nowDate.getTime(), todayDate: todayDate.getTime(), });
 
-            if (user.signHistory[user.signHistory.length - 1].todayDate == todayDate.getTime()) {//3:already signed at today 
-                log.debug("type:3,found and already signed at today");
-                ststus = 3;
+            sendStr +=
+                `已续签，连续签到${signData.users[index].continueSignDay}天,累计签到${signData.users[index].totalSignDay}天\n` +
+                `获得${signData.users[index].exp.history[signData.users[index].exp.history.length - 1].num}exp,总共${signData.users[index].exp.total}exp`;
+        } else {//1:not continue sign
+            //log.debug("type:1,found but not continue sign");
+            ststus = 1;
+            signData.users[index].totalSignDay++;
+            signData.users[index].continueSignDay = 1;//
+            signData.users[index].exp.total += signData.users[index].continueSignDay;
+            signData.users[index].exp.history.push({
+                date: nowDate.getTime(),
+                num: signData.users[index].continueSignDay,
+                why: `续签，exp+${signData.users[index].continueSignDay}`,
+            });
+            signData.users[index].signHistory.push({ nowDate: nowDate.getTime(), todayDate: todayDate.getTime(), });
 
-                sendStr += `已签到，请勿重复签到`;
-            } else if (user.signHistory[user.signHistory.length - 1].todayDate + 24 * 60 * 60 * 1000 == todayDate.getTime()) {//2:continue sign
-                log.debug("type:2,found and continue sign");
-                ststus = 2;
-
-                signData.users[index].totalSignDay++;
-                signData.users[index].continueSignDay++;//
-                signData.users[index].exp.total += signData.users[index].continueSignDay;
-                signData.users[index].exp.history.push({
-                    date: nowDate.getTime(),
-                    num: signData.users[index].continueSignDay,
-                    why: `续签，exp+${signData.users[index].continueSignDay}`,
-                });
-                signData.users[index].signHistory.push({ nowDate: nowDate.getTime(), todayDate: todayDate.getTime(), });
-
-                sendStr +=
-                    `已续签，连续签到${signData.users[index].continueSignDay}天,累计签到${signData.users[index].totalSignDay}天\n` +
-                    `获得${signData.users[index].exp.history[signData.users[index].exp.history.length - 1].num}exp,总共${signData.users[index].exp.total}exp`;
-            } else {//1:not continue sign
-                log.debug("type:1,found but not continue sign");
-                ststus = 1;
-                signData.users[index].totalSignDay++;
-                signData.users[index].continueSignDay = 1;//
-                signData.users[index].exp.total += signData.users[index].continueSignDay;
-                signData.users[index].exp.history.push({
-                    date: nowDate.getTime(),
-                    num: signData.users[index].continueSignDay,
-                    why: `续签，exp+${signData.users[index].continueSignDay}`,
-                });
-                signData.users[index].signHistory.push({ nowDate: nowDate.getTime(), todayDate: todayDate.getTime(), });
-
-                sendStr +=
-                    `断签已续，连续签到${signData.users[index].continueSignDay}天,累计签到${signData.users[index].totalSignDay}天\n` +
-                    `获得${signData.users[index].exp.history[signData.users[index].exp.history.length - 1].num}exp,总共${signData.users[index].exp.total}exp`;
-
-            }
+            sendStr +=
+                `断签已续，连续签到${signData.users[index].continueSignDay}天,累计签到${signData.users[index].totalSignDay}天\n` +
+                `获得${signData.users[index].exp.history[signData.users[index].exp.history.length - 1].num}exp,总共${signData.users[index].exp.total}exp`;
 
         }
-    });
+    }
 
     if (ststus == 0) {//0:not found in sign users(create a user)
-        log.debug("type:0,not found in sign users(create a user)");
+        //log.debug("type:0,not found in sign users(create a user)");
         signData.users.push({
             base: { id: msg.author.id, name: msg.author.username, },
             exp: {
@@ -87,40 +80,28 @@ export async function sign(msg: IMessageGUILD) {
         sendStr +=
             `第一次使用签到，连续签到${signData.users[signData.users.length - 1].continueSignDay}天,累计签到${signData.users[signData.users.length - 1].totalSignDay}天\n` +
             `获得经验${signData.users[signData.users.length - 1].exp.history[signData.users[signData.users.length - 1].exp.history.length - 1].num}exp,总共经验${signData.users[signData.users.length - 1].exp.total}exp`;
-
     }
 
-    if (ststus == 2 || ststus == 1 || ststus == 0) {
-        sendStr +=
-            `\n今日运势:${todayLucky()}`;
+    if (ststus != 3) {
+        sendStr += `\n今日运势: ${todayLucky()}`;
+        if (!signData.randomPoem) signData.randomPoem = { token: await getRandomPoemToken() };
+        return getRandomPoem(signData.randomPoem.token).then((poem: RandomPoemSentence | null) => {
+            if (poem?.data) sendStr += `\n————————今日诗词————————\n《${poem.data.origin.title}》${poem.data.origin.author}\n${poem.data.origin.content.join("\n")}`;
+            else sendStr += `今日诗词获取失败`;
+            return msg.sendMsgExRef({ content: sendStr }).then(() => {
+                fs.writeFileSync(signDataFile, JSON.stringify(signData), { encoding: "utf-8" });
+            });
+        }).catch(err => {
+            log.error(err);
+            return msg.sendMsgExRef({ content: `今日运势获取失败` });
+        });
+    } else {
+        return msg.sendMsgExRef({ content: sendStr });
     }
-
-    if (ststus == 2 || ststus == 1 || ststus == 0) {
-        try {
-            if (!signData.randomPoem) signData.randomPoem = { token: await getRandomPoemToken() };
-            const poem: RandomPoemSentence | null = await getRandomPoem(signData.randomPoem.token);
-            if (poem.data) {
-                sendStr +=
-                    `\n————————今日诗词————————\n` +
-                    `《${poem.data.origin.title}》${poem.data.origin.author}\n`;
-
-                sendStr += poem.data.origin.content.join("\n");
-            } else {
-                sendStr += poem;
-            }
-        } catch (error) {
-            log.error(error);
-        }
-    }
-
-    msg.sendMsgExRef({ content: sendStr });
-    fs.writeFileSync(signDataFile, JSON.stringify(signData), { encoding: "utf-8" });
-
 }
 
 function getRandomPoem(token: RandomPoemToken): Promise<RandomPoemSentence> {
-
-    log.debug(`geting sentence`);
+    //log.debug(`geting sentence`);
     var sentence: Promise<RandomPoemSentence> = fetch("https://v2.jinrishici.com/sentence", {
         headers: {
             "X-User-Token": token.data,
@@ -131,42 +112,30 @@ function getRandomPoem(token: RandomPoemToken): Promise<RandomPoemSentence> {
         log.error(err);
     });
     return sentence;
-
 }
 
-function getRandomPoemToken(): Promise<RandomPoemToken> {
-
+async function getRandomPoemToken(): Promise<RandomPoemToken> {
     log.error(`get token`);
-    var token: Promise<RandomPoemToken> = fetch("https://v2.jinrishici.com/token").then(res => {
+    return fetch("https://v2.jinrishici.com/token").then(res => {
         return res.json();
     });
-    return token;
 }
 
-function todayLucky(): string {
-
-    var content = ``;
-    var rand = Math.random();
-
-    if (rand <= 0.2) {//[0.00,0.20]20%
-        content += `大吉`;
-    } else if (rand <= 0.4) {//(0.20~0.40]20%
-        content += `小吉`;
-    } else if (rand <= 0.2) {//(0.40~0.80]40%
-        content += `吉`;
-    } else if (rand <= 0.9) {//(0.80~0.90]10%
-        content += `凶`;
-    } else if (rand <= 1) {//(0.90~1.00]10%
-        content += `大凶`;
-    }
-    return content;
+function todayLucky() {
+    const rand = Math.random();
+    if (rand <= 0.2) return `大吉`;//[0.00,0.20]20%
+    else if (rand <= 0.4) return `小吉`;//(0.20~0.40]20%
+    else if (rand <= 0.2) return `吉`;//(0.40~0.80]40%
+    else if (rand <= 0.9) return `凶`;//(0.80~0.90]10%
+    else if (rand <= 1) return `大凶`;//(0.90~1.00]10%
+    else return "■■■■";
 }
 
 interface SignData {
     randomPoem: {
         token: RandomPoemToken,
     },
-    users: UserInfo[]//
+    users: UserInfo[]
 }
 
 interface UserInfo {

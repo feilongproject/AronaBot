@@ -31,7 +31,7 @@ init().then(() => {
     });
 
     global.ws.on("FORUMS_EVENT", (data) => {
-        log.debug(data);
+        //log.debug(data);
     });
 
 });

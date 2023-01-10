@@ -51,7 +51,7 @@ export async function init() {
     log.info(`初始化：正在创建指令文件热加载监听`);
     const optFile = `${global._path}/config/opts.json`;
     fs.watchFile(optFile, async () => {
-        if (!devEnv && !hotLoadStatus) return;
+        if (!hotLoadStatus) return;
         if (require.cache[optFile]) {
             log.mark(`指令配置文件正在进行热更新`);
             delete require.cache[optFile];
