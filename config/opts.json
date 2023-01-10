@@ -29,12 +29,6 @@
             }
         },
         "gacha": {
-            "test": {
-                "reg": "^/?md$",
-                "fnc": "gachaImage",
-                "type": ["GUILD"],
-                "describe": "十连保底图"
-            },
             "gachaString": {
                 "reg": "^/?(单抽出奇迹|十连大保底)",
                 "fnc": "gachaString",
@@ -91,6 +85,12 @@
                 "channelAllows": ["all"],
                 "type": ["GUILD"],
                 "describe": "总力战一图流"
+            },
+            "purgeCache": {
+                "reg": "^刷新攻略缓存",
+                "fnc": "purgeCache",
+                "type": ["DIRECT"],
+                "describe": "刷新在又拍云上的cdn缓存"
             }
         },
         "channelManager": {
