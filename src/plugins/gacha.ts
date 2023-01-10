@@ -4,6 +4,7 @@ import format from "date-format";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 import config from '../../config/config.json';
+import { settingConfig } from "../libs/common";
 
 const maxTime = 30;
 const starString = ["☆☆☆", "★☆☆", "★★☆", "★★★"];
@@ -25,10 +26,10 @@ reload("local", true).then(d => {
 
 
 export async function gachaString(msg: IMessageGUILD) {
-    const setting = await settingConfig(msg.author.id, "GET");
-    const o = cTime(setting.poolType, /十/.test(msg.content) ? 10 : 1);
+    const setting = await settingConfig(msg.author.id, "GET", ["server"]);
+    const o = cTime(setting.server == "jp" ? "jp" : "global", /十/.test(msg.content) ? 10 : 1);
     var sendStr: string[] = [
-        `<@${msg.author.id}> (${setting.poolType == "global" ? "国际服" : "日服"}卡池)`,
+        `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)`,
         /十/.test(msg.content) ? `————————十连结果————————` : `————————单抽结果————————`
     ];
     for (const value of o) sendStr.push(`(${starString[value.star]})(${value.pathName})${value.name}`);
@@ -41,15 +42,23 @@ export async function gachaImage(msg: IMessageGUILD) {
     if (await hasCd(msg)) return;
 
     return redis.setEx(`gachaLimitTTL:${msg.author.id}`, maxTime, "1").then(async () => {
-        const setting = await settingConfig(msg.author.id, "GET");
-        const o = cTime(setting.poolType, 10, adminId.includes(msg.author.id) ? Number(msg.content.match(/\d$/)) as 1 | 2 | 3 : undefined);
-        const analyze = setting.hide ? null : await analyzeRandData(setting.poolType, msg.author.id, o);
+        const setting = await settingConfig(msg.author.id, "GET", ["server", "analyzeHide"]);
+        const o = cTime(setting.server == "jp" ? "jp" : "global", 10, adminId.includes(msg.author.id) ? Number(msg.content.match(/\d$/)) as 1 | 2 | 3 : undefined);
+        const analyze = setting.analyzeHide == "true" ? null : await analyzeRandData(setting.server == "jp" ? "jp" : "global", msg.author.id, o);
         const imageName = await buildImage(o);
+        if (devEnv) log.debug(imageName);
+        if (0) return msg.sendMsgEx({
+            content: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)` +
+                `\n${analyze?.today_gacha}` +
+                `\n${analyze?.total_gacha}` +
+                `\n${analyze?.gacha_analyze}`,
+            imageUrl: `https://arona.feilongproject.com/gachaPic/${imageName}`,
+        });
         return msg.sendMarkdown("102024160_1668504873", {
-            at_user: `<@${msg.author.id}> (${setting.poolType == "global" ? "国际服" : "日服"}卡池)`,
+            at_user: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)`,
             ...analyze,
             img_size: "img #1700px #980px",
-            img_url: `https://res.feilongproject.com/gachaPic/${imageName}`,
+            img_url: `https://arona.feilongproject.com/gachaPic/${imageName}`,
         }, "102024160_1669972662");
     }).catch(err => {
         log.error(err);
@@ -70,19 +79,17 @@ async function hasCd(msg: IMessageGUILD) {
     return null;
 }
 
-function cTime(poolType: "global" | "jp", times: 1 | 10, testStar?: 1 | 2 | 3): GachaPools {
-
+function cTime(server: "global" | "jp", times: 1 | 10, testStar?: 1 | 2 | 3): GachaPools {
     var ret: GachaPools = [];
     var must = true;
-
     function startRand(type: "pickup" | "common", star: 1 | 2 | 3): GachaPool {
         if (star != 1) must = false;
         const rNum = Math.random() * 1000000;
         if (type == "common") {
-            const _pools = gachaPoolInfo[poolType][type][star];
+            const _pools = gachaPoolInfo[server][type][star];
             return { ...studentInfo[_pools[Math.floor(rNum % _pools.length)]], star };
         } else {
-            const _pools = gachaPoolInfo[poolType][type].characters;
+            const _pools = gachaPoolInfo[server][type].characters;
             return { ...studentInfo[_pools[Math.floor(rNum % _pools.length)]], star };
         }
     }
@@ -93,7 +100,7 @@ function cTime(poolType: "global" | "jp", times: 1 | 10, testStar?: 1 | 2 | 3): 
         if (testStar == 3) rNum = rNum % 3;
         if (i == 10 && must) rNum = rNum % 21;
         if (rNum <= 0.05) ret.push({ name: "彩奈", pathName: "Arona", devName: "Arona", star: 3, custom: "NPC_Portrait_Arona.png" });//彩蛋
-        else if (rNum <= 0.7 && gachaPoolInfo[poolType].pickup.characters.length > 0) ret.push(startRand("pickup", 3));
+        else if (rNum <= 0.7 && gachaPoolInfo[server].pickup.characters.length > 0) ret.push(startRand("pickup", 3));
         else if (rNum <= 3) ret.push(startRand("common", 3));
         else if (rNum <= 3 + 18) ret.push(startRand("common", 2));
         else ret.push(startRand("common", 1));
@@ -131,22 +138,22 @@ async function buildImage(characterNames: GachaPools): Promise<string | null> {
     return null;
 }
 
-async function analyzeRandData(poolType: "global" | "jp", uid: string, data: GachaPools) {
+async function analyzeRandData(server: "global" | "jp", uid: string, data: GachaPools) {
 
     const nowDay = (new Date()).setHours(0, 0, 0, 0) + 1000 * 60 * 60 * 24;
     const gachaData: {
         all: string[] | number[],
         today: string[] | number[],
     } = {
-        all: (await redis.hGet(`data:gacha:all`, `${uid}:${poolType}`) || "0,0,0,0").split(","),
-        today: (await redis.hGet(`data:gacha:${nowDay}`, `${uid}:${poolType}`) || "0,0,0,0").split(","),
+        all: (await redis.hGet(`data:gacha:all`, `${uid}:${server}`) || "0,0,0,0").split(","),
+        today: (await redis.hGet(`data:gacha:${nowDay}`, `${uid}:${server}`) || "0,0,0,0").split(","),
     }
     for (const o of data) {
         gachaData.all[o.star] = Number(gachaData.all[o.star]) + 1;
         gachaData.today[o.star] = Number(gachaData.today[o.star]) + 1;
     }
-    await redis.hSet(`data:gacha:all`, `${uid}:${poolType}`, gachaData.all.join());
-    await redis.hSet(`data:gacha:${nowDay}`, `${uid}:${poolType}`, gachaData.today.join());
+    await redis.hSet(`data:gacha:all`, `${uid}:${server}`, gachaData.all.join());
+    await redis.hSet(`data:gacha:${nowDay}`, `${uid}:${server}`, gachaData.today.join());
     await redis.expireAt(`data:gacha:${nowDay}`, nowDay / 1000);
 
     const _t: number[] = [];
@@ -264,55 +271,13 @@ async function reload(type: "net" | "local", init?: boolean): Promise<string> {
     return "ok";
 }
 
-/**
- * key:   setting:gacha
- * field: uid
- * value: 1(init),0(show/hide),0(continue analyze),0(global or jp)
- * @param aid author id
- * @param types GET or SET
- * @returns GachaSetting
- */
-async function settingConfig(aid: string, types: "GET" | "SET", set?: Partial<GachaSetting>): Promise<GachaSetting> {
-    //log.debug(types, set);
-    var setting: GachaSetting;
-    if (set && set.init != undefined && set.hide != undefined && set.poolType != undefined) {//ASET
-        setting = set as GachaSetting;
-    } else {
-        setting = await redis.hGet("setting:gacha", aid).then(setting => {
-            const splitConfig = (setting || "false,false,global").split(",");
-            const config: GachaSetting = {
-                init: splitConfig[0] == "false" ? false : true,
-                hide: splitConfig[1] == "false" ? false : true,
-                poolType: splitConfig[2] == "global" ? "global" : "jp",
-            }
-            if (types == "GET") return config;
-            else return Object.assign(config, set);
-        }).catch(err => {
-            log.error(err);
-            return { init: false, hide: false, poolType: "global" };
-        });
-    }
-    if (types == "GET") return setting;
-
-    const splitConfig = [];
-    let key: keyof GachaSetting;
-    for (key in setting) splitConfig.push(setting[key]);
-    return redis.hSet(`setting:gacha`, aid, splitConfig.join()).then(() => {
-        return setting;
-    }).catch(err => {
-        log.error(err);
-        return { init: true, hide: false, poolType: "global" };
-    });
-}
-
 export async function gachaSetting(msg: IMessageGUILD) {
     var optStr: string;
-    const status = await settingConfig(msg.author.id, "GET");
+    const status = await settingConfig(msg.author.id, "GET", ["server", "analyzeHide"]);
     const nowDay = (new Date()).setHours(0, 0, 0, 0) + 1000 * 60 * 60 * 24;
     if (/重置/.test(msg.content)) {
-        status.init = true;
-        status.poolType = "global";
-        status.hide = false;
+        status.server = "global";
+        status.analyzeHide = "0";
         optStr = await settingConfig(msg.author.id, "SET", status).then(() => {
             return redis.hSet(`data:gacha:all`, [
                 [`${msg.author.id}:global`, "0,0,0,0"],
@@ -326,9 +291,7 @@ export async function gachaSetting(msg: IMessageGUILD) {
         }).then(() => {
             return "已重置所有设置!";
         });
-    }
-
-    if (/清空今日/.test(msg.content)) {
+    } else if (/清空今日/.test(msg.content)) {
         optStr = await redis.hSet(`data:gacha:${nowDay}`, [
             [`${msg.author.id}:global`, "0,0,0,0"],
             [`${msg.author.id}:jp`, "0,0,0,0"]
@@ -348,21 +311,21 @@ export async function gachaSetting(msg: IMessageGUILD) {
             return "已清空全部统计信息";
         });
     } else if (/更(改|换)显示/.test(msg.content)) {
-        status.hide = !status.hide;
+        status.analyzeHide = String(!(status.analyzeHide == "true"));
         optStr = await settingConfig(msg.author.id, "SET", status).then(() => {
-            return `已${status.hide ? "隐藏" : "显示"}统计信息`;
+            return `已${status.analyzeHide == "true" ? "隐藏" : "显示"}统计信息`;
         });
     } else if (/更(改|换)卡池/.test(msg.content)) {
-        status.poolType = status.poolType == "global" ? "jp" : "global";
+        status.server = status.server == "jp" ? "global" : "jp";
         optStr = await settingConfig(msg.author.id, "SET", status).then(() => {
-            return `已更改卡池为${status.poolType == "global" ? "国际服" : "日服"}卡池`;
+            return `已更改卡池为${status.server == "jp" ? "日服" : "国际服"}卡池`;
         });
     } else optStr = ``;
 
     return msg.sendMarkdown("102024160_1668504873", {
         at_user: `<@${msg.author.id}> ${optStr}`,
-        today_gacha: `当前卡池选择: ${status.poolType == "global" ? "国际服" : "日服"}卡池`,
-        total_gacha: `抽卡分析显示状态: ${status.hide ? "隐藏" : "显示"}`,
+        today_gacha: `当前卡池选择: ${status.server == "jp" ? "日服" : "国际服"}卡池`,
+        total_gacha: `抽卡分析显示状态: ${status.analyzeHide == "true" ? "隐藏" : "显示"}`,
         gacha_analyze: "注: 使用按钮可以快速设置(PC无法使用)",
         img_size: "img #1px #1px",
         img_url: "  "
@@ -382,12 +345,6 @@ interface GachaPoolInfoPickup {
     characters: number[];
     start: number;
     end: number;
-};
-
-interface GachaSetting {
-    init: boolean;
-    hide: boolean;
-    poolType: "global" | "jp";
 }
 
 type GachaPools = GachaPool[];
