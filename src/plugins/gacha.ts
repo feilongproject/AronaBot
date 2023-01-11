@@ -271,67 +271,6 @@ async function reload(type: "net" | "local", init?: boolean): Promise<string> {
     return "ok";
 }
 
-export async function gachaSetting(msg: IMessageGUILD) {
-    var optStr: string;
-    const status = await settingConfig(msg.author.id, "GET", ["server", "analyzeHide"]);
-    const nowDay = (new Date()).setHours(0, 0, 0, 0) + 1000 * 60 * 60 * 24;
-    if (/重置/.test(msg.content)) {
-        status.server = "global";
-        status.analyzeHide = "0";
-        optStr = await settingConfig(msg.author.id, "SET", status).then(() => {
-            return redis.hSet(`data:gacha:all`, [
-                [`${msg.author.id}:global`, "0,0,0,0"],
-                [`${msg.author.id}:jp`, "0,0,0,0"]
-            ]);
-        }).then(() => {
-            return redis.hSet(`data:gacha:${nowDay}`, [
-                [`${msg.author.id}:global`, "0,0,0,0"],
-                [`${msg.author.id}:jp`, "0,0,0,0"]
-            ]);
-        }).then(() => {
-            return "已重置所有设置!";
-        });
-    } else if (/清空今日/.test(msg.content)) {
-        optStr = await redis.hSet(`data:gacha:${nowDay}`, [
-            [`${msg.author.id}:global`, "0,0,0,0"],
-            [`${msg.author.id}:jp`, "0,0,0,0"]
-        ]).then(() => {
-            return `已清空今日统计信息`;
-        });
-    } else if (/清空全部/.test(msg.content)) {
-        optStr = await redis.hSet(`data:gacha:all`, [
-            [`${msg.author.id}:global`, "0,0,0,0"],
-            [`${msg.author.id}:jp`, "0,0,0,0"]
-        ]).then(() => {
-            return redis.hSet(`data:gacha:${nowDay}`, [
-                [`${msg.author.id}:global`, "0,0,0,0"],
-                [`${msg.author.id}:jp`, "0,0,0,0"]
-            ]);
-        }).then(() => {
-            return "已清空全部统计信息";
-        });
-    } else if (/更(改|换)显示/.test(msg.content)) {
-        status.analyzeHide = String(!(status.analyzeHide == "true"));
-        optStr = await settingConfig(msg.author.id, "SET", status).then(() => {
-            return `已${status.analyzeHide == "true" ? "隐藏" : "显示"}统计信息`;
-        });
-    } else if (/更(改|换)卡池/.test(msg.content)) {
-        status.server = status.server == "jp" ? "global" : "jp";
-        optStr = await settingConfig(msg.author.id, "SET", status).then(() => {
-            return `已更改卡池为${status.server == "jp" ? "日服" : "国际服"}卡池`;
-        });
-    } else optStr = ``;
-
-    return msg.sendMarkdown("102024160_1668504873", {
-        at_user: `<@${msg.author.id}> ${optStr}`,
-        today_gacha: `当前卡池选择: ${status.server == "jp" ? "日服" : "国际服"}卡池`,
-        total_gacha: `抽卡分析显示状态: ${status.analyzeHide == "true" ? "隐藏" : "显示"}`,
-        gacha_analyze: "注: 使用按钮可以快速设置(PC无法使用)",
-        img_size: "img #1px #1px",
-        img_url: "  "
-    }, "102024160_1670355190");
-}
-
 
 interface GachaPoolInfo {
     global: GachaPoolInfoServer;

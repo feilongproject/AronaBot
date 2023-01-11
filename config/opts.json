@@ -86,11 +86,27 @@
                 "type": ["GUILD"],
                 "describe": "总力战一图流"
             },
+            "globalClairvoyance": {
+                "reg": "^/?千里眼$",
+                "fnc": "globalClairvoyance",
+                "channelAllows": ["all"],
+                "type": ["GUILD"],
+                "describe": "获取国际服千里眼"
+            },
             "purgeCache": {
                 "reg": "^刷新攻略缓存",
                 "fnc": "purgeCache",
                 "type": ["DIRECT"],
                 "describe": "刷新在又拍云上的cdn缓存"
+            }
+        },
+        "commandSetting": {
+            "commandSetting": {
+                "reg": "^/?命令设置",
+                "fnc": "commandSetting",
+                "channelAllows": ["all"],
+                "type": ["GUILD"],
+                "describe": "总力战一图流"
             }
         },
         "channelManager": {

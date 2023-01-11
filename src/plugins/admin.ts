@@ -28,6 +28,7 @@ export async function ping(msg: IMessageDIRECT) {
 
 export async function hotLoad(msg: IMessageDIRECT) {
     if (!adminId.includes(msg.author.id)) return;
+    if (devEnv) return;
     const type = /^\/?(开启|关闭)热(加载|更新)$/.exec(msg.content)![1];
     hotLoadStatus = type.includes("开") ? true : false;
     return msg.sendMsgEx({
