@@ -79,9 +79,9 @@
             }
         },
         "handbook": {
-            "onePictureTotalAssault": {
+            "totalAssault": {
                 "reg": "^/?总力战一图流$",
-                "fnc": "onePictureTotalAssault",
+                "fnc": "totalAssault",
                 "channelAllows": ["all"],
                 "type": ["GUILD"],
                 "describe": "总力战一图流"

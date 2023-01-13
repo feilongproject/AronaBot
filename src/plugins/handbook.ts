@@ -6,13 +6,13 @@ import { readFileSync } from "fs";
 
 const handbookData: HandbookData = JSON.parse(readFileSync(`${_path}/data/handbook/info.json`).toString());
 
-export async function onePictureTotalAssault(msg: IMessageGUILD) {
+export async function totalAssault(msg: IMessageGUILD) {
     const server = (await settingConfig(msg.author.id, "GET", ["server"])).server == "jp" ? "jp" : "global";
-    const expired = await getExpired(`onePictureTotalAssault:${server}`);
+    const expired = await getExpired(`totalAssault:${server}`);
     return msg.sendMsgEx({
         content: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}总力战一图流)` +
             `\n攻略制作: 夜猫`,
-        imageUrl: `${getLastestImageUrl("onePictureTotalAssault", server)}?expired=${expired}`,
+        imageUrl: `${getLastestImageUrl("totalAssault", server)}?expired=${expired}`,
     }).catch(err => {
         log.error(err);
         return msg.sendMsgEx({ content: `获取出错<@${adminId[0]}>\n${JSON.stringify(err)}` });
