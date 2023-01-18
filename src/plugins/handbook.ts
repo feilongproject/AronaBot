@@ -10,11 +10,12 @@ const handbookData: HandbookData = JSON.parse(readFileSync(`${_path}/data/handbo
 
 
 export async function totalAssault(msg: IMessageGUILD) {
-    const server = (await settingUserConfig(msg.author.id, "GET", ["server"])).server == "jp" ? "jp" : "global";
+    const { server, has } = await getServer(msg.content, msg.author.id);
     const expired = await getExpired(`totalAssault:${server}`);
     const lastestImage = getLastestImage("totalAssault", server, expired);
     return msg.sendMsgEx({
         content: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}总力战一图流)` +
+            (has ? "" : "\n(未指定或未设置服务器, 默认使用国际服)") +
             `\n攻略制作: 夜猫` + lastestImage.info,
         imageUrl: lastestImage.url,
     }).catch(err => {
@@ -37,12 +38,12 @@ export async function globalClairvoyance(msg: IMessageGUILD) {
 }
 
 export async function activityStrategy(msg: IMessageGUILD) {
-    const server = (await settingUserConfig(msg.author.id, "GET", ["server"])).server == "jp" ? "jp" : "global";
+    const { server, has } = await getServer(msg.content, msg.author.id);
     const expired = await getExpired(`activityStrategy:${server}`);
     const lastestImage = getLastestImage("activityStrategy", server, expired);
-
     return msg.sendMsgEx({
         content: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}活动一图流)` +
+            (has ? "" : "\n(未指定或未设置服务器, 默认使用国际服)") +
             `\n攻略制作: 夜猫` + lastestImage.info,
         imageUrl: lastestImage.url,
     }).catch(err => {
@@ -105,6 +106,15 @@ export async function activityStrategyPush(msg: IMessageDIRECT) {
 
 async function getExpired(appname: string) {
     return redis.hGet("setting:expired", appname);
+}
+
+async function getServer(content: string, aid: string) {
+    var hasServer: { server: "jp" | "global"; has: boolean; } = { server: "global", has: false };
+    const cmdServer = /日|jp/.test(content) ? "jp" : (/国际|g/.test(content) ? "global" : undefined);
+    if (cmdServer) hasServer = { server: cmdServer, has: true };
+    const settingServer = (await settingUserConfig(aid, "GET", ["server"])).server as "jp" | "global" | undefined;
+    if (settingServer) hasServer = { server: settingServer, has: true };
+    return hasServer;
 }
 
 function getLastestImage(appname: string, type = "all", expired = "0"): HandbookDataLastest {

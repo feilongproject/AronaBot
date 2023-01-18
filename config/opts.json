@@ -80,7 +80,7 @@
         },
         "handbook": {
             "totalAssault": {
-                "reg": "^/?总力战一图流$",
+                "reg": "^/?总力战一图流\\s*((国际|日|jp|g)服?)?$",
                 "fnc": "totalAssault",
                 "channelAllows": ["all"],
                 "type": ["GUILD"],
@@ -94,7 +94,7 @@
                 "describe": "获取国际服千里眼"
             },
             "activityStrategy": {
-                "reg": "^/?活动攻略$",
+                "reg": "^/?活动攻略\\s*((国际|日|jp|g)服?)?$",
                 "fnc": "activityStrategy",
                 "channelAllows": ["all"],
                 "type": ["GUILD"],
