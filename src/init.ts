@@ -2,7 +2,7 @@ import fs from 'fs';
 import { createClient } from 'redis';
 import schedule from "node-schedule";
 import { createOpenAPI, createWebsocket, OpenAPI } from 'qq-guild-bot';
-import _log, { setDevLog } from './libs/logger';
+import _log from './libs/logger';
 import config from '../config/config.json';
 import { createPool } from 'mariadb';
 
@@ -11,8 +11,8 @@ export async function init() {
     console.log(`机器人准备运行，正在初始化`);
 
     global.adminId = ["7681074728704576201", "9540810258706627170"];
-    global._path = process.cwd();
     global.log = _log;
+    global._path = process.cwd();
     global.botStatus = {
         startTime: new Date(),
         msgSendNum: 0,
@@ -21,9 +21,8 @@ export async function init() {
     global.hotLoadStatus = false;
 
     if (process.argv.includes("--dev")) {
-        log.mark("当前环境处于开发环境，请注意！");
         global.devEnv = true;
-        setDevLog();
+        log.mark("当前环境处于开发环境，请注意！");
     } else global.devEnv = false;
 
     //log.info(`初始化：正在创建定时任务`);

@@ -18,14 +18,13 @@ const log = log4js.configure({
     },
 }).getLogger();
 
-export function setDevLog() {
-    log.setParseCallStackFunction((error: Error) => {
-        const stacklines = error.stack?.split("\n")!.splice(4)!;
-        const lineMatch = /at (?:(.+)\s+\()?(?:(.+?):(\d+)(?::(\d+))?|([^)]+))\)?/.exec(stacklines[0]);
-        /* istanbul ignore else: failsafe */
-        if (lineMatch && lineMatch.length === 6)
-            return { fileName: ` [${lineMatch[2].replace(_path, "")}:${lineMatch[3]}:${lineMatch[4]}]` };
-    });
-}
-log.setParseCallStackFunction((error: Error) => { });
+log.setParseCallStackFunction((error: Error) => {
+    if (!devEnv && error.stack?.split("\n")[3].match(/at Logger\.<computed> \[as (.*?)\]/)![1] != "error") return;
+    if (!devEnv && error.name != "Error") return;
+    const stacklines = error.stack?.split("\n")!.splice(4)!;
+    const lineMatch = /at (?:(.+)\s+\()?(?:(.+?):(\d+)(?::(\d+))?|([^)]+))\)?/.exec(stacklines[0]);
+    /* istanbul ignore else: failsafe */
+    if (lineMatch && lineMatch.length === 6)
+        return { fileName: ` [${lineMatch[2].replace(_path, "")}:${lineMatch[3]}:${lineMatch[4]}]` };
+});
 export default log
