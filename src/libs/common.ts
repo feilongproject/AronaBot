@@ -37,9 +37,9 @@ export async function pushToDB(table: string, data: { [key: string]: string }) {
     });
 }
 
-export async function settingConfig(aid: string, types: "GET", data: string[]): Promise<{ [key: string]: string; }>
-export async function settingConfig(aid: string, types: "SET", data: { [key: string]: string; }): Promise<{ [key: string]: string; }>
-export async function settingConfig(aid: string, types: "GET" | "SET", data: string[] | { [key: string]: string; }): Promise<{ [key: string]: string; }> {
+export async function settingUserConfig(aid: string, types: "GET", data: string[]): Promise<{ [key: string]: string; }>
+export async function settingUserConfig(aid: string, types: "SET", data: { [key: string]: string; }): Promise<{ [key: string]: string; }>
+export async function settingUserConfig(aid: string, types: "GET" | "SET", data: string[] | { [key: string]: string; }): Promise<{ [key: string]: string; }> {
     if (types == "GET" || Array.isArray(data))
         return redis.hmGet(`setting:${aid}`, data as string[]).then(hmData => {
             const _ret: { [key: string]: string; } = {};

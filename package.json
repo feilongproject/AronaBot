@@ -19,6 +19,7 @@
         "@types/ws": "^8.5.3"
     },
     "dependencies": {
+        "cheerio": "^1.0.0-rc.12",
         "date-format": "^4.0.14",
         "log4js": "^6.5.2",
         "mariadb": "^3.0.2",

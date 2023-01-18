@@ -4,7 +4,7 @@ import format from "date-format";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 import config from '../../config/config.json';
-import { settingConfig } from "../libs/common";
+import { settingUserConfig } from "../libs/common";
 
 const maxTime = 30;
 const starString = ["☆☆☆", "★☆☆", "★★☆", "★★★"];
@@ -26,7 +26,7 @@ reload("local", true).then(d => {
 
 
 export async function gachaString(msg: IMessageGUILD) {
-    const setting = await settingConfig(msg.author.id, "GET", ["server"]);
+    const setting = await settingUserConfig(msg.author.id, "GET", ["server"]);
     const o = cTime(setting.server == "jp" ? "jp" : "global", /十/.test(msg.content) ? 10 : 1);
     var sendStr: string[] = [
         `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)`,
@@ -42,7 +42,7 @@ export async function gachaImage(msg: IMessageGUILD) {
     if (await hasCd(msg)) return;
 
     return redis.setEx(`gachaLimitTTL:${msg.author.id}`, maxTime, "1").then(async () => {
-        const setting = await settingConfig(msg.author.id, "GET", ["server", "analyzeHide"]);
+        const setting = await settingUserConfig(msg.author.id, "GET", ["server", "analyzeHide"]);
         const o = cTime(setting.server == "jp" ? "jp" : "global", 10, adminId.includes(msg.author.id) ? Number(msg.content.match(/\d$/)) as 1 | 2 | 3 : undefined);
         const analyze = setting.analyzeHide == "true" ? null : await analyzeRandData(setting.server == "jp" ? "jp" : "global", msg.author.id, o);
         const imageName = await buildImage(o);
@@ -52,13 +52,13 @@ export async function gachaImage(msg: IMessageGUILD) {
                 `\n${analyze?.today_gacha}` +
                 `\n${analyze?.total_gacha}` +
                 `\n${analyze?.gacha_analyze}`,
-            imageUrl: `https://arona.feilongproject.com/gachaPic/${imageName}`,
+            imageUrl: `https://arona.feilongproject.com/gachaPic/${imageName}!GachaWaterMark`,
         });
         return msg.sendMarkdown("102024160_1668504873", {
             at_user: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)`,
             ...analyze,
             img_size: "img #1700px #980px",
-            img_url: `https://arona.feilongproject.com/gachaPic/${imageName}`,
+            img_url: `https://arona.feilongproject.com/gachaPic/${imageName}!GachaWaterMark`,
         }, "102024160_1669972662");
     }).catch(err => {
         log.error(err);

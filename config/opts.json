@@ -93,6 +93,20 @@
                 "type": ["GUILD"],
                 "describe": "获取国际服千里眼"
             },
+            "activityStrategy": {
+                "reg": "^/?活动攻略$",
+                "fnc": "activityStrategy",
+                "channelAllows": ["all"],
+                "type": ["GUILD"],
+                "describe": "获取当前活动攻略一图流"
+            },
+            "activityStrategyPush": {
+                "reg": "攻略(发布|更新)\\s*(cv\\d+)?\\s*(\\d+)?",
+                "fnc": "activityStrategyPush",
+                "channelAllows": ["all"],
+                "type": ["DIRECT"],
+                "describe": "进行一个攻略的更新"
+            },
             "purgeCache": {
                 "reg": "^刷新攻略缓存",
                 "fnc": "purgeCache",

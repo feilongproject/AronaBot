@@ -1,4 +1,4 @@
-import { settingConfig } from "../libs/common";
+import { settingUserConfig } from "../libs/common";
 import { IMessageGUILD } from "../libs/IMessageEx";
 
 
@@ -7,7 +7,7 @@ export async function commandSetting(msg: IMessageGUILD) {
     var optStr: string = "";
     var expCmd: string | null = null;
     const nowDay = (new Date()).setHours(0, 0, 0, 0) + 1000 * 60 * 60 * 24;
-    const status = await settingConfig(msg.author.id, "GET", ["server", "analyzeHide"]);
+    const status = await settingUserConfig(msg.author.id, "GET", ["server", "analyzeHide"]);
     const regs = [
         { reg: /更改抽卡分析显示/, cmd: "changeAnalyzeHide" },
         { reg: /更改服务器/, cmd: "changeServer" },
@@ -22,13 +22,13 @@ export async function commandSetting(msg: IMessageGUILD) {
     switch (expCmd) {
         case "changeAnalyzeHide":
             status.analyzeHide = String(!(status.analyzeHide == "true"));
-            optStr = await settingConfig(msg.author.id, "SET", status).then(() => {
+            optStr = await settingUserConfig(msg.author.id, "SET", status).then(() => {
                 return `已${status.analyzeHide == "true" ? "隐藏" : "显示"}抽卡统计信息`;
             });
             break;
         case "changeServer":
             status.server = status.server == "jp" ? "global" : "jp";
-            optStr = await settingConfig(msg.author.id, "SET", status).then(() => {
+            optStr = await settingUserConfig(msg.author.id, "SET", status).then(() => {
                 return `已更改服务器为${status.server == "jp" ? "日服" : "国际服"}`;
             });
             break;
@@ -56,7 +56,7 @@ export async function commandSetting(msg: IMessageGUILD) {
         case "reset":
             status.server = "global";
             status.analyzeHide = "0";
-            optStr = await settingConfig(msg.author.id, "SET", status).then(() => {
+            optStr = await settingUserConfig(msg.author.id, "SET", status).then(() => {
                 return redis.hSet(`data:gacha:all`, [
                     [`${msg.author.id}:global`, "0,0,0,0"],
                     [`${msg.author.id}:jp`, "0,0,0,0"]
