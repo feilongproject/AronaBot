@@ -60,8 +60,14 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
         for (const d of netStudents) {
             const devName = d.DevName[0].toLocaleUpperCase() + d.DevName.slice(1);
             if (!aliasStudentName[d.Name]) throw `not found aliasStudentName: ${d.Name}`;
-            _studentInfo[d.Id] = { releaseStatus: d.IsReleased, name: [d.Name, ...aliasStudentName[d.Name]], pathName: d.PathName, devName, star: d.StarGrade };
-            if (d.IsLimited) continue;
+            _studentInfo[d.Id] = {
+                releaseStatus: d.IsReleased,
+                name: [d.Name, ...aliasStudentName[d.Name]],
+                devName,
+                pathName: d.PathName,
+                star: d.StarGrade,
+                limitedType: d.IsLimited,
+            };
             if (!fs.existsSync(`${config.picPath.characters}/Student_Portrait_${devName}.png`))
                 throw `not found png file in local: Student_Portrait_${devName}`;
         }

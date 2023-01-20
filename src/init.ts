@@ -5,6 +5,7 @@ import { createOpenAPI, createWebsocket, OpenAPI } from 'qq-guild-bot';
 import _log from './libs/logger';
 import config from '../config/config.json';
 import { createPool } from 'mariadb';
+import { reloadStudentInfo } from './libs/common';
 
 export async function init() {
 
@@ -87,6 +88,10 @@ export async function init() {
 
     global.client.meApi.me().then(res => {
         global.meId = res.data.id;
+    });
+
+    await reloadStudentInfo("local").then(d => {
+        log.info(`学生数据加载完毕 ${d}`);
     });
 }
 

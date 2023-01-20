@@ -42,6 +42,7 @@ declare global {
             pathName: string;
             devName: string;
             star: 1 | 2 | 3;
+            limitedType: number;
         };
     }
 

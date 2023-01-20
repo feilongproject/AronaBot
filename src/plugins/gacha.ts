@@ -211,7 +211,7 @@ async function gachaReload(type: "net" | "local") {
         for (const id in studentInfo) {
             const d = studentInfo[id];
             for (key in nameToId)
-                if (d.releaseStatus[nameToId[key]]) _gachaPoolInfo[key].common[d.star].push(Number(id));
+                if (d.releaseStatus[nameToId[key]] && !d.limitedType) _gachaPoolInfo[key].common[d.star].push(Number(id));
         }// common
 
         const common = await fetch("https://ghproxy.com/https://raw.githubusercontent.com/lonqie/SchaleDB/main/data/common.json").then(res => res.json()).catch(err => log.error(err));
