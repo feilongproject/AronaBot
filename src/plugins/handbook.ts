@@ -1,21 +1,20 @@
 import path from "path";
 import fetch from "node-fetch";
-import { readFileSync } from "fs";
+import { readFileSync, writeFileSync } from "fs";
 import * as cheerio from "cheerio";
 import { settingUserConfig } from "../libs/common";
 import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 import config from "../../config/config.json";
 
 const handbookData: HandbookData = JSON.parse(readFileSync(`${_path}/data/handbook/info.json`).toString());
-
+const noSetServerMessage = `\n(未指定/未设置服务器, 默认使用国际服)`;
 
 export async function totalAssault(msg: IMessageGUILD) {
     const { server, has } = await getServer(msg.content, msg.author.id);
-    const expired = await getExpired(`totalAssault:${server}`);
-    const lastestImage = getLastestImage("totalAssault", server, expired);
+    const lastestImage = await getLastestImage("totalAssault", server);
     return msg.sendMsgEx({
         content: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}总力战一图流)` +
-            (has ? "" : "\n(未指定或未设置服务器, 默认使用国际服)") +
+            (has ? "" : noSetServerMessage) +
             `\n攻略制作: 夜猫` + lastestImage.info,
         imageUrl: lastestImage.url,
     }).catch(err => {
@@ -25,8 +24,7 @@ export async function totalAssault(msg: IMessageGUILD) {
 }
 
 export async function globalClairvoyance(msg: IMessageGUILD) {
-    const expired = await getExpired(`globalClairvoyance`);
-    const lastestImage = getLastestImage("globalClairvoyance", undefined, expired);
+    const lastestImage = await getLastestImage("globalClairvoyance");
     return msg.sendMsgEx({
         content: `<@${msg.author.id}> (千里眼)` +
             `\n攻略制作: 夜猫` + lastestImage.info,
@@ -39,11 +37,10 @@ export async function globalClairvoyance(msg: IMessageGUILD) {
 
 export async function activityStrategy(msg: IMessageGUILD) {
     const { server, has } = await getServer(msg.content, msg.author.id);
-    const expired = await getExpired(`activityStrategy:${server}`);
-    const lastestImage = getLastestImage("activityStrategy", server, expired);
+    const lastestImage = await getLastestImage("activityStrategy", server);
     return msg.sendMsgEx({
         content: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}活动一图流)` +
-            (has ? "" : "\n(未指定或未设置服务器, 默认使用国际服)") +
+            (has ? "" : noSetServerMessage) +
             `\n攻略制作: 夜猫` + lastestImage.info,
         imageUrl: lastestImage.url,
     }).catch(err => {
@@ -117,76 +114,59 @@ async function getServer(content: string, aid: string) {
     return hasServer;
 }
 
-function getLastestImage(appname: string, type = "all", expired = "0"): HandbookDataLastest {
+async function getLastestImage(appname: string, type = "all"): Promise<HandbookDataLastest> {
+    const expired = await getExpired(`${appname}:${type}`);
     const lastestData = handbookData[appname].lastest[type];
     return {
         ...lastestData,
-        url: handbookData["baseURL"].lastest + lastestData.url + `?expired=${expired}`
+        url: handbookData["baseURL"].lastest + lastestData.url + `!HandbookImageCompress?expired=${expired}`,
     };
-}
-
-function getLastestImageUrlAll() {
-    const ret: string[] = [];
-    for (const appKey in handbookData) {
-        const lastestData = handbookData[appKey].lastest;
-        if (typeof lastestData == "string") continue;
-        else for (const typeKey in lastestData)
-            ret.push(handbookData["baseURL"].lastest + lastestData[typeKey].url);
-    }
-    return ret;
 }
 
 export async function purgeCache(msg: IMessageDIRECT) {
     if (!adminId.includes(msg.author.id)) return;
 
     const upyunToken = await redis.hGet("setting:global", "upyunToken");
-    const lastestImageUrls = getLastestImageUrlAll().join("\n");
-
     const redisHSetData: [string, string][] = [], _timestamp = new Date().getTime().toString();
+    const lastestImageUrls: string[] = [];
     for (const appKey in handbookData) {
-        const appData = handbookData[appKey].lastest;
-        if (typeof appData == "string") redisHSetData.push([appKey, _timestamp]);
-        else for (const typeKey in appData)
+        const lastestData = handbookData[appKey].lastest;
+        if (typeof lastestData == "string") continue;
+        else for (const typeKey in lastestData) {
+            lastestImageUrls.push(handbookData["baseURL"].lastest + lastestData[typeKey].url + `!HandbookImageCompress?expired=${_timestamp}`);
             redisHSetData.push([`${appKey}:${typeKey}`, _timestamp]);
+        }
     }
-    await redis.hSet("setting:expired", redisHSetData).then(() => {
+
+    return redis.hSet("setting:expired", redisHSetData).then(() => {
         const sendStr = [`已设置缓存key值为${_timestamp}`];
         for (const [d] of redisHSetData) sendStr.push(d);
         return msg.sendMsgEx({ content: sendStr.join("\n") });
-    }).then(() => {
-        return fetch("https://api.upyun.com/purge", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${upyunToken}`,
-                "content-type": "application/json",
-            },
-            body: JSON.stringify({ "urls": lastestImageUrls }),
-        })
-    }).then(res => {
-        return res.json();
-    }).then((json: UpyunPurge) => {
+    }).then(() => fetch("https://api.upyun.com/purge", {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${upyunToken}`,
+            "content-type": "application/json",
+        },
+        body: JSON.stringify({ "urls": lastestImageUrls.join("\n") }),
+    })
+    ).then(res => res.json()).then((json: UpyunPurge) => {
         const sendStr: string[] = ["刷新URL"];
         for (const _result of json.result) {
             const p = path.parse(new URL(_result.url).pathname);
             sendStr.push(`${p.dir}/${p.name}`, `> status: ${_result.status}, code: ${_result.code}`, ``);
         }
         return msg.sendMsgEx({ content: sendStr.join("\n") });
-    }).then(() => {
-        return fetch("https://api.upyun.com/preheat", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${upyunToken}`,
-                "content-type": "application/json",
-            },
-            body: JSON.stringify({ "url": lastestImageUrls }),
-        });
-    }).then(res => {
-        return res.json();
-    }).then((json: UpyunPurge) => {
-        const sendStr: string[] = ["预热URL"];
-        for (const _result of json.result) {
-            const p = path.parse(new URL(_result.url).pathname);
-            sendStr.push(`${p.dir}/${p.name}`, `> status: ${_result.status}, code: ${_result.code}`, ``);
+    }).then(async () => {
+        const sendStr: string[] = ["fetchURL"];
+        for (const url of lastestImageUrls) {
+            await fetch(url, { headers: { "user-agent": "QQShareProxy" } }).then(res => {
+                return res.buffer();
+            }).then(buff => {
+                const p = path.parse(new URL(url).pathname);
+                sendStr.push(`${p.dir}/${p.name}`, `> status: ok`, ``);
+                return writeFileSync(`/tmp/randPic/${new Date()}`, buff);
+            });
         }
         return msg.sendMsgEx({ content: sendStr.join("\n") });
     });

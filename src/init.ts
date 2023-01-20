@@ -38,10 +38,10 @@ export async function init() {
         if (event != "change") return;
         if (!devEnv && !hotLoadStatus) return;
         if (require.cache[`${global._path}/src/plugins/${filename}`]) {
-            log.mark(`文件${global._path}/src/plugins/${filename}正在进行热更新`);
+            log.mark(`文件${global._path}/src/plugins/${filename} 正在进行热更新`);
             delete require.cache[`${global._path}/src/plugins/${filename}`];
             if (!devEnv) return client.directMessageApi.postDirectMessage((await redis.hGet(`directUid->Gid`, adminId[0]))!, {
-                content: `文件${global._path}/src/plugins/${filename}正在进行热更新`.replaceAll(".", ". "),
+                content: `文件${global._path}/src/plugins/${filename} 正在进行热更新`.replaceAll(".", ". "),
                 msg_id: await redis.get("lastestMsgId") || undefined,
             });
         }

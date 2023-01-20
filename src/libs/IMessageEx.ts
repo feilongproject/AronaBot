@@ -47,24 +47,18 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
         option.guildId = option.guildId || this.guild_id;
         option.channelId = option.channelId || this.channel_id;
         option.sendType = option.sendType || this.messageType;
-        if (option.imagePath) {
-            return this.sendImage(option);
-        } else {
-            if (option.sendType == "GUILD") {
-                return global.client.messageApi.postMessage(option.channelId, {
-                    msg_id: initiative ? undefined : this.id,
-                    content: content,
-                    message_reference: ref ? { message_id: this.id, } : undefined,
-                    image: imageUrl,
-                });
-            } else {
-                return global.client.directMessageApi.postDirectMessage(option.guildId!, {
-                    msg_id: initiative ? undefined : this.id,
-                    content: content,
-                    image: imageUrl,
-                });
-            }
-        }
+        if (option.imagePath) return this.sendImage(option);
+        if (option.sendType == "GUILD") return global.client.messageApi.postMessage(option.channelId, {
+            msg_id: initiative ? undefined : this.id,
+            content: content,
+            message_reference: ref ? { message_id: this.id, } : undefined,
+            image: imageUrl,
+        });
+        else return global.client.directMessageApi.postDirectMessage(option.guildId!, {
+            msg_id: initiative ? undefined : this.id,
+            content: content,
+            image: imageUrl,
+        });
     }
 
     async sendMsgExRef(option: Partial<SendMsgOption>) {
@@ -102,7 +96,7 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
                 `https://api.sgroup.qq.com/dms/${guildId}/messages` :
                 `https://api.sgroup.qq.com/channels/${channelId}/messages`;
         const formdata = new FormData();
-        if (!initiative) formdata.append("msg_id", msgId);
+        if (!initiative && msgId) formdata.append("msg_id", msgId);
         if (content) formdata.append("content", content);
         formdata.append("file_image", fs.createReadStream(imagePath!));
         return fetch(pushUrl, {

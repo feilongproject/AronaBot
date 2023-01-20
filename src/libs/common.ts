@@ -1,4 +1,10 @@
 import fs from 'fs';
+import fetch from 'node-fetch';
+import config from '../../config/config.json';
+
+
+const nameToId = { jp: 0, global: 1 };
+var key: keyof typeof nameToId;
 
 export function writeFileSyncEx(filePath: string, data: string | Buffer, options?: fs.WriteFileOptions) {
 
@@ -37,6 +43,40 @@ export async function pushToDB(table: string, data: { [key: string]: string }) {
     });
 }
 
+export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok" | "local ok" | "ok"> {
+
+    const _studentInfo: StudentInfo = {};
+    if (type == "net") {
+        const netStudents: StudentInfoNet[] = await fetch("https://ghproxy.com/https://raw.githubusercontent.com/lonqie/SchaleDB/main/data/cn/students.json").then(res => {
+            return res.json();
+        }).catch(err => log.error(err));
+        if (!netStudents) throw `can't fetch json:students`;
+
+        const aliasStudentName: { [name: string]: string[] } = await fetch("https://ghproxy.com/https://raw.githubusercontent.com/lgc2333/bawiki-data/main/data/stu_alias.json").then(res => {
+            return res.json();
+        }).catch(err => log.error(err));
+        if (!aliasStudentName) throw `can't fetch json:aliasStudentName`;
+
+        for (const d of netStudents) {
+            const devName = d.DevName[0].toLocaleUpperCase() + d.DevName.slice(1);
+            if (!aliasStudentName[d.Name]) throw `not found aliasStudentName: ${d.Name}`;
+            _studentInfo[d.Id] = { releaseStatus: d.IsReleased, name: [d.Name, ...aliasStudentName[d.Name]], pathName: d.PathName, devName, star: d.StarGrade };
+            if (d.IsLimited) continue;
+            if (!fs.existsSync(`${config.picPath.characters}/Student_Portrait_${devName}.png`))
+                throw `not found png file in local: Student_Portrait_${devName}`;
+        }
+        global.studentInfo = _studentInfo;
+        fs.writeFileSync(config.studentInfo, JSON.stringify(_studentInfo));
+        return "net ok";
+    } else if (type == "local") {
+        if (fs.existsSync(config.studentInfo)) {
+            global.studentInfo = JSON.parse(fs.readFileSync(config.studentInfo).toString());
+            return "local ok";
+        } else return reloadStudentInfo("net");
+    }
+    return "ok";
+}
+
 export async function settingUserConfig(aid: string, types: "GET", data: string[]): Promise<{ [key: string]: string; }>
 export async function settingUserConfig(aid: string, types: "SET", data: { [key: string]: string; }): Promise<{ [key: string]: string; }>
 export async function settingUserConfig(aid: string, types: "GET" | "SET", data: string[] | { [key: string]: string; }): Promise<{ [key: string]: string; }> {
@@ -53,4 +93,15 @@ export async function settingUserConfig(aid: string, types: "GET" | "SET", data:
     return redis.hSet(`setting:${aid}`, kv).then(() => {
         return data;
     });
+}
+
+
+interface StudentInfoNet {
+    Id: number;
+    Name: string;
+    DevName: string;
+    PathName: string;
+    StarGrade: 1 | 2 | 3;
+    IsLimited: number;
+    IsReleased: [boolean, boolean];
 }

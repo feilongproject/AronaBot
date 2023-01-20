@@ -1,7 +1,8 @@
 import os from "os";
-import child_process from "child_process";
-import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 import { IUser } from "qq-guild-bot";
+import child_process from "child_process";
+import { reloadStudentInfo } from "../libs/common";
+import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 
 
 export async function status(msg: IMessageDIRECT) {
@@ -105,6 +106,17 @@ export async function directToAdmin(msg: IMessageDIRECT) {
     }).then((m: any) => {
         return redis.hSet(`directMid->Gid`, m.data.id, msg.guild_id);
     });
+}
+
+export async function reloadStudentData(msg: IMessageDIRECT) {
+    if (!adminId.includes(msg.author.id)) return;
+    const type = /^学生数据(网络|本地)重加载$/.exec(msg.content)![1];
+    return reloadStudentInfo(type == "网络" ? "net" : "local")
+        .then(r => msg.sendMsgExRef({ content: `已从${type}重加载资源并保存\n${r}` }))
+        .catch(err => {
+            log.error(err);
+            return msg.sendMsgExRef({ content: `${type}获取资源错误: ${err}` });
+        });
 }
 
 function timeConver(ms: number) {

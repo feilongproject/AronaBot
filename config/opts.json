@@ -26,6 +26,12 @@
                 "channelAllows": ["all"],
                 "type": ["GUILD"],
                 "describe": "管理员对某人禁言"
+            },
+            "reloadStudentData": {
+                "reg": "^学生数据(网络|本地)重加载$",
+                "fnc": "reloadStudentData",
+                "type": ["DIRECT"],
+                "describe": "重加载学生数据"
             }
         },
         "gacha": {
@@ -47,9 +53,9 @@
                 "type": ["GUILD"],
                 "describe": "抽卡设置"
             },
-            "reloadData": {
-                "reg": "^(网络|本地)重加载",
-                "fnc": "reloadData",
+            "reloadGachaData": {
+                "reg": "^抽卡数据(网络|本地)重加载$",
+                "fnc": "reloadGachaData",
                 "type": ["DIRECT"],
                 "describe": "重加载抽卡数据"
             }
@@ -108,7 +114,7 @@
                 "describe": "进行一个攻略的更新"
             },
             "purgeCache": {
-                "reg": "^刷新攻略缓存",
+                "reg": "^刷新攻略缓存$",
                 "fnc": "purgeCache",
                 "type": ["DIRECT"],
                 "describe": "刷新在又拍云上的cdn缓存"

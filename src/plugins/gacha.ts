@@ -1,22 +1,24 @@
+import fs from "fs";
 import sharp from "sharp";
 import fetch from "node-fetch";
 import format from "date-format";
-import { existsSync, readFileSync, writeFileSync } from "fs";
 import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
+import { reloadStudentInfo, settingUserConfig } from "../libs/common";
 import config from '../../config/config.json';
-import { settingUserConfig } from "../libs/common";
 
 const maxTime = 30;
 const starString = ["☆☆☆", "★☆☆", "★★☆", "★★★"];
 const nameToId = { jp: 0, global: 1 };
 var key: keyof typeof nameToId;
-var studentInfo: { [key: string]: { name: string; pathName: string; devName: string; star: 1 | 2 | 3; } } = {};
-var gachaPoolInfo: GachaPoolInfo = {
+
+const gachaPoolInfo: GachaPoolInfo = {
     global: { common: { 1: [], 2: [], 3: [] }, pickup: { characters: [], start: 0, end: 0 } },
     jp: { common: { 1: [], 2: [], 3: [] }, pickup: { characters: [], start: 0, end: 0 } },
 };
-reload("local", true).then(d => {
-    return log.info("初始化抽卡数据加载完毕");
+
+
+gachaReload("local").then(d => {
+    return log.info(`初始化抽卡数据加载完毕: ${d}`);
 }).catch(async err => {
     log.error(err);
     return global.client.directMessageApi.postDirectMessage((await global.redis.hGet(`directUid->Gid`, adminId[0]))!, {
@@ -52,13 +54,13 @@ export async function gachaImage(msg: IMessageGUILD) {
                 `\n${analyze?.today_gacha}` +
                 `\n${analyze?.total_gacha}` +
                 `\n${analyze?.gacha_analyze}`,
-            imageUrl: `https://arona.feilongproject.com/gachaPic/${imageName}!GachaWaterMark`,
+            imageUrl: `https://arona.schale.top/gachaPic/${imageName}!GachaWaterMark`,
         });
         return msg.sendMarkdown("102024160_1668504873", {
             at_user: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)`,
             ...analyze,
             img_size: "img #1700px #980px",
-            img_url: `https://arona.feilongproject.com/gachaPic/${imageName}!GachaWaterMark`,
+            img_url: `https://arona.schale.top/gachaPic/${imageName}!GachaWaterMark`,
         }, "102024160_1669972662");
     }).catch(err => {
         log.error(err);
@@ -85,13 +87,9 @@ function cTime(server: "global" | "jp", times: 1 | 10, testStar?: 1 | 2 | 3): Ga
     function startRand(type: "pickup" | "common", star: 1 | 2 | 3): GachaPool {
         if (star != 1) must = false;
         const rNum = Math.random() * 1000000;
-        if (type == "common") {
-            const _pools = gachaPoolInfo[server][type][star];
-            return { ...studentInfo[_pools[Math.floor(rNum % _pools.length)]], star };
-        } else {
-            const _pools = gachaPoolInfo[server][type].characters;
-            return { ...studentInfo[_pools[Math.floor(rNum % _pools.length)]], star };
-        }
+        const _pools = type == "common" ? gachaPoolInfo[server][type][star] : gachaPoolInfo[server][type].characters;
+        const _poolsInfo = studentInfo[_pools[Math.floor(rNum % _pools.length)]];
+        return Object.assign(_poolsInfo, { star }, { name: _poolsInfo.name[0] });
     }
 
     for (var i = 1; i <= times; i++) {
@@ -109,12 +107,10 @@ function cTime(server: "global" | "jp", times: 1 | 10, testStar?: 1 | 2 | 3): Ga
 }
 
 async function buildImage(characterNames: GachaPools): Promise<string | null> {
-
     if (characterNames.length == 10) {
         const outName = `${new Date().getTime()}.png`;
         var tmpOutPath = `${config.picPath.out}/${outName}`;
         var files: { input: string, top: number, left: number, }[] = [];
-
         for (const [i, value] of characterNames.entries()) {
             var x = ((i) % 5);
             var y = parseInt(`${i / 5}`.slice(0, 1));
@@ -127,7 +123,6 @@ async function buildImage(characterNames: GachaPools): Promise<string | null> {
             for (let i = 0; i < value.star; i++) //stars
                 files.push({ input: `${config.picPath.star}`, top: y + 210, left: x + 30 + i * 60, });
         }
-
         return sharp(config.picPath.mainBg)
             .composite(files)
             .png({ compressionLevel: 6, quality: 5, })
@@ -169,23 +164,15 @@ async function analyzeRandData(server: "global" | "jp", uid: string, data: Gacha
     }
 }
 
-export async function reloadData(msg: IMessageDIRECT) {
+export async function reloadGachaData(msg: IMessageDIRECT) {
     if (!adminId.includes(msg.author.id)) return;
-    if (msg.content.includes("网络")) {
-        await reload("net").then(() => {
-            return msg.sendMsgExRef({ content: `已从网络重加载资源并保存\n${analyzeLocalDate().join("\n")}` });
-        }).catch(err => {
+    const type = /^抽卡数据(网络|本地)重加载$/.exec(msg.content)![1];
+    return gachaReload(type == "网络" ? "net" : "local")
+        .then(r => msg.sendMsgExRef({ content: `已从${type}重加载资源并保存\n${r}\n${analyzeLocalDate().join("\n")}` }))
+        .catch(err => {
             log.error(err);
-            return msg.sendMsgExRef({ content: `网络获取资源错误: ${err}` });
-        })
-    } else if (msg.content.includes("本地")) {
-        return reload("local").then(() => {
-            return msg.sendMsgExRef({ content: `已从本地重加载资源\n${analyzeLocalDate().join("\n")}` });
-        }).catch(err => {
-            log.error(err);
-            return msg.sendMsgExRef({ content: `从本地加载文件错误: ${err}` });
+            return msg.sendMsgExRef({ content: `${type}获取资源错误: ${err}` });
         });
-    }
 }
 
 function analyzeLocalDate() {
@@ -196,14 +183,14 @@ function analyzeLocalDate() {
         const common = gachaPoolInfo[key].common as { [star: number]: number[] };
         for (const star in common) {
             const _all: string[] = [];
-            for (const _ of common[star]) _all.push(studentInfo[_].name);
+            for (const _ of common[star]) _all.push(studentInfo[_].name[0]);
             sendStr.push(`> ${star}星: ${_all.join(" | ")}`);
         }
 
         const pickup = gachaPoolInfo[key].pickup;
         if (pickup.characters.length) {
             const _all: string[] = [];
-            for (const _ of pickup.characters) _all.push(studentInfo[_].name);
+            for (const _ of pickup.characters) _all.push(studentInfo[_].name[0]);
             sendStr.push(
                 `> pickup: ${_all.join()}`,
                 `> pickup开始时间: ${format.asString(new Date(pickup.start * 1000))}`,
@@ -214,61 +201,44 @@ function analyzeLocalDate() {
     return sendStr;
 }
 
-async function reload(type: "net" | "local", init?: boolean): Promise<string> {
-    const _gachaPoolInfo: GachaPoolInfo = {
-        global: { common: { 1: [], 2: [], 3: [] }, pickup: { characters: [], start: 0, end: 0 } },
-        jp: { common: { 1: [], 2: [], 3: [] }, pickup: { characters: [], start: 0, end: 0 } },
-    };
-    const _studentInfo: StudentInfo = {};
-    if (type == "net") {
-        const common = await fetch("https://ghproxy.com/https://raw.githubusercontent.com/lonqie/SchaleDB/main/data/common.json").then(res => {
-            return res.json();
-        }).catch(err => {
-            log.error(err);
-        });
-        if (!common) throw `can't fetch json:common`;
+async function gachaReload(type: "net" | "local") {
+    if (type == "net") return reloadStudentInfo(type).then(async r => {
+        const _gachaPoolInfo: GachaPoolInfo = {
+            global: { common: { 1: [], 2: [], 3: [] }, pickup: { characters: [], start: 0, end: 0 } },
+            jp: { common: { 1: [], 2: [], 3: [] }, pickup: { characters: [], start: 0, end: 0 } },
+        };
 
-        const students: StudentInfoNet[] = await fetch("https://ghproxy.com/https://raw.githubusercontent.com/lonqie/SchaleDB/main/data/cn/students.json").then(res => {
-            return res.json();
-        }).catch(err => {
-            log.error(err);
-        });
-        if (!students) throw `can't fetch json:students`;
-
-        for (const d of students) {
-            const devName = d.DevName[0].toLocaleUpperCase() + d.DevName.slice(1);
-            _studentInfo[d.Id] = { name: d.Name, pathName: d.PathName, devName, star: d.StarGrade };
-            if (d.IsLimited) continue;
-            if (!existsSync(`${config.picPath.characters}/Student_Portrait_${devName}.png`))
-                throw `not found png file in local: Student_Portrait_${devName}`;
+        for (const id in studentInfo) {
+            const d = studentInfo[id];
             for (key in nameToId)
-                if (d.IsReleased[nameToId[key]]) _gachaPoolInfo[key].common[d.StarGrade].push(d.Id);
-        }
+                if (d.releaseStatus[nameToId[key]]) _gachaPoolInfo[key].common[d.star].push(Number(id));
+        }// common
+
+        const common = await fetch("https://ghproxy.com/https://raw.githubusercontent.com/lonqie/SchaleDB/main/data/common.json").then(res => res.json()).catch(err => log.error(err));
+        if (!common) throw `can't fetch json:common`;
 
         const nowTime = new Date().getTime() / 1000;
         for (key in nameToId) for (const _nowPick of common.regions[nameToId[key]].current_gacha as GachaPoolInfoPickup[])
             if (_nowPick.start < nowTime && nowTime < _nowPick.end) {
                 for (const pick of _nowPick.characters)
-                    if (_studentInfo[pick].star == 3) _gachaPoolInfo[key].pickup.characters.push(pick);
+                    if (studentInfo[pick].star == 3) _gachaPoolInfo[key].pickup.characters.push(pick);
                 _gachaPoolInfo[key].pickup.start = _nowPick.start;
                 _gachaPoolInfo[key].pickup.end = _nowPick.end;
             }
 
-        gachaPoolInfo = _gachaPoolInfo;
-        studentInfo = _studentInfo;
-        writeFileSync(config.studentInfo, JSON.stringify(_studentInfo));
-        writeFileSync(config.gachaPoolInfo, JSON.stringify(_gachaPoolInfo));
-        if (init) throw "not found studentInfo file or gachaPoolInfo file, but load form net";
-    } else if (type == "local") {
-        if (existsSync(config.studentInfo) && existsSync(config.gachaPoolInfo)) {
-            studentInfo = JSON.parse(readFileSync(config.studentInfo).toString());
-            gachaPoolInfo = JSON.parse(readFileSync(config.gachaPoolInfo).toString());
-            if (init) log.info("成功从本地重加载");
-        } else
-            return reload("net", init);
-
+        gachaPoolInfo.global = _gachaPoolInfo.global;
+        gachaPoolInfo.jp = _gachaPoolInfo.jp;
+        fs.writeFileSync(config.gachaPoolInfo, JSON.stringify(_gachaPoolInfo));
+        return `net | ${r}`;
+    });
+    else {
+        if (fs.existsSync(config.gachaPoolInfo)) {
+            const _gachaPoolInfo: GachaPoolInfo = JSON.parse(fs.readFileSync(config.gachaPoolInfo).toString());
+            gachaPoolInfo.global = _gachaPoolInfo.global;
+            gachaPoolInfo.jp = _gachaPoolInfo.jp;
+            return "local | ok";
+        } else throw "local not exists";
     }
-    return "ok";
 }
 
 
@@ -295,20 +265,3 @@ interface GachaPool {
     custom?: string;
 }
 
-interface StudentInfoNet {
-    Id: number;
-    Name: string;
-    DevName: string;
-    PathName: string;
-    StarGrade: 1 | 2 | 3;
-    IsLimited: number;
-    IsReleased: [boolean, boolean];
-}
-interface StudentInfo {
-    [key: string]: {
-        name: string;
-        pathName: string;
-        devName: string;
-        star: 1 | 2 | 3;
-    };
-}
