@@ -89,7 +89,7 @@ function cTime(server: "global" | "jp", times: 1 | 10, testStar?: 1 | 2 | 3): Ga
         const rNum = Math.random() * 1000000;
         const _pools = type == "common" ? gachaPoolInfo[server][type][star] : gachaPoolInfo[server][type].characters;
         const _poolsInfo = studentInfo[_pools[Math.floor(rNum % _pools.length)]];
-        return Object.assign(_poolsInfo, { star }, { name: _poolsInfo.name[0] });
+        return { ..._poolsInfo, star, name: _poolsInfo.name[0] };
     }
 
     for (var i = 1; i <= times; i++) {
