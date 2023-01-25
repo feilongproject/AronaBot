@@ -26,16 +26,16 @@ export async function findOpts(msg: IMessageGUILD | IMessageDIRECT): Promise<{ p
     for (const keyFather in commandFathers)
         for (const keyChild in commandFathers[keyFather]) {
             const opt = commandFathers[keyFather][keyChild];
-            const allowKeys = opt.channelAllows || ["common"];
+            const allowChannels = opt.channelAllows || ["common"];
             // if (devEnv) allowKeys.push("dev");
             if (!opt.type.includes(msg.messageType)) continue;
             if (!RegExp(opt.reg).test(msg.content.replace(/<@!\d*>/g, "").trim())) continue;
             const channelAllow = () => {
-                for (const allowKey of allowKeys) for (const channel of channelAllows[allowKey]) if (channel.id == msg.channel_id) return true;
+                for (const allowChannelKey of allowChannels) for (const channel of channelAllows[allowChannelKey]) if (channel.id == msg.channel_id) return true;
             }
-            if (devEnv || msg.guild_id == "5237615478283154023" || msg.messageType == "DIRECT" || allowKeys[0] == "all" || channelAllow()) {
+            if (devEnv || msg.guild_id == "5237615478283154023" || msg.messageType == "DIRECT" || allowChannels[0] == "all" || channelAllow()) {
                 if (await redis.hExists("blackList", msg.author.id)) return `黑名单用户！如有异议联系<@${adminId[0]}>`;
-                else return { path: keyFather, ...opt, };
+                else return { path: keyFather, ...opt };
             }
         }
 

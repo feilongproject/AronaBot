@@ -21,7 +21,7 @@
                 "describe": "开启或关闭热加载"
             },
             "mute": {
-                "reg": "禁言(\\d+)((分钟?|m)|(小?时|h)|(天|d))",
+                "reg": "(抽卡)?禁言(\\d+)((分钟?|m)|(小?时|h)|(天|d))",
                 "fnc": "mute",
                 "channelAllows": ["all"],
                 "type": ["GUILD"],
@@ -46,12 +46,6 @@
                 "fnc": "gachaImage",
                 "type": ["GUILD"],
                 "describe": "十连保底图"
-            },
-            "gachaSetting": {
-                "reg": "^/?抽卡设置",
-                "fnc": "gachaSetting",
-                "type": ["GUILD"],
-                "describe": "抽卡设置"
             },
             "reloadGachaData": {
                 "reg": "^抽卡数据(网络|本地)重加载$",
@@ -131,7 +125,7 @@
         },
         "channelManager": {
             "meituChannel": {
-                "reg": ".*",
+                "reg": ".+",
                 "fnc": "meituChannel",
                 "channelAllows": ["meitu"],
                 "type": ["GUILD"],
