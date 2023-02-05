@@ -8,6 +8,7 @@ import config from "../../config/config.json";
 
 const handbookData: HandbookData = JSON.parse(readFileSync(`${_path}/data/handbook/info.json`).toString());
 const noSetServerMessage = `\n(未指定/未设置服务器, 默认使用国际服)`;
+const getErrorMessage = `发送时出现了一些问题<@${adminId[0]}>\n这可能是因为腾讯获取图片出错导致, 请稍后重试\n`
 
 export async function totalAssault(msg: IMessageGUILD) {
     const { server, has } = await getServer(msg.content, msg.author.id);
@@ -19,7 +20,7 @@ export async function totalAssault(msg: IMessageGUILD) {
         imageUrl: lastestImage.url,
     }).catch(err => {
         log.error(err);
-        return msg.sendMsgEx({ content: `获取出错<@${adminId[0]}>\n${JSON.stringify(err)}` });
+        return msg.sendMsgEx({ content: getErrorMessage + JSON.stringify(err) });
     });
 }
 
@@ -31,7 +32,7 @@ export async function globalClairvoyance(msg: IMessageGUILD) {
         imageUrl: lastestImage.url,
     }).catch(err => {
         log.error(err);
-        return msg.sendMsgEx({ content: `获取出错<@${adminId[0]}>\n${JSON.stringify(err)}` });
+        return msg.sendMsgEx({ content: getErrorMessage + JSON.stringify(err) });
     });
 }
 
@@ -45,7 +46,7 @@ export async function activityStrategy(msg: IMessageGUILD) {
         imageUrl: lastestImage.url,
     }).catch(err => {
         log.error(err);
-        return msg.sendMsgEx({ content: `获取出错<@${adminId[0]}>\n${JSON.stringify(err)}` });
+        return msg.sendMsgEx({ content: getErrorMessage + JSON.stringify(err) });
     });
 }
 
@@ -150,25 +151,27 @@ export async function purgeCache(msg: IMessageDIRECT) {
         },
         body: JSON.stringify({ "urls": lastestImageUrls.join("\n") }),
     })
-    ).then(res => res.json()).then((json: UpyunPurge) => {
-        const sendStr: string[] = ["刷新URL"];
+    ).then(res => res.json()).then(async (json: UpyunPurge) => {
         for (const _result of json.result) {
+            const sendStr: string[] = ["刷新URL"];
             const p = path.parse(new URL(_result.url).pathname);
-            sendStr.push(`${p.dir}/${p.name}`, `> status: ${_result.status}, code: ${_result.code}`, ``);
+            sendStr.push(`${p.dir}/${p.name}`, `> status: ${_result.status}, code: ${_result.code}`);
+            await msg.sendMsgEx({ content: sendStr.join("\n") });
         }
-        return msg.sendMsgEx({ content: sendStr.join("\n") });
+        return
     }).then(async () => {
-        const sendStr: string[] = ["fetchURL"];
         for (const url of lastestImageUrls) {
+            const sendStr: string[] = ["fetchURL"];
             await fetch(url, { headers: { "user-agent": "QQShareProxy" } }).then(res => {
                 return res.buffer();
             }).then(buff => {
                 const p = path.parse(new URL(url).pathname);
-                sendStr.push(`${p.dir}/${p.name}`, `> status: ok`, ``);
+                sendStr.push(`${p.dir}/${p.name}`, `> status: ok`);
                 return writeFileSync(`/tmp/randPic/${new Date()}`, buff);
+            }).then(() => {
+                return msg.sendMsgEx({ content: sendStr.join("\n") });
             });
         }
-        return msg.sendMsgEx({ content: sendStr.join("\n") });
     });
 }
 
