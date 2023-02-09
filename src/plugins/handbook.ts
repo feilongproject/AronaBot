@@ -8,15 +8,16 @@ import config from "../../config/config.json";
 
 const handbookData: HandbookData = JSON.parse(readFileSync(`${_path}/data/handbook/info.json`).toString());
 const noSetServerMessage = `\n(未指定/未设置服务器, 默认使用国际服)`;
-const getErrorMessage = `发送时出现了一些问题<@${adminId[0]}>\n这可能是因为腾讯获取图片出错导致, 请稍后重试\n`
+const getErrorMessage = `发送时出现了一些问题<@${adminId[0]}>\n这可能是因为腾讯获取图片出错导致, 请稍后重试\n`;
+const needUpdateMessage = `若数据未更新，请直接@bot管理`;
 
 export async function totalAssault(msg: IMessageGUILD) {
     const { server, has } = await getServer(msg.content, msg.author.id);
     const lastestImage = await getLastestImage("totalAssault", server);
     return msg.sendMsgEx({
-        content: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}总力战一图流)` +
-            (has ? "" : noSetServerMessage) +
-            `\n攻略制作: 夜猫` + lastestImage.info,
+        content: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}总力战一图流)${(has ? "" : noSetServerMessage)}` +
+            `\n${needUpdateMessage}` +
+            `\n攻略制作: 夜猫${lastestImage.info}`,
         imageUrl: lastestImage.url,
     }).catch(err => {
         log.error(err);
@@ -28,7 +29,8 @@ export async function globalClairvoyance(msg: IMessageGUILD) {
     const lastestImage = await getLastestImage("globalClairvoyance");
     return msg.sendMsgEx({
         content: `<@${msg.author.id}> (千里眼)` +
-            `\n攻略制作: 夜猫` + lastestImage.info,
+            `\n${needUpdateMessage}` +
+            `\n攻略制作: 夜猫${lastestImage.info}`,
         imageUrl: lastestImage.url,
     }).catch(err => {
         log.error(err);
@@ -40,9 +42,9 @@ export async function activityStrategy(msg: IMessageGUILD) {
     const { server, has } = await getServer(msg.content, msg.author.id);
     const lastestImage = await getLastestImage("activityStrategy", server);
     return msg.sendMsgEx({
-        content: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}活动一图流)` +
-            (has ? "" : noSetServerMessage) +
-            `\n攻略制作: 夜猫` + lastestImage.info,
+        content: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}活动一图流)${(has ? "" : noSetServerMessage)}` +
+            `\n${needUpdateMessage}` +
+            `\n攻略制作: 夜猫${lastestImage.info}`,
         imageUrl: lastestImage.url,
     }).catch(err => {
         log.error(err);
