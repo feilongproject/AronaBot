@@ -42,11 +42,11 @@ export async function mute(msg: IMessageGUILD) {
     const author = msg.member;
     if (!author || !author.roles || !(author.roles.includes("2") || author.roles.includes("4") || author.roles.includes("5"))) return;
 
-    const timeExec = /(抽卡)?禁言(\d+)((分钟?|m)|(小?时|h)|(天|d))/.exec(msg.content);
+    const timeExec = /(抽卡|晒卡)?禁言(\d+)((分钟?|m)|(小?时|h)|(天|d))/.exec(msg.content);
     if (!timeExec) return msg.sendMsgExRef({ content: `未指定禁言时间` });
     timeExec[1] = timeExec[1] || "";
     const muteTime = Number(timeExec[2]) * (timeExec[4] ? 60 : timeExec[5] ? 60 * 60 : 60 * 60 * 24);
-    const muteType = timeExec[1] == "抽卡" ? "gacha" : "common";
+    const muteType = timeExec[1] ? "gacha" : "common";
 
     var muteMember: IUser | null = null;
     for (const mention of (msg.mentions || [])) if (!mention.bot) muteMember = mention;
