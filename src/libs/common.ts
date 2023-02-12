@@ -101,6 +101,10 @@ export async function settingUserConfig(aid: string, types: "GET" | "SET", data:
     });
 }
 
+export function findStudentInfo(name: string) {
+    for (const id in studentInfo) if (studentInfo[id].name.includes(name)) return studentInfo[id];
+    return null;
+}
 
 interface StudentInfoNet {
     Id: number;

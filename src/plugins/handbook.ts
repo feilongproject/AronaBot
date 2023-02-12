@@ -1,12 +1,12 @@
 import path from "path";
 import fetch from "node-fetch";
-import { readFileSync, writeFileSync } from "fs";
+import fs from "fs";
 import * as cheerio from "cheerio";
-import { settingUserConfig } from "../libs/common";
+import { findStudentInfo, settingUserConfig } from "../libs/common";
 import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 import config from "../../config/config.json";
 
-const handbookData: HandbookData = JSON.parse(readFileSync(`${_path}/data/handbook/info.json`).toString());
+const handbookData: HandbookData = JSON.parse(fs.readFileSync(`${_path}/data/handbook/info.json`).toString());
 const noSetServerMessage = `\n(未指定/未设置服务器, 默认使用国际服)`;
 const getErrorMessage = `发送时出现了一些问题<@${adminId[0]}>\n这可能是因为腾讯获取图片出错导致, 请稍后重试\n`;
 const needUpdateMessage = `若数据未更新，请直接@bot管理`;
@@ -104,6 +104,43 @@ export async function activityStrategyPush(msg: IMessageDIRECT) {
     })).then(res => res.text()).then(text => msg.sendMsgEx({ content: `已发布\n${text}` }));
 }
 
+export async function studentEvaluation(msg: IMessageGUILD) {
+    const reg = /^\/?(角评|角色评价)(.*)$/.exec(msg.content)!;
+    reg[2] = reg[2].trim();
+    if (!reg[2]) {
+        const lastestImage = await getLastestImage("studentEvaluation");
+        return msg.sendMsgEx({
+            content: `<@${msg.author.id}> (角评2.0)` +
+                `\n未指定角色, 默认发送角评2.0` +
+                `\n${needUpdateMessage}` +
+                `\n攻略制作: 夜猫${lastestImage.info}`,
+            imageUrl: lastestImage.url,
+        }).catch(err => {
+            log.error(err);
+            return msg.sendMsgEx({ content: getErrorMessage + JSON.stringify(err) });
+        });
+    }
+
+    const studentInfo = reg[2] ? findStudentInfo(reg[2]) : null;
+    if (!studentInfo) return msg.sendMsgExRef({ content: `未找到学生『${reg[2]}』数据` });
+
+    const map = JSON.parse(fs.readFileSync(`${_path}/data/handbook/studentEvaluation/_map.json`).toString());
+    const studentPathName = studentInfo.pathName;
+    const imageLocalInfo: { info: string; path: string; } | undefined = map[studentPathName];
+
+    if (!imageLocalInfo) return msg.sendMsgExRef({ content: `已找到学生『${reg[2]}』数据, 但未找到角评5.0, 等待后续录入<@${adminId[0]}>` });
+    else return msg.sendMsgEx({
+        content: `<@${msg.author.id}> (角评5.0)` +
+            `\n${needUpdateMessage}` +
+            `\n攻略制作: 夜猫` +
+            `\n${imageLocalInfo.info}`,
+        imagePath: `${_path}/data/handbook/studentEvaluation/${imageLocalInfo.path}`,
+    }).catch(err => {
+        log.error(err);
+        return msg.sendMsgEx({ content: getErrorMessage + JSON.stringify(err) });
+    });
+}
+
 async function getExpired(appname: string) {
     return redis.hGet("setting:expired", appname);
 }
@@ -169,7 +206,7 @@ export async function purgeCache(msg: IMessageDIRECT) {
             }).then(buff => {
                 const p = path.parse(new URL(url).pathname);
                 sendStr.push(`${p.dir}/${p.name}`, `> status: ok`);
-                return writeFileSync(`/tmp/randPic/${new Date()}`, buff);
+                return fs.writeFileSync(`/tmp/randPic/${new Date()}`, buff);
             }).then(() => {
                 return msg.sendMsgEx({ content: sendStr.join("\n") });
             });

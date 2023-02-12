@@ -107,6 +107,13 @@
                 "type": ["DIRECT"],
                 "describe": "进行一个攻略的更新"
             },
+            "studentEvaluation": {
+                "reg": "^/?(角评|角色评价)(.*)$",
+                "fnc": "studentEvaluation",
+                "channelAllows": ["all"],
+                "type": ["GUILD"],
+                "describe": "获取指定学生的评价"
+            },
             "purgeCache": {
                 "reg": "^刷新攻略缓存$",
                 "fnc": "purgeCache",
