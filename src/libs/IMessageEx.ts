@@ -42,20 +42,20 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
 
     async sendMsgEx(option: Partial<SendMsgOption>) {
         global.botStatus.msgSendNum++;
-        const { ref, content, initiative, imageUrl } = option;
+        const { ref, content, imageUrl } = option;
         option.msgId = option.msgId || this.id;
         option.guildId = option.guildId || this.guild_id;
         option.channelId = option.channelId || this.channel_id;
         option.sendType = option.sendType || this.messageType;
         if (option.imagePath) return this.sendImage(option);
         if (option.sendType == "GUILD") return global.client.messageApi.postMessage(option.channelId, {
-            msg_id: initiative ? undefined : this.id,
+            msg_id: this.id,
             content: content,
             message_reference: ref ? { message_id: this.id, } : undefined,
             image: imageUrl,
         });
         else return global.client.directMessageApi.postDirectMessage(option.guildId!, {
-            msg_id: initiative ? undefined : this.id,
+            msg_id: this.id,
             content: content,
             image: imageUrl,
         });
@@ -90,15 +90,15 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
     }
 
     async sendImage(option: Partial<SendMsgOption>): Promise<IMessage> {
-        const { sendType, initiative, content, imagePath, msgId, guildId, channelId } = option;
+        const { sendType, content, imagePath, msgId, guildId, channelId } = option;
         var pushUrl =
             (sendType == "DIRECT" || this.messageType == "DIRECT") ?
                 `https://api.sgroup.qq.com/dms/${guildId}/messages` :
                 `https://api.sgroup.qq.com/channels/${channelId}/messages`;
         const formdata = new FormData();
-        if (!initiative && msgId) formdata.append("msg_id", msgId);
+        if (msgId) formdata.append("msg_id", msgId);
         if (content) formdata.append("content", content);
-        formdata.append("file_image", fs.createReadStream(imagePath!));
+        if (imagePath) formdata.append("file_image", fs.createReadStream(imagePath));
         return fetch(pushUrl, {
             method: "POST",
             headers: {
@@ -177,7 +177,6 @@ interface SendMsgOption {
     imagePath?: string;
     imageUrl?: string;
     content?: string;
-    initiative?: boolean;
     sendType: "DIRECT" | "GUILD";
     msgId?: string;
     guildId?: string;

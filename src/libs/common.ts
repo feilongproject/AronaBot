@@ -106,6 +106,27 @@ export function findStudentInfo(name: string) {
     return null;
 }
 
+export async function findDirectAidToGid(aid: string, guildId: string): Promise<string> {
+
+    const redisGid = await redis.hGet(`directUid->Gid`, aid).catch(err => log.error(err));
+    if (redisGid) return redisGid;
+
+
+    const createGid = await client.directMessageApi.createDirectMessage({
+        source_guild_id: guildId,
+        recipient_id: aid,
+    }).then(res => {
+        return res.data.guild_id;
+    }).catch(err => {
+        log.error(err);
+    });
+    if (createGid) {
+        await redis.hSet(`directUid->Gid`, aid, createGid);
+        return createGid;
+    }
+    throw "not found guild and create guild";
+}
+
 interface StudentInfoNet {
     Id: number;
     Name: string;

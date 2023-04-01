@@ -105,7 +105,7 @@ export async function activityStrategyPush(msg: IMessageDIRECT) {
 }
 
 export async function studentEvaluation(msg: IMessageGUILD) {
-    const reg = /^\/?(角评|角色评价)(.*)$/.exec(msg.content)!;
+    const reg = /\/?(角评|角色评价)(.*)/.exec(msg.content)!;
     reg[2] = reg[2].trim();
     if (!reg[2]) {
         const lastestImage = await getLastestImage("studentEvaluation");
@@ -137,7 +137,7 @@ export async function studentEvaluation(msg: IMessageGUILD) {
         imagePath: `${_path}/data/handbook/studentEvaluation/${imageLocalInfo.path}`,
     }).catch(err => {
         log.error(err);
-        return msg.sendMsgEx({ content: getErrorMessage + JSON.stringify(err) });
+        return msg.sendMsgExRef({ content: getErrorMessage + JSON.stringify(err) });
     });
 }
 
