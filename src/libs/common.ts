@@ -52,22 +52,30 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
         }).catch(err => log.error(err));
         if (!netStudents) throw `can't fetch json:students`;
 
-        const aliasStudentName: { [name: string]: string[] } = await fetch("https://ghproxy.com/https://raw.githubusercontent.com/lgc2333/bawiki-data/main/data/stu_alias.json").then(res => {
+        const aliasStudentNameLocal: { [name: string]: string[] } = JSON.parse(fs.readFileSync(config.aliasStudentNameLocal, { encoding: "utf8" }));
+        const aliasStudentNameWeb: { [name: string]: string[] } = await fetch("https://ghproxy.com/https://raw.githubusercontent.com/lgc2333/bawiki-data/main/data/stu_alias.json").then(res => {
             return res.json();
         }).catch(err => log.error(err));
-        if (!aliasStudentName) throw `can't fetch json:aliasStudentName`;
+        if (!aliasStudentNameWeb) throw `can't fetch json:aliasStudentNameWeb`;
 
         for (const d of netStudents) {
             const devName = d.DevName[0].toLocaleUpperCase() + d.DevName.slice(1);
-            if (!aliasStudentName[d.Name]) throw `not found aliasStudentName: ${d.Name}`;
+            if (!aliasStudentNameWeb[d.Name]) throw `not found aliasStudentNameWeb: ${d.Name}`;
             _studentInfo[d.Id] = {
                 releaseStatus: d.IsReleased,
-                name: [d.Name, ...aliasStudentName[d.Name]],
+                name: [d.Name],
                 devName,
                 pathName: d.PathName,
                 star: d.StarGrade,
                 limitedType: d.IsLimited,
             };
+
+            for (const _nameWeb of aliasStudentNameWeb[d.Name])
+                if (!_nameWeb.includes("老婆"))//去除私货
+                    _studentInfo[d.Id].name.push(_nameWeb);
+            if (aliasStudentNameLocal[d.Name])//增加本地别名
+                _studentInfo[d.Id].name.push(...aliasStudentNameLocal[d.Name])
+
             if (!fs.existsSync(`${config.picPath.characters}/Student_Portrait_${devName}.png`))
                 throw `not found png file in local: Student_Portrait_${devName}`;
         }

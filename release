@@ -1,4 +1,4 @@
 #!/usr/bin/sh
 cd /root/RemoteDir/qbot/AronaBot
 mkdir /tmp/randPic
-/root/.nvm/versions/node/v16.13.2/bin/node node_modules/ts-node/dist/bin.js src/index.ts> "log/$(date +%F--%H:%M:%S).log" 2>&1 & 
+/root/.nvm/versions/node/v16.20.0/bin/node node_modules/ts-node/dist/bin.js src/index.ts> "log/$(date +%F--%H:%M:%S).log" 2>&1 & 
