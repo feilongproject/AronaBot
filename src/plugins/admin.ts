@@ -58,7 +58,8 @@ export async function mute(msg: IMessageGUILD) {
         const { data } = res;
         if (!data || !data.roles) return null;
         if (data.roles.includes("4")) return "无法禁言频道主";
-        if (data.roles.includes("2")) return "无法禁言绿管";
+        if (data.roles.includes("2")) return "无法禁言超级管理员";
+        if (data.roles.includes("5")) return "无法禁言子频道管理员";
         return null;
     }).catch(err => {
         log.error(err);
