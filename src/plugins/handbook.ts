@@ -6,10 +6,11 @@ import { findStudentInfo, settingUserConfig } from "../libs/common";
 import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 import config from "../../config/config.json";
 
-const handbookData: HandbookData = JSON.parse(fs.readFileSync(`${_path}/data/handbook/info.json`).toString());
+var handBookInfo: HandbookInfo = JSON.parse(fs.readFileSync(`${_path}/data/handbook/info.json`).toString());
 const noSetServerMessage = `\n(未指定/未设置服务器, 默认使用国际服)`;
 const getErrorMessage = `发送时出现了一些问题<@${adminId[0]}>\n这可能是因为腾讯获取图片出错导致, 请稍后重试\n`;
 const needUpdateMessage = `若数据未更新，请直接@bot管理`;
+
 
 export async function totalAssault(msg: IMessageGUILD) {
     const { server, has } = await getServer(msg.content, msg.author.id);
@@ -156,24 +157,24 @@ async function getServer(content: string, aid: string) {
 
 async function getLastestImage(appname: string, type = "all"): Promise<HandbookDataLastest> {
     const expired = await getExpired(`${appname}:${type}`);
-    const lastestData = handbookData[appname].lastest[type];
+    const lastestData = handBookInfo[appname].lastest[type];
     return {
         ...lastestData,
-        url: handbookData["baseURL"].lastest + lastestData.url + `!HandbookImageCompress?expired=${expired}`,
+        url: handBookInfo["baseURL"].lastest + lastestData.url + `!HandbookImageCompress?expired=${expired}`,
     };
 }
 
-export async function purgeCache(msg: IMessageDIRECT) {
+export async function flushCDNCache(msg: IMessageDIRECT) {
     if (!adminId.includes(msg.author.id)) return;
 
     const upyunToken = await redis.hGet("setting:global", "upyunToken");
     const redisHSetData: [string, string][] = [], _timestamp = new Date().getTime().toString();
     const lastestImageUrls: string[] = [];
-    for (const appKey in handbookData) {
-        const lastestData = handbookData[appKey].lastest;
+    for (const appKey in handBookInfo) {
+        const lastestData = handBookInfo[appKey].lastest;
         if (typeof lastestData == "string") continue;
         else for (const typeKey in lastestData) {
-            lastestImageUrls.push(handbookData["baseURL"].lastest + lastestData[typeKey].url + `!HandbookImageCompress?expired=${_timestamp}`);
+            lastestImageUrls.push(handBookInfo["baseURL"].lastest + lastestData[typeKey].url + `!HandbookImageCompress?expired=${_timestamp}`);
             redisHSetData.push([`${appKey}:${typeKey}`, _timestamp]);
         }
     }
@@ -214,8 +215,13 @@ export async function purgeCache(msg: IMessageDIRECT) {
     });
 }
 
+export async function flushHandBookInfo(msg: IMessageDIRECT) {
+    handBookInfo = JSON.parse(fs.readFileSync(`${_path}/data/handbook/info.json`).toString());
+    return msg.sendMsgEx({ content: "handBookInfo刷新成功" });
+}
 
-interface HandbookData {
+
+interface HandbookInfo {
     [appname: string]: {
         lastest: {
             [type: string]: HandbookDataLastest;

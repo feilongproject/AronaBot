@@ -152,7 +152,7 @@ export class IMessageGUILD extends IMessageCommon implements IntentMessage.GUILD
                 mention.push(user.id);
         this.pushToDB({
             mentions: mention.join(","),
-            cName: this.channelName,
+            cName: this.channelName || "",
         });
 
     }
