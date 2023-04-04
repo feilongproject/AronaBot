@@ -123,7 +123,7 @@ async function buildImage(characterNames: GachaPools): Promise<string | null> {
         if (value.custom) files.push({ input: `${config.picPath.characters}/${value.custom}`, top: y, left: x, });//custom avatar
         else files.push({ input: `${config.picPath.characters}/Student_Portrait_${value.devName}.png`, top: y, left: x, });//character avatar
         for (let i = 0; i < value.star; i++) //stars
-            files.push({ input: `${config.picPath.star}`, top: y + 210, left: x + 30 + i * 60, });
+            files.push({ input: `${config.picPath.star}`, top: y + 205, left: x + 30 + i * 60, });
     }
     return sharp(config.picPath.mainBg)
         .composite(files)
