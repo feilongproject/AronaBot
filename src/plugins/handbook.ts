@@ -192,16 +192,16 @@ export async function flushCDNCache(msg: IMessageDIRECT) {
         body: JSON.stringify({ "urls": lastestImageUrls.join("\n") }),
     })
     ).then(res => res.json()).then(async (json: UpyunPurge) => {
-        for (const _result of json.result) {
-            const sendStr: string[] = ["刷新URL"];
+        for (const [i, _result] of json.result.entries()) {
+            const sendStr: string[] = [`刷新URL ${i + 1}/${json.result.length}`];
             const p = path.parse(new URL(_result.url).pathname);
             sendStr.push(`${p.dir}/${p.name}`, `> status: ${_result.status}, code: ${_result.code}`);
             await msg.sendMsgEx({ content: sendStr.join("\n") });
         }
         return
     }).then(async () => {
-        for (const url of lastestImageUrls) {
-            const sendStr: string[] = ["fetchURL"];
+        for (const [i, url] of lastestImageUrls.entries()) {
+            const sendStr: string[] = [`加载URL ${i + 1}/${lastestImageUrls.length}`];
             await fetch(url, { headers: { "user-agent": "QQShareProxy" } }).then(res => {
                 return res.buffer();
             }).then(buff => {
