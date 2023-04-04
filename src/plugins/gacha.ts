@@ -107,6 +107,7 @@ function cTime(server: "global" | "jp", times: 1 | 10, testStar?: 1 | 2 | 3): Ga
 }
 
 async function buildImage(characterNames: GachaPools): Promise<string | null> {
+    const starPos = [0, 90, 50, 30];
     if (characterNames.length != 10) return null;
 
     botStatus.imageRenderNum++;
@@ -118,12 +119,12 @@ async function buildImage(characterNames: GachaPools): Promise<string | null> {
         var y = parseInt(`${i / 5}`.slice(0, 1));
         x *= 300, x += 120;
         y *= 350, y += 180;
-        files.push({ input: `${config.picPath.starBg}`, top: y + 190, left: x - 10, });//star bg
-        files.push({ input: `${config.picPath.mask[value.star]}`, top: y - 10, left: x - 4, });//character bg
+        files.push({ input: config.picPath.mask[value.star], top: y - 10, left: x - 4, });//character bg
         if (value.custom) files.push({ input: `${config.picPath.characters}/${value.custom}`, top: y, left: x, });//custom avatar
         else files.push({ input: `${config.picPath.characters}/Student_Portrait_${value.devName}.png`, top: y, left: x, });//character avatar
+        files.push({ input: config.picPath.starBg, top: y + 190, left: x - 10, });//star bg
         for (let i = 0; i < value.star; i++) //stars
-            files.push({ input: `${config.picPath.star}`, top: y + 205, left: x + 30 + i * 60, });
+            files.push({ input: `${config.picPath.star}`, top: y + 195, left: x + starPos[value.star] + i * 60, });
     }
     return sharp(config.picPath.mainBg)
         .composite(files)
