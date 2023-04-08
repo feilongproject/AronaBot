@@ -2,7 +2,7 @@ import fs from "fs";
 import fetch from 'node-fetch';
 import FormData from 'form-data';
 import { IMember, IMessage, IUser, MessageAttachment, MessageReference } from "qq-guild-bot";
-import { pushToDB } from "./common";
+import { callWithRetry, pushToDB } from "./common";
 import config from '../../config/config.json';
 
 
@@ -42,20 +42,24 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
 
     async sendMsgEx(option: Partial<SendMsgOption>) {
         global.botStatus.msgSendNum++;
-        const { ref, content, imageUrl } = option;
         option.msgId = option.msgId || this.id;
         option.guildId = option.guildId || this.guild_id;
         option.channelId = option.channelId || this.channel_id;
         option.sendType = option.sendType || this.messageType;
+        return callWithRetry(this._sendMsgEx, [option]);
+    }
+
+    private async _sendMsgEx(option: Partial<SendMsgOption>) {
+        const { ref, content, imageUrl } = option;
         if (option.imagePath) return this.sendImage(option);
-        if (option.sendType == "GUILD") return global.client.messageApi.postMessage(option.channelId, {
-            msg_id: this.id,
+        if (option.sendType == "GUILD") return global.client.messageApi.postMessage(option.channelId || "", {
+            msg_id: option.msgId,
             content: content,
-            message_reference: ref ? { message_id: this.id, } : undefined,
+            message_reference: (ref && option.msgId) ? { message_id: option.msgId, } : undefined,
             image: imageUrl,
         });
         else return global.client.directMessageApi.postDirectMessage(option.guildId!, {
-            msg_id: this.id,
+            msg_id: option.msgId,
             content: content,
             image: imageUrl,
         });

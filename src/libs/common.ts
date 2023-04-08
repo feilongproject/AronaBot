@@ -6,6 +6,18 @@ import config from '../../config/config.json';
 const nameToId = { jp: 0, global: 1 };
 var key: keyof typeof nameToId;
 
+export async function callWithRetry<T extends (...args: A) => Promise<R>, R, A extends Array<any>>(functionCall: (...args: A) => Promise<R>, args: Parameters<T>, retries = 0, errors: any[] = []): Promise<RetryResult<R>> {
+    try {
+        const result = await functionCall(...args);
+        return { result, errors };
+    } catch (err) {
+        log.error(err);
+        errors.push(err);
+        if (retries < config.retryTime - 1) return await callWithRetry(functionCall, args, ++retries, errors);
+        else return { errors };
+    }
+}
+
 export function writeFileSyncEx(filePath: string, data: string | Buffer, options?: fs.WriteFileOptions) {
 
     const pathPart = filePath.split("/");

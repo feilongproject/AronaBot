@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { createClient } from 'redis';
 import schedule from "node-schedule";
-import { createOpenAPI, createWebsocket, OpenAPI } from 'qq-guild-bot';
+import { createOpenAPI, createWebsocket } from 'qq-guild-bot';
 import _log from './libs/logger';
 import config from '../config/config.json';
 import { createPool } from 'mariadb';
@@ -86,9 +86,7 @@ export async function init() {
     log.info(`初始化：正在创建频道树`);
     await loadGuildTree(true);
 
-    global.client.meApi.me().then(res => {
-        global.meId = res.data.id;
-    });
+    global.client.meApi.me().then(res => global.meId = res.data.id);
 
     await reloadStudentInfo("local").then(d => {
         log.info(`学生数据加载完毕 ${d}`);
@@ -98,14 +96,14 @@ export async function init() {
 export async function loadGuildTree(init?: boolean) {
     if (!global.saveGuildsTree) global.saveGuildsTree = {};
 
-    const guildData = await client.meApi.meGuilds().catch(err => { log.error(err) });
+    const guildData = await client.meApi.meGuilds().catch(err => log.error(err));
     if (!guildData) return;
     for (const guild of guildData.data) {
         if (init) log.mark(`${guild.name}(${guild.id})`);
         if (!saveGuildsTree[guild.id]) saveGuildsTree[guild.id] = { ...guild, channel: {} };
         else saveGuildsTree[guild.id].name = guild.name;
 
-        const channelData = await client.channelApi.channels(guild.id).catch(err => { log.error(err); });
+        const channelData = await client.channelApi.channels(guild.id).catch(err => log.error(err));
         if (!channelData) return;
         for (const channel of channelData.data) {
             if (init) log.mark(`${guild.name}(${guild.id})-${channel.name}(${channel.id})-father:${channel.parent_id}`);

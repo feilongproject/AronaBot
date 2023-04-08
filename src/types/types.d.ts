@@ -124,4 +124,9 @@ declare global {
             timestamp: string;
         }
     }
+
+    interface RetryResult<R> {
+        result?: R;
+        errors: any[];
+    }
 }

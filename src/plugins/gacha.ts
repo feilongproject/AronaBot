@@ -35,9 +35,7 @@ export async function gachaString(msg: IMessageGUILD) {
         /十/.test(msg.content) ? `————————十连结果————————` : `————————单抽结果————————`
     ];
     for (const value of o) sendStr.push(`(${starString[value.star]})(${value.pathName})${value.name}`);
-    return msg.sendMsgExRef({ content: sendStr.join(`\n`), }).then(() => {
-        //return redis.setEx(`gachaLimitTTL:${msg.author.id}`, maxTime, "1");
-    });
+    return msg.sendMsgExRef({ content: sendStr.join(`\n`), });
 }
 
 export async function gachaImage(msg: IMessageGUILD) {

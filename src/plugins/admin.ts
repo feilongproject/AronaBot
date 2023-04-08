@@ -18,9 +18,7 @@ export async function status(msg: IMessageDIRECT) {
         `\n系统内存：${(os.freemem() / 1024 / 1024).toFixed()}MB/${(os.totalmem() / 1024 / 1024).toFixed()}MB (free/total)` +
         `\n系统已开机：${timeConver(os.uptime() * 1000)}`;
     log.debug(`\n` + content);
-    return msg.sendMsgEx({
-        content
-    });
+    return msg.sendMsgEx({ content });
 }
 
 export async function ping(msg: IMessageDIRECT) {
@@ -33,9 +31,7 @@ export async function hotLoad(msg: IMessageDIRECT) {
     if (devEnv) return;
     const type = /^\/?(开启|关闭)热(加载|更新)$/.exec(msg.content)![1];
     hotLoadStatus = type.includes("开") ? true : false;
-    return msg.sendMsgEx({
-        content: `已${msg.content}`,
-    });
+    return msg.sendMsgEx({ content: `已${msg.content}` });
 }
 
 export async function mute(msg: IMessageGUILD) {
@@ -88,8 +84,8 @@ export async function mute(msg: IMessageGUILD) {
         return msg.sendMsgExRef({ content: sendStr.join("\n") });
     }).then(() => client.muteApi.muteMember(msg.guild_id, muteMember!.id, { seconds: muteTime.toString() })
     ).then(() => (muteType == "gacha" && muteTime)
-        ? client.messageApi.deleteMessage(msg.channel_id, msg.message_reference!.message_id).then(async (l) => {
-            return msg.sendMsgEx({
+        ? client.messageApi.deleteMessage(msg.channel_id, msg.message_reference!.message_id).then(async () =>
+            msg.sendMsgEx({
                 content: `<@${muteMember!.id}>(id: ${muteMember!.id})` +
                     `\n禁言${timeExec[2]}${timeExec[3]}` +
                     `\n原因: 晒卡` +
@@ -97,7 +93,7 @@ export async function mute(msg: IMessageGUILD) {
                     `\n注意: 该消息由bot自动发送，如有异议联系<@${msg.author.id}>或<@${adminId[0]}>`,
                 channelId: await redis.hGet("mute:sendChannel", msg.guild_id)
             })
-        }) : undefined
+        ) : undefined
     ).catch(err => {
         log.error(err);
         msg.sendMsgExRef({ content: `禁言出现错误<@${adminId[0]}>\n` + JSON.stringify(err) });
@@ -114,9 +110,7 @@ export async function directToAdmin(msg: IMessageDIRECT) {
             content: msg.content,
             guildId: refMsgGid,
         }).then(() => {
-            return msg.sendMsgEx({
-                content: `消息已发送`,
-            });
+            return msg.sendMsgEx({ content: `消息已发送` });
         });
     }
 
