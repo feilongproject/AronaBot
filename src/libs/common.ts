@@ -35,7 +35,7 @@ export async function pushToDB(table: string, data: { [key: string]: string }) {
     for (const k in data) {
         keys.push(k);
         keyss.push("?");
-        values.push(data[k]);
+        values.push(data[k] || "");
     }
     //log.debug(`INSERT INTO ${table} (${keys.join()}) VALUES (${keyss.join()})`);
     return mariadb.query(`INSERT INTO ${table} (${keys.join()}) VALUES (${keyss.join()})`, values).catch(err => {

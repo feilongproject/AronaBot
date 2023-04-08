@@ -133,12 +133,12 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
     }
 }
 
-export class IMessageGUILD extends IMessageCommon implements IntentMessage.GUILD_MESSAGE__body {
+export class IMessageGUILD extends IMessageCommon implements IntentMessage.GUILD_MESSAGES__body {
     mentions?: IUser[];
     guildName: string;
     channelName: string;
 
-    constructor(msg: IntentMessage.GUILD_MESSAGE__body) {
+    constructor(msg: IntentMessage.GUILD_MESSAGES__body) {
         super(msg, "GUILD");
         this.mentions = msg.mentions;
         this.guildName = saveGuildsTree[this.guild_id]?.name;

@@ -66,27 +66,41 @@ declare global {
             eventType: "MESSAGE_CREATE" | "MESSAGE_DELETE" |
             "AT_MESSAGE_CREATE" | "PUBLIC_MESSAGE_DELETE" |
             "DIRECT_MESSAGE_CREATE" | "DIRECT_MESSAGE_DELETE" |
-            "GUILD_MEMBER_REMOVE" | "GUILD_MEMBER_ADD" | "GUILD_MEMBER_UPDATE";
+            "GUILD_MEMBER_ADD" | "GUILD_MEMBER_UPDATE" | "GUILD_MEMBER_REMOVE";
             eventId: string;
             msg: T;
         }
 
+        type GUILD_MEMBERS = EventRespose<GUILD_MEMBERS__body>;//测试包括 GUILD_MEMBER_ADD,GUILD_UPDATE,GUILD_DELETE
+        type GUILD_MEMBERS__body = {
+            guild_id: string;
+            joined_at: string;
+            nick: string;
+            op_user_id: string;
+            roles: string[];
+            user: {
+                avatar: string;
+                bot: boolean;
+                id: string;
+                username: string;
+            }
+        };
 
-        type GUILD = EventRespose<GUILD__body>;//测试包括GUILD_CREATE,GUILD_UPDATE,GUILD_DELETE
+        type GUILD = EventRespose<GUILD__body>;//测试包括 GUILD_CREATE,GUILD_UPDATE,GUILD_DELETE
         type GUILD__body = IGuild & {
             op_user_id: string;
             union_appid: string;
             channels: undefined;//GUILD_前缀无channels
-        };
+        }
 
-        type CHANNEL = EventRespose<CHANNEL__body>;//测试包括CHANNEL_CREATE,CHANNEL_UPDATE,CHANNEL_DELETE
-        type CHANNEL__body = {
-            op_user_id: string;
-            channels: undefined;//CHANNEL_前缀无channels
-        } & IChannel;
+        // type CHANNEL = EventRespose<CHANNEL__body>;//测试包括 CHANNEL_CREATE,CHANNEL_UPDATE,CHANNEL_DELETE
+        // type CHANNEL__body = {
+        //     op_user_id: string;
+        //     channels: undefined;//CHANNEL_前缀无channels
+        // } & IChannel;
 
-        type GUILD_MESSAGE = EventRespose<GUILD_MESSAGE__body>;
-        type GUILD_MESSAGE__body = MessageCommon & {
+        type GUILD_MESSAGES = EventRespose<GUILD_MESSAGES__body>;
+        type GUILD_MESSAGES__body = MessageCommon & {
             mentions?: IUser[];
         }
 

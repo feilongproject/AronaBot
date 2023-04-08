@@ -4,7 +4,7 @@ import { IMessageDIRECT, IMessageGUILD } from './libs/IMessageEx';
 
 init().then(() => {
 
-    global.ws.on('GUILD_MESSAGES', async (data: IntentMessage.GUILD_MESSAGE) => {
+    global.ws.on('GUILD_MESSAGES', async (data: IntentMessage.GUILD_MESSAGES) => {
         if (data.eventType == 'MESSAGE_CREATE') {
             if (global.devEnv && !adminId.includes(data.msg.author.id)) return;
             const msg = new IMessageGUILD(data.msg);
@@ -32,6 +32,14 @@ init().then(() => {
 
     global.ws.on("FORUMS_EVENT", (data) => {
         //log.debug(data);
+    });
+
+    global.ws.on("GUILD_MEMBERS", async (data: IntentMessage.GUILD_MEMBERS) => {
+        try {
+            (await import("./plugins/eventRec")).eventRec(data);
+        } catch (err) {
+            log.error(err);
+        }
     });
 
 });
