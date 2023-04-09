@@ -14,7 +14,7 @@ export async function callWithRetry<T extends (...args: A) => Promise<R>, R, A e
         log.error(err);
         errors.push(err);
         if (retries < config.retryTime - 1) return await callWithRetry(functionCall, args, ++retries, errors);
-        else return { errors };
+        else throw { errors };
     }
 }
 
