@@ -50,8 +50,8 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
     }
 
     private async _sendMsgEx(option: Partial<SendMsgOption>) {
+        if (option.imagePath) return sendImage(option);
         const { ref, content, imageUrl } = option;
-        if (option.imagePath) return this.sendImage(option);
         if (option.sendType == "GUILD") return global.client.messageApi.postMessage(option.channelId || "", {
             msg_id: option.msgId,
             content: content,
@@ -93,30 +93,6 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
         });
     }
 
-    async sendImage(option: Partial<SendMsgOption>): Promise<IMessage> {
-        const { sendType, content, imagePath, msgId, guildId, channelId } = option;
-        var pushUrl =
-            (sendType == "DIRECT" || this.messageType == "DIRECT") ?
-                `https://api.sgroup.qq.com/dms/${guildId}/messages` :
-                `https://api.sgroup.qq.com/channels/${channelId}/messages`;
-        const formdata = new FormData();
-        if (msgId) formdata.append("msg_id", msgId);
-        if (content) formdata.append("content", content);
-        if (imagePath) formdata.append("file_image", fs.createReadStream(imagePath));
-        return fetch(pushUrl, {
-            method: "POST",
-            headers: {
-                "Content-Type": formdata.getHeaders()["content-type"],
-                "Authorization": `Bot ${config.initConfig.appID}.${config.initConfig.token}`,
-            }, body: formdata
-        }).then(res => {
-            return res.json();
-        }).then(body => {
-            if (body.code) throw body;
-            return body;
-        });
-    }
-
     async pushToDB(another: { [key: string]: string }) {
         const attachments: string[] = [];
         if (this.attachments)
@@ -135,6 +111,27 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
             refer: this.message_reference?.message_id || "",
         }, another));
     }
+}
+
+async function sendImage(option: Partial<SendMsgOption>): Promise<IMessage> {
+    const { sendType, content, imagePath, msgId, guildId, channelId } = option;
+    const pushUrl = (sendType == "DIRECT") ? `https://api.sgroup.qq.com/dms/${guildId}/messages` : `https://api.sgroup.qq.com/channels/${channelId}/messages`;
+    const formdata = new FormData();
+    if (msgId) formdata.append("msg_id", msgId);
+    if (content) formdata.append("content", content);
+    if (imagePath) formdata.append("file_image", fs.createReadStream(imagePath));
+    return fetch(pushUrl, {
+        method: "POST",
+        headers: {
+            "Content-Type": formdata.getHeaders()["content-type"],
+            "Authorization": `Bot ${config.initConfig.appID}.${config.initConfig.token}`,
+        }, body: formdata
+    }).then(res => {
+        return res.json();
+    }).then(body => {
+        if (body.code) throw body;
+        return body;
+    });
 }
 
 export class IMessageGUILD extends IMessageCommon implements IntentMessage.GUILD_MESSAGES__body {

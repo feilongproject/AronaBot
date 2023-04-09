@@ -9,12 +9,12 @@ var key: keyof typeof nameToId;
 export async function callWithRetry<T extends (...args: A) => Promise<R>, R, A extends Array<any>>(functionCall: (...args: A) => Promise<R>, args: Parameters<T>, retries = 0, errors: any[] = []): Promise<RetryResult<R>> {
     try {
         const result = await functionCall(...args);
-        return { result, errors };
+        return { result, errors: errors.join("\n") };
     } catch (err) {
         log.error(err);
-        errors.push(err);
+        errors.push(String(err));
         if (retries < config.retryTime - 1) return await callWithRetry(functionCall, args, ++retries, errors);
-        else throw { errors };
+        else throw { errors: errors.join("\n") };
     }
 }
 

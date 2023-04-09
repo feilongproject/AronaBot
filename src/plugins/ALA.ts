@@ -8,7 +8,7 @@ export async function generateALA(msg: IMessageGUILD) {
 
     const alaQueue = buildALA(msg.content.replace(/\/?奥利奥/, "").replace(`<@!${meId}>`, "").trim());
     const authLen = Number(await redis.hGet(`pay:ALALimit`, msg.author.id)) || 0;
-    log.debug(alaQueue.length);
+    // log.debug(alaQueue.length);
     if (alaQueue.length <= (allowLen + authLen)) {
 
         if (alaQueue.length == 0) return msg.sendMsgExRef({ content: `未找到奥利奥，在本指令后输入"爱丽丝"三个字符中其中任意一个字符即可生成（可重复）` });
@@ -16,10 +16,9 @@ export async function generateALA(msg: IMessageGUILD) {
 
         return buildImage(alaQueue).then(outPath => {
             if (outPath) return msg.sendMsgEx({ content: `<@${msg.author.id}>`, imagePath: outPath });
-            else return msg.sendMsgEx({ content: `无法发送图片, 请联系管理员<@${adminId[0]}>处理` });
+            else return msg.sendMsgExRef({ content: `无法发送图片, 请联系管理员<@${adminId[0]}>处理` });
         }).catch(err => {
-            log.error(err);
-            return msg.sendMsgExRef({ content: `发送图片异常! ${JSON.stringify(err).replaceAll(".", ". ")}` });
+            return msg.sendMsgExRef({ content: `发送图片异常! <@${adminId[0]}>\n${err.errors.replaceAll(".", ". ")}` });
         });
 
     } else {
