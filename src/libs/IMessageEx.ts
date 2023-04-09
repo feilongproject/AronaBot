@@ -57,12 +57,12 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
             content: content,
             message_reference: (ref && option.msgId) ? { message_id: option.msgId, } : undefined,
             image: imageUrl,
-        });
+        }).then(res => res.data);
         else return global.client.directMessageApi.postDirectMessage(option.guildId!, {
             msg_id: option.msgId,
             content: content,
             image: imageUrl,
-        });
+        }).then(res => res.data);
     }
 
     async sendMsgExRef(option: Partial<SendMsgOption>) {

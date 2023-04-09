@@ -120,8 +120,8 @@ export async function directToAdmin(msg: IMessageDIRECT) {
             `\n源频道：${msg.src_guild_id}` +
             `\n内容：${msg.content}`,
         guildId: await global.redis.hGet(`directUid->Gid`, adminId[0]),
-    }).then((m: any) => {
-        return redis.hSet(`directMid->Gid`, m.data.id, msg.guild_id);
+    }).then(res => {
+        if (res?.result) return redis.hSet(`directMid->Gid`, res.result.id, msg.guild_id);
     });
 }
 
