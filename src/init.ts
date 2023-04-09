@@ -29,8 +29,13 @@ export async function init() {
     //log.info(`初始化：正在创建定时任务`);
     //schedule.scheduleJob("0 * * * * ? ", async () => (await import("./plugins/biliDynamic")).taskPushBili());
     schedule.scheduleJob("0 * * * * ? ", async () => {
-        await redis.save();
-        log.mark(`保存数据库中`);
+        if (devEnv) {
+            // log.debug(`当前正在测试环境`);
+            await redis.setEx("devEnv", 60, "1");
+        } else {
+            log.mark(`保存数据库中`);
+            await redis.save();
+        }
     });
 
     log.info(`初始化：正在创建插件热加载监听`);

@@ -34,8 +34,7 @@ export async function findOpts(msg: IMessageGUILD | IMessageDIRECT): Promise<{ p
                 for (const allowChannelKey of allowChannels) for (const channel of channelAllows[allowChannelKey]) if (channel.id == msg.channel_id) return true;
             }
             if (devEnv || msg.guild_id == "5237615478283154023" || msg.messageType == "DIRECT" || allowChannels[0] == "all" || channelAllow()) {
-                if (await redis.hExists("blackList", msg.author.id)) return `黑名单用户！如有异议联系<@${adminId[0]}>`;
-                else return { path: keyFather, ...opt };
+                return { path: keyFather, ...opt };
             }
         }
 

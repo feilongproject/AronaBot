@@ -13,10 +13,10 @@ const needUpdateMessage = `若数据未更新，请直接@bot管理`;
 
 
 export async function totalAssault(msg: IMessageGUILD) {
-    const { server, has } = await getServer(msg.content, msg.author.id);
+    const { server, message } = await getServer(msg.content, msg.author.id);
     const lastestImage = await getLastestImage("totalAssault", server);
     return msg.sendMsgEx({
-        content: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}总力战一图流)${(has ? "" : noSetServerMessage)}` +
+        content: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}总力战一图流)${message}` +
             `\n${needUpdateMessage}` +
             `\n攻略制作: 夜猫${lastestImage.info}`,
         imageUrl: lastestImage.url,
@@ -40,10 +40,10 @@ export async function globalClairvoyance(msg: IMessageGUILD) {
 }
 
 export async function activityStrategy(msg: IMessageGUILD) {
-    const { server, has } = await getServer(msg.content, msg.author.id);
+    const { server, message } = await getServer(msg.content, msg.author.id);
     const lastestImage = await getLastestImage("activityStrategy", server);
     return msg.sendMsgEx({
-        content: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}活动一图流)${(has ? "" : noSetServerMessage)}` +
+        content: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}活动一图流)${message}` +
             `\n${needUpdateMessage}` +
             `\n攻略制作: 夜猫${lastestImage.info}`,
         imageUrl: lastestImage.url,
@@ -147,11 +147,12 @@ async function getExpired(appname: string) {
 }
 
 async function getServer(content: string, aid: string) {
-    var hasServer: { server: "jp" | "global"; has: boolean; } = { server: "global", has: false };
+    var hasServer: { server: "jp" | "global"; message: string; } = { server: "global", message: undefined } as any;
     const cmdServer = /日|jp/.test(content) ? "jp" : (/国际|g/.test(content) ? "global" : undefined);
-    if (cmdServer) hasServer = { server: cmdServer, has: true };
+    if (cmdServer) hasServer = { server: cmdServer, message: "" };
     const settingServer = (await settingUserConfig(aid, "GET", ["server"])).server as "jp" | "global" | undefined;
-    if (settingServer) hasServer = { server: settingServer, has: true };
+    if (settingServer) hasServer = { server: settingServer, message: "" };
+    if (hasServer.message == undefined) hasServer.message = noSetServerMessage;
     return hasServer;
 }
 

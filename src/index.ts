@@ -50,10 +50,12 @@ async function execute(msg: IMessageDIRECT | IMessageGUILD) {
         global.redis.set("lastestMsgId", msg.id, { EX: 4 * 60 });
         const opt = await findOpts(msg);
         if (!opt) return;
+
+        if (adminId.includes(msg.author.id) && !devEnv && (await redis.get("devEnv"))) return;
         if (typeof opt == "string") return msg.sendMsgExRef({ content: opt });
         if (global.devEnv) log.debug(`./plugins/${opt.path}:${opt.fnc}`);
-        const plugin = await import(`./plugins/${opt.path}.ts`);
 
+        const plugin = await import(`./plugins/${opt.path}.ts`);
         if (typeof plugin[opt.fnc] != "function") return log.error(`not found function ${opt.fnc}() at "${global._path}/src/plugins/${opt.path}.ts"`);
         else return (plugin[opt.fnc] as PluginFnc)(msg).catch(err => {
             log.error(err);
