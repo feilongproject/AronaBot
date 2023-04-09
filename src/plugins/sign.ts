@@ -125,9 +125,9 @@ function todayLucky() {
     const rand = Math.random();
     if (rand <= 0.2) return `大吉`;//[0.00,0.20]20%
     else if (rand <= 0.4) return `小吉`;//(0.20~0.40]20%
-    else if (rand <= 0.2) return `吉`;//(0.40~0.80]40%
-    else if (rand <= 0.9) return `凶`;//(0.80~0.90]10%
-    else if (rand <= 1) return `大凶`;//(0.90~1.00]10%
+    else if (rand <= 0.9) return `吉`;//(0.40~0.90]50%
+    else if (rand <= 0.95) return `凶`;//(0.90~0.95]5%
+    else if (rand <= 1) return `大凶`;//(0.95~1.00]5%
     else return "■■■■";
 }
 
