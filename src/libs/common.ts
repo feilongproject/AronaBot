@@ -12,7 +12,8 @@ export async function callWithRetry<T extends (...args: A) => Promise<R>, R, A e
         return { result, errors: errors.join("\n") };
     } catch (err) {
         log.error(err);
-        errors.push(String(err));
+        if (typeof err == "object") errors.push(JSON.stringify(err))
+        else errors.push(String(err));
         if (retries < config.retryTime - 1) return await callWithRetry(functionCall, args, ++retries, errors);
         else throw { errors: errors.join("\n") };
     }
