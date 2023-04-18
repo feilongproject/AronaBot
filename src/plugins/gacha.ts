@@ -59,10 +59,17 @@ export async function gachaImage(msg: IMessageGUILD) {
             ...analyze,
             img_size: "img #1700px #980px",
             img_url: `https://arona.schale.top/gachaPic/${imageName}!GachaWaterMark`,
-        }, "102024160_1669972662");
+        }, "102024160_1669972662").catch(err => {
+            log.error(err);
+            return msg.sendMsgExRef({
+                content: `发送消息时出现了错误 <@${adminId[0]}>`
+                    + `\nimageName: ${imageName?.replaceAll(".", "。")}`
+                    + `\n${JSON.stringify(err).replaceAll(".", " .")}`,
+            });
+        });
     }).catch(err => {
         log.error(err);
-        return msg.sendMsgExRef({ content: JSON.stringify(err).replaceAll(".", " .") });
+        return msg.sendMsgExRef({ content: `发送消息时出现了错误 <@${adminId[0]}>\n${JSON.stringify(err).replaceAll(".", " .")}` });
     });
 }
 

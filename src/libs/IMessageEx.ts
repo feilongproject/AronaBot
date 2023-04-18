@@ -71,25 +71,31 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
     }
 
     async sendMarkdown(templateId: string, _params?: { [key: string]: string }, keyboardId?: string) {
+        return callWithRetry(this._sendMarkdown, [this.channel_id, templateId, _params, keyboardId]);
+    }
+
+    private async _sendMarkdown(channelId: string, templateId: string, _params?: { [key: string]: string }, keyboardId?: string) {
         const params: { key: string; values: [string]; }[] = [];
         for (const key in _params) params.push({ key, values: [_params[key]] });
-        return fetch(`https://api.sgroup.qq.com/channels/${this.channel_id}/messages`, {
+        return fetch(`https://api.sgroup.qq.com/channels/${channelId}/messages`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": `Bot ${config.initConfig.appID}.${config.initConfig.token}`,
-            }, body: JSON.stringify({
+            },
+            body: JSON.stringify({
                 markdown: {
                     custom_template_id: templateId,
                     params: params,
                 },
                 keyboard: { id: keyboardId },
             }),
-        }).then(res => {
-            return res.json();
-        }).then(json => {
-            if (json.code) throw json;
-            else return json;
+        }).then(async res => {
+            const json = await res.json();
+            if (json.code) {
+                log.error(res.headers.get("x-tps-trace-id"));
+                throw json;
+            } else return json;
         });
     }
 

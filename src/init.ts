@@ -11,7 +11,7 @@ export async function init() {
 
     console.log(`机器人准备运行，正在初始化`);
 
-    global.adminId = ["7681074728704576201", "9540810258706627170"];
+    global.adminId = ["7681074728704576201", "15874984758683127001"];
     global.log = _log;
     global._path = process.cwd();
     global.botStatus = {

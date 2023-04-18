@@ -4,6 +4,7 @@ import { IMessageDIRECT } from "../libs/IMessageEx";
 export async function meituChannel(msg: IMessageDIRECT) {
     if (devEnv) return;
     if (msg.content == "当前版本不支持查看，请升级QQ版本") return;
+    if (msg.content == "当前版本不支持该消息类型，请使用最新版本手机QQ查看") return;
     if (msg.attachments) return;
     if (msg.member && msg.member.roles && (msg.member.roles.includes("2") || msg.member.roles.includes("4") || msg.member.roles.includes("5"))) return;
 
