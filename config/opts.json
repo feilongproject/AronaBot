@@ -135,6 +135,15 @@
                 "describe": "总力战一图流"
             }
         },
+        "serverStatus": {
+            "baServerStatus": {
+                "reg": "^/?服务器状态$",
+                "fnc": "baServerStatus",
+                "channelAllows": ["all"],
+                "type": ["GUILD"],
+                "describe": "查询ba服务器状态"
+            }
+        },
         "channelManager": {
             "meituChannel": {
                 "reg": ".+",
