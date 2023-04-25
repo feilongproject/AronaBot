@@ -77,7 +77,7 @@ export async function activityStrategyPush(msg: IMessageDIRECT) {
     }).catch(err => log.error(err));
     if (!isNew) return msg.sendMsgEx({ content: `已查询到存在相同动态` });
 
-    return fetch(`https://www.bilibili.com/read/cv${cv}`).then(res => res.text()).then(html => {
+    return fetch(`https://www.bilibili.com/read/cv${cv}`, { headers: { "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36 Edg/112.0.1722.58" } }).then(res => res.text()).then(html => {
         const $ = cheerio.load(html);
         return eval(
             "const window={};" +
@@ -102,7 +102,10 @@ export async function activityStrategyPush(msg: IMessageDIRECT) {
             "Authorization": `Bot ${config.initConfig.appID}.${config.initConfig.token}`
         },
         body: JSON.stringify({ title: encode + postInfo.title, content: postInfo.content, format: 2 }),
-    })).then(res => res.text()).then(text => msg.sendMsgEx({ content: `已发布\n${text}` }));
+    })).then(res => res.text())
+        .then(text => msg.sendMsgEx({ content: `已发布\n${text}` }))
+        .catch(err => msg.sendMsgEx({ content: `获取出错\n${err}` }));
+}
 }
 
 export async function studentEvaluation(msg: IMessageGUILD) {

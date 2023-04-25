@@ -6,7 +6,7 @@ import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 import { reloadStudentInfo, settingUserConfig } from "../libs/common";
 import config from '../../config/config.json';
 
-const maxTime = 30;
+const maxTime = 5;
 const starString = ["☆☆☆", "★☆☆", "★★☆", "★★★"];
 const nameToId = { jp: 0, global: 1 };
 var key: keyof typeof nameToId;
@@ -52,13 +52,13 @@ export async function gachaImage(msg: IMessageGUILD) {
                 `\n${analyze?.today_gacha}` +
                 `\n${analyze?.total_gacha}` +
                 `\n${analyze?.gacha_analyze}`,
-            imageUrl: `https://arona.schale.top/gachaPic/${imageName}!GachaWaterMark`,
+            imageUrl: `https://ip.arona.schale.top/gachaPic/${imageName}`,
         });
         return msg.sendMarkdown("102024160_1668504873", {
             at_user: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)`,
             ...analyze,
             img_size: "img #1700px #980px",
-            img_url: `https://arona.schale.top/gachaPic/${imageName}!GachaWaterMark`,
+            img_url: `https://ip.arona.schale.top/gachaPic/${imageName}`,
         }, "102024160_1669972662").catch(err => {
             log.error(err);
             return msg.sendMsgExRef({
