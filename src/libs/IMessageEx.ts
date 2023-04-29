@@ -50,7 +50,7 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
     }
 
     private async _sendMsgEx(option: Partial<SendMsgOption>) {
-        if (option.imagePath) return sendImage(option);
+        if (option.imagePath || option.imageFile) return sendImage(option);
         const { ref, content, imageUrl } = option;
         if (option.sendType == "GUILD") return global.client.messageApi.postMessage(option.channelId || "", {
             msg_id: option.msgId,
@@ -120,11 +120,12 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
 }
 
 async function sendImage(option: Partial<SendMsgOption>): Promise<IMessage> {
-    const { sendType, content, imagePath, msgId, guildId, channelId } = option;
+    const { sendType, content, imagePath, imageFile, msgId, guildId, channelId } = option;
     const pushUrl = (sendType == "DIRECT") ? `https://api.sgroup.qq.com/dms/${guildId}/messages` : `https://api.sgroup.qq.com/channels/${channelId}/messages`;
     const formdata = new FormData();
     if (msgId) formdata.append("msg_id", msgId);
     if (content) formdata.append("content", content);
+    if (imageFile) formdata.append("file_image", imageFile, { filename: 'image.jpg' });
     if (imagePath) formdata.append("file_image", fs.createReadStream(imagePath));
     return fetch(pushUrl, {
         method: "POST",
@@ -181,6 +182,7 @@ export class IMessageDIRECT extends IMessageCommon implements IntentMessage.DIRE
 
 interface SendMsgOption {
     ref?: boolean;
+    imageFile?: Buffer;
     imagePath?: string;
     imageUrl?: string;
     content?: string;

@@ -32,6 +32,12 @@
                 "fnc": "reloadStudentData",
                 "type": ["DIRECT"],
                 "describe": "重加载学生数据"
+            },
+            "dumpChatRecord": {
+                "reg": "^dump\\s*(\\d+)$",
+                "fnc": "dumpChatRecord",
+                "type": ["DIRECT"],
+                "describe": "dump发言记录"
             }
         },
         "gacha": {

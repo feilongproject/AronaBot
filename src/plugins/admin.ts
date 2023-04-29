@@ -1,4 +1,7 @@
 import os from "os";
+import qr from "qr-image";
+import Excel from "exceljs";
+import xlsx from 'node-xlsx';
 import format from "date-format";
 import { IUser } from "qq-guild-bot";
 import child_process from "child_process";
@@ -134,6 +137,45 @@ export async function reloadStudentData(msg: IMessageDIRECT) {
             log.error(err);
             return msg.sendMsgExRef({ content: `${type}获取资源错误: ${err}` });
         });
+}
+
+export async function dumpChatRecord(msg: IMessageDIRECT) {
+    if (!adminId.includes(msg.author.id)) return;
+
+    const exec = /dump\s*(\d+)/.exec(msg.content)!!;
+    const aid = exec[1];
+    if (!aid) return msg.sendMsgEx({ content: `未指定id` });
+    const saveFileName = `${aid}-${new Date().getTime()}.xlsx`;
+    return mariadb.query("SELECT * FROM `guildMessage` WHERE `aid` = (?) ORDER BY `guildMessage`.`ts` ASC", aid).then(datas => {
+        const { meta } = datas;
+
+        // const sheetData: any[][] = [];
+        // const headers = meta.map((column: any) => column.name());
+        // sheetData.push(headers);
+        // datas.forEach((data: any[]) => {
+        //     const rowData = headers.map((header: any) => data[header]);
+        //     sheetData.push(rowData);
+        // });
+        // fs.writeFileSync(`${_path}/log/record/${saveFileName}`, xlsx.build([{ name: aid, data: sheetData, options: {} }]));
+
+        const workbook = new Excel.Workbook();
+        const worksheet = workbook.addWorksheet(aid);
+        const columnsMap = meta.map((column: any) => ({
+            header: column.name(),
+            key: column.name(),
+        }));
+        worksheet.columns = columnsMap;
+        for (const data of datas) worksheet.addRow(data);
+        return workbook.xlsx.writeFile(`${_path}/log/record/${saveFileName}`);
+    }).then(() => msg.sendMsgEx({
+        imageFile: qr.imageSync(`https://ip.arona.schale.top/p/record/${saveFileName}`),
+        content: `用户 ${aid} 日志已转存\n`
+            + saveFileName
+        // + `ip。arona。schale。top/p/record/${saveFileName}`,
+        // + "https://ip,arona,schale,top/p/record/15874984758683127001-1682781508632.xlsx"
+    })).catch(err => {
+        log.error(err);
+    });
 }
 
 function timeConver(ms: number) {
