@@ -73,7 +73,6 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
 
         for (const d of netStudents) {
             const devName = d.DevName[0].toLocaleUpperCase() + d.DevName.slice(1);
-            if (!aliasStudentNameWeb[d.Name]) throw `not found aliasStudentNameWeb: ${d.Name}`;
             _studentInfo[d.Id] = {
                 releaseStatus: d.IsReleased,
                 name: [d.Name],
@@ -83,9 +82,10 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
                 limitedType: d.IsLimited,
             };
 
-            for (const _nameWeb of aliasStudentNameWeb[d.Name])
-                if (!_nameWeb.includes("老婆"))//去除私货
-                    _studentInfo[d.Id].name.push(_nameWeb);
+            if (aliasStudentNameWeb[d.Name])
+                for (const _nameWeb of aliasStudentNameWeb[d.Name])
+                    if (!_nameWeb.includes("老婆"))//去除私货
+                        _studentInfo[d.Id].name.push(_nameWeb);
             if (aliasStudentNameLocal[d.Name])//增加本地别名
                 _studentInfo[d.Id].name.push(...aliasStudentNameLocal[d.Name])
 

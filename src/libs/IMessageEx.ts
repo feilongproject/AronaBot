@@ -120,13 +120,14 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
 }
 
 async function sendImage(option: Partial<SendMsgOption>): Promise<IMessage> {
-    const { sendType, content, imagePath, imageFile, msgId, guildId, channelId } = option;
+    const { sendType, content, imagePath, imageFile, imageUrl, msgId, guildId, channelId } = option;
     const pushUrl = (sendType == "DIRECT") ? `https://api.sgroup.qq.com/dms/${guildId}/messages` : `https://api.sgroup.qq.com/channels/${channelId}/messages`;
     const formdata = new FormData();
     if (msgId) formdata.append("msg_id", msgId);
     if (content) formdata.append("content", content);
     if (imageFile) formdata.append("file_image", imageFile, { filename: 'image.jpg' });
     if (imagePath) formdata.append("file_image", fs.createReadStream(imagePath));
+    if (imageUrl) formdata.append("image", imageUrl);
     return fetch(pushUrl, {
         method: "POST",
         headers: {
