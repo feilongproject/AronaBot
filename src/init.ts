@@ -1,11 +1,11 @@
-import fs from 'fs';
+import chokidar from "chokidar";
+import { createPool } from 'mariadb';
 import { createClient } from 'redis';
 import schedule from "node-schedule";
 import { createOpenAPI, createWebsocket } from 'qq-guild-bot';
 import _log from './libs/logger';
-import config from '../config/config.json';
-import { createPool } from 'mariadb';
 import { reloadStudentInfo } from './libs/common';
+import config from '../config/config.json';
 
 export async function init() {
 
@@ -39,27 +39,24 @@ export async function init() {
     });
 
     log.info(`初始化：正在创建插件热加载监听`);
-    fs.watch(`${global._path}/src/plugins/`, async (event, filename) => {
-        //log.debug(event, filename);
-        if (event != "change") return;
+    chokidar.watch(`${global._path}/src/`,).on("change", async (filepath, stats) => {
         if (!devEnv && !hotLoadStatus) return;
-        if (require.cache[`${global._path}/src/plugins/${filename}`]) {
-            log.mark(`文件${global._path}/src/plugins/${filename} 正在进行热更新`);
-            delete require.cache[`${global._path}/src/plugins/${filename}`];
+        if (require.cache[filepath]) {
+            log.mark(`文件 ${filepath} 正在进行热更新`);
+            delete require.cache[filepath];
             if (!devEnv) return client.directMessageApi.postDirectMessage((await redis.hGet(`directUid->Gid`, adminId[0]))!, {
-                content: `文件${global._path}/src/plugins/${filename} 正在进行热更新`.replaceAll(".", ". "),
+                content: `文件 ${filepath} 正在进行热更新`,
                 msg_id: await redis.get("lastestMsgId") || undefined,
             });
         }
     });
 
     log.info(`初始化：正在创建指令文件热加载监听`);
-    const optFile = `${global._path}/config/opts.json`;
-    fs.watchFile(optFile, async () => {
+    chokidar.watch(`${global._path}/config/opts.json`).on("change", async (filepath, stats) => {
         if (!devEnv && !hotLoadStatus) return;
-        if (require.cache[optFile]) {
+        if (require.cache[filepath]) {
             log.mark(`指令配置文件正在进行热更新`);
-            delete require.cache[optFile];
+            delete require.cache[filepath];
             if (!devEnv) return client.directMessageApi.postDirectMessage((await redis.hGet(`directUid->Gid`, adminId[0]))!, {
                 content: `指令配置文件正在进行热更新`,
                 msg_id: await redis.get("lastestMsgId") || undefined,
@@ -73,18 +70,18 @@ export async function init() {
         database: 0,
     });
     await global.redis.connect().then(() => {
-        log.info(`初始化：redis数据库连接成功`);
+        log.info(`初始化：redis 数据库连接成功`);
     }).catch(err => {
-        log.error(`初始化：redis数据库连接失败，正在退出程序\n${err}`);
+        log.error(`初始化：redis 数据库连接失败，正在退出程序\n${err}`);
         process.exit();
     });
 
     global.mariadb = await createPool(config.mariadb).getConnection().then(conn => {
-        log.info(`初始化：mariadb数据库连接成功`);
+        log.info(`初始化：mariadb 数据库连接成功`);
         return conn;
     });
 
-    log.info(`初始化：正在创建client与ws`);
+    log.info(`初始化：正在创建 client 与 ws`);
     global.client = createOpenAPI(config.initConfig);
     global.ws = createWebsocket(config.initConfig);
 
@@ -115,4 +112,17 @@ export async function loadGuildTree(init?: boolean) {
             saveGuildsTree[guild.id].channel[channel.id] = { name: channel.name, id: channel.id };
         }
     }
+}
+
+Date.prototype.toDBString = function () {
+    return [
+        this.getFullYear(),
+        (this.getMonth() + 1).toString().padStart(2, "0"),
+        this.getDate().toString().padStart(2, "0"),
+    ].join("-") + "T" +
+        [
+            this.getHours().toString().padStart(2, "0"),
+            this.getMinutes().toString().padStart(2, "0"),
+            this.getSeconds().toString().padStart(2, "0"),
+        ].join(":") + "+08:00";
 }

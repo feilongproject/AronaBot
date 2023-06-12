@@ -1,5 +1,5 @@
 import fs from "fs";
-import fetch from 'node-fetch';
+import fetch from "node-fetch";
 import FormData from 'form-data';
 import { IMember, IMessage, IUser, MessageAttachment, MessageReference } from "qq-guild-bot";
 import { callWithRetry, pushToDB } from "./common";

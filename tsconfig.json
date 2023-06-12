@@ -12,12 +12,13 @@
         "sourceMap": true,
         "esModuleInterop": true,
         "resolveJsonModule": true,
-        "types": []
+        "types": ["node"]
     },
     "include": ["src/**/*"],
     "typeRoots": ["./src/types"],
     "ts-node": {
         "files": true
     },
-    "exclude": ["node_modules", "dist", "test"]
+    "exclude": ["node_modules", "dist", "test"],
+    "extends": "@tsconfig/node18/tsconfig.json"
 }

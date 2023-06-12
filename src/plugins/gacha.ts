@@ -6,7 +6,6 @@ import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 import { reloadStudentInfo, settingUserConfig } from "../libs/common";
 import config from '../../config/config.json';
 
-const maxTime = 5;
 const starString = ["☆☆☆", "★☆☆", "★★☆", "★★★"];
 const nameToId = { jp: 0, global: 1 };
 var key: keyof typeof nameToId;
@@ -39,51 +38,31 @@ export async function gachaString(msg: IMessageGUILD) {
 }
 
 export async function gachaImage(msg: IMessageGUILD) {
-    if (await hasCd(msg)) return;
-
-    return redis.setEx(`gachaLimitTTL:${msg.author.id}`, maxTime, "1").then(async () => {
-        const setting = await settingUserConfig(msg.author.id, "GET", ["server", "analyzeHide"]);
-        const o = cTime(setting.server == "jp" ? "jp" : "global", 10, adminId.includes(msg.author.id) ? Number(msg.content.match(/\d$/)) as 1 | 2 | 3 : undefined);
-        const analyze = setting.analyzeHide == "true" ? null : await analyzeRandData(setting.server == "jp" ? "jp" : "global", msg.author.id, o);
-        const imageName = await buildImage(o);
-        if (devEnv) log.debug(imageName);
-        if (0) return msg.sendMsgEx({
-            content: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)` +
-                `\n${analyze?.today_gacha}` +
-                `\n${analyze?.total_gacha}` +
-                `\n${analyze?.gacha_analyze}`,
-            imageUrl: `https://ip.arona.schale.top/p/gacha/${imageName}`,
-        });
-        return msg.sendMarkdown("102024160_1668504873", {
-            at_user: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)`,
-            ...analyze,
-            img_size: "img #1700px #980px",
-            img_url: `https://ip.arona.schale.top/p/gacha/${imageName}`,
-        }, "102024160_1669972662").catch(err => {
-            log.error(err);
-            return msg.sendMsgExRef({
-                content: `发送消息时出现了错误 <@${adminId[0]}>`
-                    + `\nimageName: ${imageName?.replaceAll(".", "。")}`
-                    + `\n${JSON.stringify(err).replaceAll(".", " .")}`,
-            });
-        });
-    }).catch(err => {
-        log.error(err);
-        return msg.sendMsgExRef({ content: `发送消息时出现了错误 <@${adminId[0]}>\n${JSON.stringify(err).replaceAll(".", " .")}` });
+    const setting = await settingUserConfig(msg.author.id, "GET", ["server", "analyzeHide"]);
+    const o = cTime(setting.server == "jp" ? "jp" : "global", 10, adminId.includes(msg.author.id) ? Number(msg.content.match(/\d$/)) as 1 | 2 | 3 : undefined);
+    const analyze = setting.analyzeHide == "true" ? null : await analyzeRandData(setting.server == "jp" ? "jp" : "global", msg.author.id, o);
+    const imageName = await buildImage(o);
+    if (devEnv) log.debug(imageName);
+    if (0) return msg.sendMsgEx({
+        content: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)` +
+            `\n${analyze?.today_gacha}` +
+            `\n${analyze?.total_gacha}` +
+            `\n${analyze?.gacha_analyze}`,
+        imageUrl: `https://ip.arona.schale.top/p/gacha/${imageName}`,
     });
-}
-
-async function hasCd(msg: IMessageGUILD) {
-    const ttl = await redis.pTTL(`gachaLimitTTL:${msg.author.id}`);
-    const payTTL = parseInt(await redis.hGet(`pay:gachaLimitTTL`, `${msg.author.id}`) || "0");
-    if ((ttl - payTTL > 0) && !adminId.includes(msg.author.id))
+    return msg.sendMarkdown("102024160_1668504873", {
+        at_user: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)`,
+        ...analyze,
+        img_size: "img #1700px #980px",
+        img_url: `https://ip.arona.schale.top/p/gacha/${imageName}`,
+    }, "102024160_1669972662").catch(err => {
+        log.error(err);
         return msg.sendMsgExRef({
-            content: `请求时间过短，还有${(ttl - payTTL) / 1000}s冷却完毕` +
-                `\n(因为当前服务器性能不足，所以设置冷却cd，赞助以购买一个更好的服务器，也可以获得更少的冷却时间！)` +
-                `\n（当拥有更高配置的服务器时会取消冷却cd限制！）` +
-                `\n（同时为开发者的女装计划助力！）`
+            content: `发送消息时出现了错误 <@${adminId[0]}>`
+                + `\nimageName: ${imageName?.replaceAll(".", "。")}`
+                + `\n${JSON.stringify(err).replaceAll(".", " .")}`,
         });
-    return null;
+    });
 }
 
 function cTime(server: "global" | "jp", times: 1 | 10, testStar?: 1 | 2 | 3): GachaPools {

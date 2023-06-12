@@ -24,7 +24,9 @@ log.setParseCallStackFunction((error: Error) => {
     const stacklines = error.stack?.split("\n")!.splice(4)!;
     const lineMatch = /at (?:(.+)\s+\()?(?:(.+?):(\d+)(?::(\d+))?|([^)]+))\)?/.exec(stacklines[0]);
     /* istanbul ignore else: failsafe */
-    if (lineMatch && lineMatch.length === 6)
-        return { fileName: ` [${lineMatch[2].replace(_path, "")}:${lineMatch[3]}:${lineMatch[4]}]` };
+    if (lineMatch && lineMatch.length === 6) {
+        const filepath = lineMatch[2].replace(_path, "");
+        return { fileName: ` [${filepath[0] == "/" ? filepath.slice(1) : filepath}:${lineMatch[3]}:${lineMatch[4]}]` };
+    }
 });
 export default log

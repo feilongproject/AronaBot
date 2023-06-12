@@ -1,17 +1,8 @@
 import log4js from "log4js";
-import {
-    IGuild,
-    IMember,
-    IUser,
-    IChannel,
-    MessageAttachment,
-    MessageReference,
-    OpenAPI,
-    WebsocketClient
-} from "qq-guild-bot";
-import { PoolConnection } from "mariadb";
 //import { Browser } from "puppeteer";
+import { PoolConnection } from "mariadb";
 import { RedisClientType } from "@redis/client";
+import { IChannel, IMember, IUser, OpenAPI, WebsocketClient } from "qq-guild-bot";
 
 
 declare global {
@@ -61,8 +52,13 @@ declare global {
         name: string,
     }
 
+    interface Date {
+        toDBString: () => string;
+    }
+
     namespace IntentMessage {
         interface EventRespose<T> {
+            eventRootType: "GUILD_MESSAGES" | "DIRECT_MESSAGE" | "GUILDS" | "GUILD_MEMBERS" | "FORUMS_EVENT";
             eventType: "MESSAGE_CREATE" | "MESSAGE_DELETE" |
             "AT_MESSAGE_CREATE" | "PUBLIC_MESSAGE_DELETE" |
             "DIRECT_MESSAGE_CREATE" | "DIRECT_MESSAGE_DELETE" |
@@ -87,10 +83,21 @@ declare global {
         };
 
         type GUILD = EventRespose<GUILD__body>;//测试包括 GUILD_CREATE,GUILD_UPDATE,GUILD_DELETE
-        type GUILD__body = IGuild & {
+        type GUILD__body = {
+            id: string;
+            name: string;
+            icon: string;
+            owner_id: string;
+            owner: boolean;
+            member_count: number;
+            max_members: number;
+            description: string;
+            joined_at: number;
+            channels?: IChannel[];//GUILD_前缀无channels
+            unionworld_id: string;
+            union_org_id: string;
             op_user_id: string;
             union_appid: string;
-            channels: undefined;//GUILD_前缀无channels
         }
 
         // type CHANNEL = EventRespose<CHANNEL__body>;//测试包括 CHANNEL_CREATE,CHANNEL_UPDATE,CHANNEL_DELETE
@@ -111,14 +118,14 @@ declare global {
         }
 
         interface MessageCommon {
-            attachments?: MessageAttachment[];
+            attachments?: { url: string; }[];
             author: IUser;//频道中貌似只有avatar,bot,id,username,私信貌似只有avatar,id,username
             channel_id: string;
             content?: string;
             guild_id: string;
             id: string;
             member: IMember;//频道中貌似只有joined_at,nick,roles,私信貌似只有joined_at
-            message_reference?: MessageReference;
+            message_reference?: { message_id: string; };
             seq: number;
             seq_in_channel: string;
             timestamp: string;
