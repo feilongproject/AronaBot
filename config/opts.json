@@ -154,12 +154,14 @@
             "addWatchList": {
                 "reg": "^watch\\s*(\\d*)$",
                 "fnc": "addWatchList",
+                "channelAllows": ["AvalonSystem"],
                 "type": ["GUILD", "DIRECT"],
                 "describe": "向阿瓦隆系统添加监控列表"
             },
             "unWatchList": {
                 "reg": "^unwatch\\s*(\\d*)$",
                 "fnc": "unWatchList",
+                "channelAllows": ["AvalonSystem"],
                 "type": ["GUILD", "DIRECT"],
                 "describe": "向阿瓦隆系统删除监控列表"
             }
@@ -184,6 +186,7 @@
         "dev": [
             { "id": "7519512", "name": "BA彩奈测试频道(9919414431536104110)-测试频道1(7519512)" },
             { "id": "12156164", "name": "频道{BA彩奈bot测试频道}[图片测试频道|12156164]" }
-        ]
+        ],
+        "AvalonSystem": [{ "id": "519695851", "name": "碧蓝档案_阿瓦隆(13281105882878427654)-指令中枢(519695851)" }]
     }
 }

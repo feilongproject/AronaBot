@@ -40,6 +40,7 @@ export async function init() {
 
     log.info(`初始化：正在创建插件热加载监听`);
     chokidar.watch(`${global._path}/src/`,).on("change", async (filepath, stats) => {
+        if (filepath.endsWith("src/init.ts") || filepath.endsWith("src/index.ts")) return;
         if (!devEnv && !hotLoadStatus) return;
         if (require.cache[filepath]) {
             log.mark(`文件 ${filepath} 正在进行热更新`);
