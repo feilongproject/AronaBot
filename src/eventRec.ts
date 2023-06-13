@@ -34,7 +34,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
                 const data = event.msg as any as IntentMessage.GUILD_MESSAGES__body;
                 if (global.devEnv && !adminId.includes(data.author.id)) return;
                 const msg = new IMessageGUILD(data);
-                return execute(msg);
+                return execute(msg).then(async () => (await import("./plugins/AvalonSystem")).avalonSystem(msg));
             }
             return;
 
