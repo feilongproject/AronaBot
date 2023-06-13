@@ -151,7 +151,7 @@ export class IMessageGUILD extends IMessageCommon implements IntentMessage.GUILD
         super(msg, "GUILD");
         this.mentions = msg.mentions;
         this.guildName = saveGuildsTree[this.guild_id]?.name;
-        this.channelName = saveGuildsTree[this.guild_id]?.channel[this.channel_id]?.name;
+        this.channelName = saveGuildsTree[this.guild_id]?.channels[this.channel_id]?.name;
 
         log.info(`频道{${this.guildName}}[${this.channelName}|${this.channel_id}](${this.author.username}|${this.author.id})${this._atta}: ${this.content}`);
 

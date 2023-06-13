@@ -40,7 +40,7 @@ declare global {
     interface SaveGuild {
         name: string;
         id: string;
-        channel: { [channelId: string]: SaveChannel };
+        channels: { [channelId: string]: SaveChannel };
     }
     interface SaveChannel {
         name: string;

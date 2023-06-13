@@ -102,14 +102,14 @@ export async function loadGuildTree(init?: boolean) {
     if (!guildData) return;
     for (const guild of guildData.data) {
         if (init) log.mark(`${guild.name}(${guild.id})`);
-        if (!saveGuildsTree[guild.id]) saveGuildsTree[guild.id] = { ...guild, channel: {} };
+        if (!saveGuildsTree[guild.id]) saveGuildsTree[guild.id] = { ...guild, channels: {} };
         else saveGuildsTree[guild.id].name = guild.name;
 
         const channelData = await client.channelApi.channels(guild.id).catch(err => log.error(err));
         if (!channelData) return;
         for (const channel of channelData.data) {
             if (init) log.mark(`${guild.name}(${guild.id})-${channel.name}(${channel.id})-father:${channel.parent_id}`);
-            saveGuildsTree[guild.id].channel[channel.id] = { name: channel.name, id: channel.id };
+            saveGuildsTree[guild.id].channels[channel.id] = { name: channel.name, id: channel.id };
         }
     }
 }

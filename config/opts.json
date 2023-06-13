@@ -150,6 +150,20 @@
                 "describe": "查询ba服务器状态"
             }
         },
+        "AvalonSystem": {
+            "addWatchList": {
+                "reg": "^watch\\s*(\\d*)$",
+                "fnc": "addWatchList",
+                "type": ["GUILD", "DIRECT"],
+                "describe": "向阿瓦隆系统添加监控列表"
+            },
+            "unWatchList": {
+                "reg": "^unwatch\\s*(\\d*)$",
+                "fnc": "unWatchList",
+                "type": ["GUILD", "DIRECT"],
+                "describe": "向阿瓦隆系统删除监控列表"
+            }
+        },
         "channelManager": {
             "meituChannel": {
                 "reg": ".+",
@@ -157,14 +171,6 @@
                 "channelAllows": ["meitu"],
                 "type": ["GUILD"],
                 "describe": "美图区自动禁言纯文字发言"
-            }
-        },
-        "AvalonSystem": {
-            "addWatchList": {
-                "reg": "^watch\\s*(\\d*)$",
-                "fnc": "addWatchList",
-                "type": ["DIRECT"],
-                "describe": "向阿瓦隆系统添加监控列表"
             }
         }
     },
