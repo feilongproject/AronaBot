@@ -164,9 +164,7 @@
                 "channelAllows": ["AvalonSystem"],
                 "type": ["GUILD", "DIRECT"],
                 "describe": "向阿瓦隆系统删除监控列表"
-            }
-        },
-        "channelManager": {
+            },
             "meituChannel": {
                 "reg": ".+",
                 "fnc": "meituChannel",
