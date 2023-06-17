@@ -197,23 +197,23 @@ export async function flushCDNCache(msg: IMessageDIRECT) {
     })
     ).then(res => res.json()).then(async (json: UpyunPurge) => {
         for (const [i, _result] of json.result.entries()) {
-            const sendStr: string[] = [`刷新URL ${i + 1}/${json.result.length}`];
             const p = path.parse(new URL(_result.url).pathname);
-            sendStr.push(`${p.dir}/${p.name}`, `> status: ${_result.status}, code: ${_result.code}`);
-            await msg.sendMsgEx({ content: sendStr.join("\n") });
-        }
-        return
-    }).then(async () => {
-        for (const [i, url] of lastestImageUrls.entries()) {
-            const sendStr: string[] = [`加载URL ${i + 1}/${lastestImageUrls.length}`];
-            await fetch(url, { headers: { "user-agent": "QQShareProxy" } }).then(res => {
-                return res.buffer();
-            }).then(buff => {
-                const p = path.parse(new URL(url).pathname);
-                sendStr.push(`${p.dir}/${p.name}`, `> status: ok`);
-                return fs.writeFileSync(`/tmp/randPic/${new Date()}`, buff);
-            }).then(() => {
-                return msg.sendMsgEx({ content: sendStr.join("\n") });
+            await msg.sendMsgEx({
+                content: `刷新URL ${i + 1}/${json.result.length}` +
+                    `\n${p.dir}/${p.name}` +
+                    `\n> status: ${_result.status}, code: ${_result.code}`
+            }).then(() => fetch(_result.url, {
+                headers: { "user-agent": "QQShareProxy" },
+            })).then(res => res.buffer()).then(buff => msg.sendMsgEx({
+                content: `加载URL ${i + 1}/${lastestImageUrls.length}` +
+                    `\n${p.dir}/${p.name}` +
+                    `\nsize: ${(buff.length / 1024).toFixed(2)}K`,
+                imageFile: buff,
+            })).catch(err => {
+                log.error(err);
+                msg.sendMsgEx({
+                    content: String(err).replaceAll(".", "。"),
+                });
             });
         }
     });
