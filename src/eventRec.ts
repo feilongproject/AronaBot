@@ -34,7 +34,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             const data = event.msg as any as IntentMessage.GUILD_MESSAGES__body;
             if (global.devEnv && !adminId.includes(data.author.id)) return;
             const msg = new IMessageGUILD(data);
-            return execute(msg).then(async () => (await import("./plugins/AvalonSystem")).avalonSystem(msg));
+            return execute(msg).then(async () => import("./plugins/AvalonSystem").then(e => e.avalonSystem(msg)));
         }
 
         case "DIRECT_MESSAGE": {
@@ -42,7 +42,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             const data = event.msg as any as IntentMessage.DIRECT_MESSAGE__body;
             const msg = new IMessageDIRECT(data);
             global.redis.hSet(`directUid->Gid`, msg.author.id, msg.guild_id);
-            return execute(msg).then(() => import("./plugins/admin")).then(e => e.directToAdmin(msg));
+            return execute(msg).then(() => import("./plugins/admin").then(e => e.directToAdmin(msg)));
         }
         case "GUILDS": {
             log.mark(`重新加载频道树中`);

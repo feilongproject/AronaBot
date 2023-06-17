@@ -2,6 +2,12 @@ import { IMessageGUILD, IMessageDIRECT } from "../libs/IMessageEx";
 
 
 export async function avalonSystem(msg: IMessageGUILD) {
+    avalonSystemWatcher(msg).then(() => {
+        if (msg.channel_id == "43227251") return meituChannel(msg);
+    });
+}
+
+export async function avalonSystemWatcher(msg: IMessageGUILD) {
     const watchChannel = await redis.hGet(`AvalonSystem`, `watchChannel:${msg.author.id}`);
     if (!watchChannel) return;
 
@@ -84,7 +90,7 @@ function unauthorized(msg: IMessageGUILD | IMessageDIRECT) {
     return !((msg.messageType == "DIRECT" && adminId.includes(msg.author.id)) || msg.channel_id == "519695851");
 }
 
-export async function meituChannel(msg: IMessageDIRECT) {
+export async function meituChannel(msg: IMessageGUILD) {
     if (devEnv) return;
     if (msg.content == "当前版本不支持查看，请升级QQ版本") return;
     if (msg.content == "当前版本不支持该消息类型，请使用最新版本手机QQ查看") return;
