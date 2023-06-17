@@ -58,11 +58,12 @@ declare global {
 
     namespace IntentMessage {
         interface EventRespose<T> {
-            eventRootType: "GUILD_MESSAGES" | "DIRECT_MESSAGE" | "GUILDS" | "GUILD_MEMBERS" | "FORUMS_EVENT";
+            eventRootType: "GUILD_MESSAGES" | "DIRECT_MESSAGE" | "GUILDS" | "GUILD_MEMBERS" | "FORUMS_EVENT" | "GUILD_MESSAGE_REACTIONS";
             eventType: "MESSAGE_CREATE" | "MESSAGE_DELETE" |
             "AT_MESSAGE_CREATE" | "PUBLIC_MESSAGE_DELETE" |
             "DIRECT_MESSAGE_CREATE" | "DIRECT_MESSAGE_DELETE" |
-            "GUILD_MEMBER_ADD" | "GUILD_MEMBER_UPDATE" | "GUILD_MEMBER_REMOVE";
+            "GUILD_MEMBER_ADD" | "GUILD_MEMBER_UPDATE" | "GUILD_MEMBER_REMOVE" |
+            "MESSAGE_REACTION_ADD" | "MESSAGE_REACTION_REMOVE";
             eventId: string;
             msg: T;
         }
@@ -129,6 +130,21 @@ declare global {
             seq: number;
             seq_in_channel: string;
             timestamp: string;
+        }
+
+        type GUILD_MESSAGE_REACTIONS = EventRespose<GUILD_MESSAGE_REACTIONS__body>;
+        type GUILD_MESSAGE_REACTIONS__body = {
+            channel_id: string;
+            emoji: {
+                id: string;
+                type: number;
+            };
+            guild_id: string;
+            target: {
+                id: string;
+                type: number;
+            },
+            user_id: string;
         }
     }
 

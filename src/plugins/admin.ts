@@ -92,6 +92,7 @@ export async function mute(msg: IMessageGUILD) {
                 content: `<@${muteMember!.id}>(id: ${muteMember!.id})` +
                     `\n禁言${timeExec[2]}${timeExec[3]}` +
                     `\n原因: 晒卡` +
+                    `\n子频道: <#${msg.channel_id}>(id: ${msg.channel_id})` +
                     `\n处理人: <@${msg.author.id}>(id: ${msg.author.id})` +
                     `\n注意: 该消息由bot自动发送，如有异议联系<@${msg.author.id}>或<@${adminId[0]}>`,
                 channelId: await redis.hGet("mute:sendChannel", msg.guild_id)

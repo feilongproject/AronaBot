@@ -27,4 +27,9 @@ init().then(() => {
         return import("./eventRec").then(e => e.eventRec(data));
     });
 
+    global.ws.on("GUILD_MESSAGE_REACTIONS", async (data: IntentMessage.GUILD_MESSAGE_REACTIONS) => {
+        data.eventRootType = "GUILD_MESSAGE_REACTIONS";
+        return import("./eventRec").then(e => e.eventRec(data));
+    });
+
 });
