@@ -3,9 +3,11 @@ dist
 config/config.json
 log
 generate
+___*
 data/signData.json
 data/ostracismData.json*
 data/gachaPoolInfo.json
 data/studentInfo.json
 data/studentNameAlias.json
-___*
+data/dynamicPush.json
+data/aliasStudentNameLocal.json

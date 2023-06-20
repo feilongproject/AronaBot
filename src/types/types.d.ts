@@ -1,5 +1,5 @@
 import log4js from "log4js";
-//import { Browser } from "puppeteer";
+import { Browser } from "puppeteer";
 import { PoolConnection } from "mariadb";
 import { RedisClientType } from "@redis/client";
 import { IChannel, IMember, IUser, OpenAPI, WebsocketClient } from "qq-guild-bot";
@@ -16,7 +16,7 @@ declare global {
     var meId: string;
     var redis: RedisClientType;
     var mariadb: PoolConnection;
-    //var browser: Browser | null;
+    var browser: Browser;
     var botStatus: {
         startTime: Date;
         msgSendNum: number;

@@ -39,7 +39,7 @@ export function writeFileSyncEx(filePath: string, data: string | Buffer, options
     }
 }
 
-export async function pushToDB(table: string, data: { [key: string]: string }) {
+export async function pushToDB(table: string, data: { [key: string]: any; }) {
     if (devEnv) return;
 
     const keys: string[] = [];
@@ -48,10 +48,16 @@ export async function pushToDB(table: string, data: { [key: string]: string }) {
     for (const k in data) {
         keys.push(k);
         keyss.push("?");
-        values.push(data[k] || "");
+        values.push(typeof data[k] == "object" ? JSON.stringify(data[k]) : `${data[k]}`);
     }
     //log.debug(`INSERT INTO ${table} (${keys.join()}) VALUES (${keyss.join()})`);
     return mariadb.query(`INSERT INTO ${table} (${keys.join()}) VALUES (${keyss.join()})`, values).catch(err => {
+        log.error(err);
+    });
+}
+
+export async function searchDB(table: string, key: string, value: string) {
+    return mariadb.query(`SELECT * FROM ${table} WHERE ${key} = ?`, value).catch(err => {
         log.error(err);
     });
 }

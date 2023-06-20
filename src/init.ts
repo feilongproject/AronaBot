@@ -27,7 +27,7 @@ export async function init() {
     } else global.devEnv = false;
 
     log.info(`初始化：正在创建定时任务`);
-    //schedule.scheduleJob("0 * * * * ? ", async () => (await import("./plugins/biliDynamic")).taskPushBili());
+    if (!devEnv) schedule.scheduleJob("0 0/5 * * * ? ", async () => (await import("./plugins/biliDynamic")).mainCheck());
     schedule.scheduleJob("0 * * * * ? ", async () => {
         if (devEnv) {
             // log.debug(`当前正在测试环境`);
