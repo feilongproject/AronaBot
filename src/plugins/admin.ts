@@ -8,6 +8,49 @@ import child_process from "child_process";
 import { reloadStudentInfo } from "../libs/common";
 import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 
+export async function help(msg: IMessageDIRECT) {
+    if (!adminId.includes(msg.author.id)) return;
+
+    const optss: {
+        [fileName: string]: {
+            [optName: string]: {
+                reg: string;
+                fnc: string;
+                type: string[];
+                describe: string;
+                channelAllows?: string[];
+            }
+        }
+    } = (await import("../../config/opts.json")).default.command;
+
+    const sendStr: string[] = ["当前所有命令:"];
+    for (const optsName in optss) {
+        const opts = optss[optsName];
+        sendStr.push(`${optsName}`);
+        for (const optName in opts) {
+            const opt = opts[optName];
+            sendStr.push(
+                `╠ ${opt.fnc}`,
+                `┃ ┣ reg:  ${opt.reg}`,
+                `┃ ┣ type: ${opt.type}`,
+                `┃ ┗ desc: ${opt.describe}`,
+            );
+        }
+        sendStr.push("");
+    }
+    sendStr.push(
+        `常用:`,
+        `碧蓝档案(7487571598174764531)`,
+        `🕹ba攻略分享贴(7389666)`,
+        `BA彩奈测试频道(9919414431536104110)`,
+        `测试频道1(7519512)`,
+        "测试帖子频道(14432713)",
+    );
+
+    return msg.sendMsgEx({
+        content: sendStr.join("\n"),
+    });
+}
 
 export async function status(msg: IMessageDIRECT) {
     if (!adminId.includes(msg.author.id)) return;

@@ -2,8 +2,14 @@
     "desc": "命令总览json,按照顺序进行匹配",
     "command": {
         "admin": {
+            "help": {
+                "reg": "^/?help$",
+                "fnc": "help",
+                "type": ["DIRECT"],
+                "describe": "获取帮助"
+            },
             "ping": {
-                "reg": "^/?ping$",
+                "reg": "^/ping$",
                 "fnc": "ping",
                 "type": ["GUILD", "DIRECT"],
                 "describe": "检测数据库是否正常"

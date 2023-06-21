@@ -106,7 +106,6 @@ export async function activityStrategyPush(msg: IMessageDIRECT) {
         .then(text => msg.sendMsgEx({ content: `已发布\n${text}` }))
         .catch(err => msg.sendMsgEx({ content: `获取出错\n${err}` }));
 }
-}
 
 export async function studentEvaluation(msg: IMessageGUILD) {
     const reg = /\/?(角评|角色评价)(.*)/.exec(msg.content)!;

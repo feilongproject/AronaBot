@@ -36,8 +36,10 @@ export async function mainCheck() {
                     channelId: cId,
                     sendType: "GUILD",
                     imageFile: picInfo,
-                    content: `${bUser.bName} 更新了一条动态\nhttps://cdn.arona.schale.top/turn/b/${item.id_str}`,
+                    content: `${cId == "544252608" ? "" : `${bUser.bName} 更新了一条动态\n`}https://cdn.arona.schale.top/turn/b/${item.id_str}`,
                     msgId: await redis.get("lastestMsgId") || undefined,
+                }).catch(err => {
+                    log.error(err);
                 });
             }
 
@@ -61,7 +63,7 @@ async function checkUser(biliUserId: string, timezoneOffset = 0, offset = ""): P
         else throw new Error(JSON.stringify(json));
         //log.info(json.data.items);
     }).catch(err => {
-        log.error(err);
+        log.error(biliUserId, err);
         return [];
     });
 }
