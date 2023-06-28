@@ -26,6 +26,11 @@ qq频道碧蓝档案专属AronaBot
 #### 活动攻略
 > ![image](https://github.com/feilongproject/AronaBot/assets/43880786/b047ddf8-c7ea-4d4c-b695-36e8e2ccff37)
 
+#### 角评（角色评价）
+> ![image](https://github.com/feilongproject/AronaBot/assets/43880786/46add7cf-05af-4281-9c85-37794b04ef09)
+> ![image](https://github.com/feilongproject/AronaBot/assets/43880786/9ba57c9a-50c4-4474-b977-c6c9c30299fc)
+
+
 ### 命令设置
 > ![image](https://github.com/feilongproject/AronaBot/assets/43880786/8ac91e43-2e26-44cb-9692-26e07a36d380)
 
