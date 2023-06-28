@@ -135,7 +135,7 @@
                 "reg": "^刷新攻略$",
                 "fnc": "flushHandBookInfo",
                 "type": ["DIRECT"],
-                "describe": "刷新在又拍云上的cdn缓存"
+                "describe": "刷新本地攻略缓存"
             }
         },
         "commandSetting": {
@@ -144,7 +144,7 @@
                 "fnc": "commandSetting",
                 "channelAllows": ["all"],
                 "type": ["GUILD"],
-                "describe": "总力战一图流"
+                "describe": "对使用中的命令进行设置"
             }
         },
         "serverStatus": {
