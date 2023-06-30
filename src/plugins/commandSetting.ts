@@ -76,7 +76,7 @@ export async function commandSetting(msg: IMessageGUILD) {
         at_user: `<@${msg.author.id}> ${optStr}`,
         today_gacha: `当前卡池选择: ${status.server == "jp" ? "日服" : "国际服"}卡池`,
         total_gacha: `抽卡分析显示状态: ${status.analyzeHide == "true" ? "隐藏" : "显示"}`,
-        gacha_analyze: "注: 使用按钮可以快速设置(PC无法使用)",
+        gacha_analyze: "注: 使用按钮可以快速设置",
         img_size: "img #1px #1px",
         img_url: "  "
     }, "102024160_1673395908");

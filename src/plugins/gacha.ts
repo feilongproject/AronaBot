@@ -55,7 +55,7 @@ export async function gachaImage(msg: IMessageGUILD) {
         ...analyze,
         img_size: "img #1700px #980px",
         img_url: `https://ip.arona.schale.top/p/gacha/${imageName}`,
-    }, "102024160_1669972662").catch(err => {
+    }, "102024160_1687887014").catch(err => {
         log.error(err);
         return msg.sendMsgExRef({
             content: `发送消息时出现了错误 <@${adminId[0]}>`
