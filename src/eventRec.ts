@@ -30,7 +30,7 @@ type PluginFnc = (msg: IMessageDIRECT | IMessageGUILD, data?: string | number) =
 export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
     switch (event.eventRootType) {
         case "GUILD_MESSAGES": {
-            if (event.eventType != 'MESSAGE_CREATE') return;
+            if (!['AT_MESSAGE_CREATE', 'MESSAGE_CREATE'].includes(event.eventType)) return;
             const data = event.msg as any as IntentMessage.GUILD_MESSAGES__body;
             if (global.devEnv && !adminId.includes(data.author.id)) return;
             const msg = new IMessageGUILD(data);

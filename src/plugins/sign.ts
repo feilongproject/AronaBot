@@ -7,7 +7,7 @@ export async function sign(msg: IMessageGUILD) {
 
     var data = fs.readFileSync(signDataFile, { encoding: "utf-8" });
     if (data.trim() == "") data = "{}";
-    var signData: SignData = JSON.parse(data);
+    var signData: SignData.Root = JSON.parse(data);
 
     /**
      * ststus
@@ -85,7 +85,7 @@ export async function sign(msg: IMessageGUILD) {
     if (ststus != 3) {
         sendStr += `\n今日运势: ${todayLucky()}`;
         if (!signData.randomPoem) signData.randomPoem = { token: await getRandomPoemToken() };
-        return getRandomPoem(signData.randomPoem.token).then((poem: RandomPoemSentence | null) => {
+        return getRandomPoem(signData.randomPoem.token).then((poem: RandomPoem.Sentence | null) => {
             if (poem?.data) sendStr += `\n————————今日诗词————————\n《${poem.data.origin.title}》${poem.data.origin.author}\n${poem.data.origin.content.join("\n")}`;
             else sendStr += `今日诗词获取失败`;
             return msg.sendMsgExRef({ content: sendStr }).then(() => {
@@ -99,10 +99,106 @@ export async function sign(msg: IMessageGUILD) {
         return msg.sendMsgExRef({ content: sendStr });
     }
 }
+/*
+ {
+  "msg_id":"08f3fb8adca9d6ccf46710b4e66c38cba64e48a2cfa1a006",
+  "ark": {
+    "template_id": 23,
+    "kv": [
+      {
+        "key": "#DESC#",
+        "value": "desc"
+      },
+      {
+        "key": "#PROMPT#",
+        "value": "prompt"
+      },
+      {
+        "key": "#LIST#",
+        "obj": [
+          {
+            "obj_kv": [
+              {
+                "key": "desc",
+                "value": "需求标题：UI问题解决"
+              }
+            ]
+          },
+          {
+            "obj_kv": [
+              {
+                "key": "desc",
+                "value": "当前状态\"体验中\"点击下列动作直接扭转状态到："
+              }
+            ]
+          },
+          {
+            "obj_kv": [
+              {
+                "key": "desc",
+                "value": "已评审"
+              },
+              {
+                "key": "link",
+                "value": "https://ip.arona.schale.top/p/gacha/1687540764017.png"
+              }
+            ]
+          },
+          {
+            "obj_kv": [
+              {
+                "key": "desc",
+                "value": "已排期"
+              },
+              {
+                "key": "link",
+                "value": "https://ip.arona.schale.top/p/gacha/1687540764017.png"
+              }
+            ]
+          },
+          {
+            "obj_kv": [
+              {
+                "key": "desc",
+                "value": "开发中"
+              },
+              {
+                "key": "link",
+                "value": "https://ip.arona.schale.top/p/gacha/1687540764017.png"
+              }
+            ]
+          },
+          {
+            "obj_kv": [
+              {
+                "key": "desc",
+                "value": "增量测试中"
+              },
+              {
+                "key": "link",
+                "value": "https://ip.arona.schale.top/p/gacha/1687540764017.png"
+              }
+            ]
+          },
+          {
+            "obj_kv": [
+              {
+                "key": "desc",
+                "value": "请关注"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+*/
 
-function getRandomPoem(token: RandomPoemToken): Promise<RandomPoemSentence> {
+
+function getRandomPoem(token: RandomPoem.Token): Promise<RandomPoem.Sentence> {
     //log.debug(`geting sentence`);
-    var sentence: Promise<RandomPoemSentence> = fetch("https://v2.jinrishici.com/sentence", {
+    var sentence: Promise<RandomPoem.Sentence> = fetch("https://v2.jinrishici.com/sentence", {
         headers: {
             "X-User-Token": token.data,
         },
@@ -114,7 +210,7 @@ function getRandomPoem(token: RandomPoemToken): Promise<RandomPoemSentence> {
     return sentence;
 }
 
-async function getRandomPoemToken(): Promise<RandomPoemToken> {
+async function getRandomPoemToken(): Promise<RandomPoem.Token> {
     log.error(`get token`);
     return fetch("https://v2.jinrishici.com/token").then(res => {
         return res.json();
@@ -131,62 +227,67 @@ function todayLucky() {
     else return "■■■■";
 }
 
-interface SignData {
-    randomPoem: {
-        token: RandomPoemToken,
-    },
-    users: UserInfo[]
+
+namespace SignData {
+    export interface Root {
+        randomPoem: {
+            token: RandomPoem.Token;
+        };
+        users: UserInfo[];
+    }
+
+    interface UserInfo {
+        base: Member;
+        exp: Exp;
+        totalSignDay: number;
+        continueSignDay: number;
+        signHistory: SignHistory[];
+    }
+
+    interface Exp {
+        total: number;
+        history: ExpHistory[];
+    }
+
+    interface ExpHistory {
+        date: number;
+        num: number;
+        why: string;
+    }
+
+    interface SignHistory {
+        nowDate: number;
+        todayDate: number;
+    }
+
 }
 
-interface UserInfo {
-    base: Member,
-    exp: Exp,
-    totalSignDay: number,
-    continueSignDay: number,
-    signHistory: SignHistory[],
-}
+namespace RandomPoem {
+    export interface Token {
+        status: "success";
+        data: string;
+    }
 
-interface Exp {
-    total: number,
-    history: ExpHistory[],
-}
-
-interface ExpHistory {
-    date: number,
-    num: number,
-    why: string,
-}
-
-interface SignHistory {
-    nowDate: number,
-    todayDate: number,
-}
-
-interface RandomPoemToken {
-    status: "success",
-    data: string,
-}
-
-interface RandomPoemSentence {
-    status: "success" | "error",
-    data: {
-        id: string,
-        content: string,
-        popularity: number,
-        origin: {
-            title: string,
-            dynasty: string,
-            author: string,
-            content: string[],
-            translate: null,
-        },
-        matchTags: string[],
-        recommendedReason: string,
-        cacheAt: string,
-    },
-    token: string,
-    ipAddress: string,
-    warning: null,
-
-    errCode?: 1001 | 1002 | 2002 | 2003,
+    export interface Sentence {
+        status: "success" | "error";
+        data: {
+            id: string;
+            content: string;
+            popularity: number;
+            origin: {
+                title: string;
+                dynasty: string;
+                author: string;
+                content: string[];
+                translate: null;
+            },
+            matchTags: string[];
+            recommendedReason: string;
+            cacheAt: string;
+        };
+        token: string;
+        ipAddress: string;
+        warning: null;
+        errCode?: 1001 | 1002 | 2002 | 2003;
+    }
 }

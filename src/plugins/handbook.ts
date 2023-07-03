@@ -210,9 +210,9 @@ export async function flushCDNCache(msg: IMessageDIRECT) {
                 imageFile: buff,
             })).catch(err => {
                 log.error(err);
-                msg.sendMsgEx({
+                return msg.sendMsgEx({
                     content: String(err).replaceAll(".", "。"),
-                });
+                }).catch(() => { });
             });
         }
     });
