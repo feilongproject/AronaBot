@@ -90,7 +90,7 @@ export async function activityStrategyPush(msg: IMessageDIRECT) {
         const content =
             `<h1>该贴由BA彩奈bot自动爬取b站专栏并发送</h1>` +
             `<h1>作者: ${data.readInfo.author.name}</h1>` +
-            `<h1>来源: https://www.bilibili.com/read/cv${cv}</h1>` +
+            `<h1>来源: <a href="https://www.bilibili.com/read/cv${cv}">https://www.bilibili.com/read/cv${cv}</a></h1>` +
             `<h1>\u200b</h1>` +
             (data.readInfo.content as string).replaceAll(`<img data-src="`, `<img src="`);
         const title: string = data.readInfo.title;

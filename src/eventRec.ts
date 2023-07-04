@@ -40,6 +40,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
         case "DIRECT_MESSAGE": {
             if (event.eventType != 'DIRECT_MESSAGE_CREATE') return;
             const data = event.msg as any as IntentMessage.DIRECT_MESSAGE__body;
+            if (global.devEnv && !adminId.includes(data.author.id)) return;
             const msg = new IMessageDIRECT(data);
             global.redis.hSet(`directUid->Gid`, msg.author.id, msg.guild_id);
             return execute(msg).then(() => import("./plugins/admin").then(e => e.directToAdmin(msg)));
