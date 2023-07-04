@@ -1,21 +1,36 @@
 import fs from 'fs';
 import fetch from 'node-fetch';
 import config from '../../config/config.json';
+import { IMessageDIRECT } from './IMessageEx';
 
 
 const nameToId = { jp: 0, global: 1 };
 var key: keyof typeof nameToId;
 
+export async function sendToAdmin(content: string) {
+    const msg = new IMessageDIRECT({
+        id: await redis.get(`lastestMsgId`) || "08f3fb8adca9d6ccf46710b4e66c38cba64e48a2cfa1a006",
+    } as any, false).sendToAdmin(content);
+}
+
+export async function sleep(ms: number) {
+    return new Promise(resovle => { setTimeout(resovle, ms) });
+}
+
 export async function callWithRetry<T extends (...args: A) => Promise<R>, R, A extends Array<any>>(functionCall: (...args: A) => Promise<R>, args: Parameters<T>, retries = 0, errors: any[] = []): Promise<RetryResult<R>> {
     try {
         const result = await functionCall(...args);
-        return { result, errors: errors.join("\n") };
+        return { result, errors };
     } catch (err) {
         log.error(err);
         if (typeof err == "object") errors.push(JSON.stringify(err));
         else errors.push(String(err));
         if (retries < config.retryTime - 1) return await callWithRetry(functionCall, args, ++retries, errors);
-        else throw { errors: errors.join("\n") };
+        else {
+            if (args && args[0] && args[0].imageFile) args[0].imageFile = { type: "Buffer", length: args[0].imageFile.length };
+            log.error(`重试多次未成功 args:\n`, JSON.stringify(args[0]));
+            throw { errors: errors };
+        }
     }
 }
 

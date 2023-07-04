@@ -117,6 +117,14 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
             refer: this.message_reference?.message_id || "",
         }, another));
     }
+
+    async sendToAdmin(content: string) {
+        return this.sendMsgEx({
+            content,
+            sendType: "DIRECT",
+            guildId: await redis.hGet(`directUid->Gid`, adminId[0]),
+        });
+    }
 }
 
 export async function sendImage(option: SendMsgOption): Promise<IMessage> {
@@ -147,11 +155,13 @@ export class IMessageGUILD extends IMessageCommon implements IntentMessage.GUILD
     guildName: string;
     channelName: string;
 
-    constructor(msg: IntentMessage.GUILD_MESSAGES__body) {
+    constructor(msg: IntentMessage.GUILD_MESSAGES__body, register = true) {
         super(msg, "GUILD");
         this.mentions = msg.mentions;
         this.guildName = saveGuildsTree[this.guild_id]?.name;
         this.channelName = saveGuildsTree[this.guild_id]?.channels[this.channel_id]?.name;
+
+        if (!register) return;
 
         log.info(`频道{${this.guildName}}[${this.channelName}|${this.channel_id}](${this.author.username}|${this.author.id})${this._atta}: ${this.content}`);
 
@@ -170,13 +180,14 @@ export class IMessageGUILD extends IMessageCommon implements IntentMessage.GUILD
 export class IMessageDIRECT extends IMessageCommon implements IntentMessage.DIRECT_MESSAGE__body {
     direct_message: true;
     src_guild_id: string;
-    constructor(msg: IntentMessage.DIRECT_MESSAGE__body) {
+    constructor(msg: IntentMessage.DIRECT_MESSAGE__body, register = true) {
         super(msg, "DIRECT");
         this.direct_message = msg.direct_message;
         this.src_guild_id = msg.src_guild_id;
 
-        log.info(`私信{${this.guild_id}}(${this.author.username}|${this.author.id})${this._atta}: ${this.content}`);
+        if (!register) return;
 
+        log.info(`私信{${this.guild_id}}(${this.author.username}|${this.author.id})${this._atta}: ${this.content}`);
         this.pushToDB({ srcGid: this.src_guild_id });
     }
 }

@@ -26,18 +26,6 @@ export async function init() {
         log.mark("当前环境处于开发环境，请注意！");
     } else global.devEnv = false;
 
-    log.info(`初始化：正在创建定时任务`);
-    if (!devEnv) schedule.scheduleJob("0 0/5 * * * ? ", async () => (await import("./plugins/biliDynamic")).mainCheck());
-    schedule.scheduleJob("0 * * * * ? ", async () => {
-        if (devEnv) {
-            // log.debug(`当前正在测试环境`);
-            await redis.setEx("devEnv", 60, "1");
-        } else {
-            log.mark(`保存数据库中`);
-            await redis.save();
-        }
-    });
-
     log.info(`初始化：正在创建插件热加载监听`);
     chokidar.watch(`${global._path}/src/`,).on("change", async (filepath, stats) => {
         if (filepath.endsWith("src/init.ts") || filepath.endsWith("src/index.ts")) return;
@@ -94,6 +82,18 @@ export async function init() {
     await reloadStudentInfo("local").then(d => {
         log.info(`学生数据加载完毕 ${d}`);
     });
+
+    log.info(`初始化：正在创建定时任务`);
+    if (!devEnv) schedule.scheduleJob("0 0/5 * * * ? ", async () => (await import("./plugins/biliDynamic")).mainCheck());
+    schedule.scheduleJob("0 * * * * ? ", async () => {
+        if (devEnv) await redis.setEx("devEnv", 60, "1");
+        else {
+            log.mark(`保存数据库中`);
+            await redis.save();
+        }
+    });
+    if (devEnv) await redis.setEx("devEnv", 60, "1");
+
 }
 
 export async function loadGuildTree(init?: boolean) {

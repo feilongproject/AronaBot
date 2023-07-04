@@ -150,6 +150,6 @@ declare global {
 
     interface RetryResult<R> {
         result?: R;
-        errors: string;
+        errors: any[];
     }
 }

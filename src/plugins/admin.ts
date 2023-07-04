@@ -8,6 +8,7 @@ import child_process from "child_process";
 import { reloadStudentInfo } from "../libs/common";
 import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 
+
 export async function help(msg: IMessageDIRECT) {
     if (!adminId.includes(msg.author.id)) return;
 

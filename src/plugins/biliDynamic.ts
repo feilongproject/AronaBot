@@ -1,7 +1,7 @@
 import fetch from "node-fetch";
 import * as puppeteer from "puppeteer";
 import { sendImage } from "../libs/IMessageEx";
-import { pushToDB, searchDB, writeFileSyncEx } from "../libs/common";
+import { pushToDB, searchDB, sendToAdmin, sleep } from "../libs/common";
 
 
 const dynamicPushFilePath = `${_path}/data/dynamicPush.json`;
@@ -43,6 +43,8 @@ export async function mainCheck() {
                 });
             }
 
+            await sleep(5 * 1000);
+
         }
     }
 
@@ -55,12 +57,14 @@ async function checkUser(biliUserId: string, timezoneOffset = 0, offset = ""): P
     return fetch(`https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space?host_mid=${biliUserId}`, {
         headers: {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36 Edg/113.0.1774.57",
-            "Cookie": `DedeUserID=${biliUserId};`,
+            "Cookie": `buvid3=787EE807-E2BD-EF53-885A-E12E32E77CC214950infoc; b_nut=${(new Date().getTime() / 1000).toFixed(0)}; b_lsid=587410BF10_18922932796; _uuid=DA610A4AF-8E78-1B24-2F98-BBFF8FD486D1016609infoc; buvid4=2C2F7226-5028-EF70-A4B3-90D08DB8280E15822-023070504-cABoSJjJ1wNp8Ila+JI62fdsNbdFDFBFw7oqlJXWQ9Zp8rFuSqpCrg%3D%3D`,
         }
     }).then(res => res.json()).then((json: BiliDynamic.Root) => {
         //log.debug(json);
         if (!json.code) return json.data.items;
-        else throw new Error(JSON.stringify(json));
+        else return sendToAdmin(`api出错: ${JSON.stringify(json)}`).then(() => {
+            throw new Error(JSON.stringify(json));
+        });
         //log.info(json.data.items);
     }).catch(err => {
         log.error(biliUserId, err);
