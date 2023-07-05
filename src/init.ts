@@ -84,7 +84,7 @@ export async function init() {
     });
 
     log.info(`初始化：正在创建定时任务`);
-    if (!devEnv) schedule.scheduleJob("0 0/5 * * * ? ", async () => (await import("./plugins/biliDynamic")).mainCheck());
+    if (!devEnv) schedule.scheduleJob("0 0/10 * * * ? ", async () => (await import("./plugins/biliDynamic")).mainCheck());
     schedule.scheduleJob("0 * * * * ? ", async () => {
         if (devEnv) await redis.setEx("devEnv", 60, "1");
         else {

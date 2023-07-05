@@ -25,8 +25,10 @@ export async function callWithRetry<T extends (...args: A) => Promise<R>, R, A e
         log.error(err);
         if (typeof err == "object") errors.push(JSON.stringify(err));
         else errors.push(String(err));
-        if (retries < config.retryTime - 1) return await callWithRetry(functionCall, args, ++retries, errors);
-        else {
+        if (retries < config.retryTime - 1) {
+            await sleep(500);
+            return await callWithRetry(functionCall, args, ++retries, errors);
+        } else {
             if (args && args[0] && args[0].imageFile) args[0].imageFile = { type: "Buffer", length: args[0].imageFile.length };
             log.error(`重试多次未成功 args:\n`, JSON.stringify(args[0]));
             throw { errors: errors };
