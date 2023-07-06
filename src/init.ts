@@ -4,7 +4,7 @@ import { createClient } from 'redis';
 import schedule from "node-schedule";
 import { createOpenAPI, createWebsocket } from 'qq-guild-bot';
 import _log from './libs/logger';
-import { reloadStudentInfo } from './libs/common';
+import { reloadStudentInfo, sendToAdmin } from './libs/common';
 import config from '../config/config.json';
 
 export async function init() {
@@ -84,7 +84,10 @@ export async function init() {
     });
 
     log.info(`初始化：正在创建定时任务`);
-    if (!devEnv) schedule.scheduleJob("0 0/10 * * * ? ", async () => (await import("./plugins/biliDynamic")).mainCheck());
+    if (!devEnv) schedule.scheduleJob("0 0/10 * * * ? ", async () => (await import("./plugins/biliDynamic")).mainCheck().catch(err => {
+        log.error(err);
+        sendToAdmin(typeof err == "object" ? JSON.stringify(err) : String(err)).catch(() => { });
+    }));
     schedule.scheduleJob("0 * * * * ? ", async () => {
         if (devEnv) await redis.setEx("devEnv", 60, "1");
         else {

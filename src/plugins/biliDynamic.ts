@@ -1,17 +1,28 @@
 import fetch from "node-fetch";
+import { readFileSync } from "fs";
 import * as puppeteer from "puppeteer";
 import { sendImage } from "../libs/IMessageEx";
 import { pushToDB, searchDB, sendToAdmin, sleep } from "../libs/common";
 
 
 const dynamicPushFilePath = `${_path}/data/dynamicPush.json`;
+const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.67";
 
 export async function mainCheck() {
+
+    const cookies = await getCookie().catch(err => {
+        sendToAdmin(typeof err == "object" ? JSON.stringify(err) : String(err)).catch(() => { });
+    });
+    if (!cookies) return;
+
     const dynamicPush: DynamicPush = (await import(dynamicPushFilePath)).default;
 
     for (const bId in dynamicPush) {
         const bUser = dynamicPush[bId];
-        const dynamicItems = await checkUser(bId);
+        const dynamicItems = await checkUser(bId, cookies).catch(err => {
+            log.error(bUser.bName, bId, err);
+            return sendToAdmin(`api出错: ${bUser.bName} ${bId} ${JSON.stringify(err)}`).then(() => [] as BiliDynamic.Item[]);
+        });
 
         for (const item of dynamicItems) {
             const searchResult: BiliDynamic.DB[] | undefined = await searchDB("biliMessage", "msgId", item.id_str);
@@ -32,43 +43,99 @@ export async function mainCheck() {
 
             const picInfo = await screenshot(item.id_str, item.modules.module_author.pub_ts.toString());
             for (const cId in bUser.channels) {
-                await sendImage({
+                if (cId == "544252608") {
+                    if (item.type == "DYNAMIC_TYPE_FORWARD") continue;
+                    await sendImage({
+                        channelId: cId,
+                        sendType: "GUILD",
+                        imageFile: picInfo,
+                        content: `https://cdn.arona.schale.top/turn/b/${item.id_str}`,
+                        msgId: await redis.get("lastestMsgId") || undefined,
+                    }).catch(err => {
+                        log.error(err);
+                    });
+
+                } else await sendImage({
                     channelId: cId,
                     sendType: "GUILD",
                     imageFile: picInfo,
-                    content: `${cId == "544252608" ? "" : `${bUser.bName} 更新了一条动态\n`}https://cdn.arona.schale.top/turn/b/${item.id_str}`,
+                    content: `${bUser.bName} 更新了一条动态\nhttps://cdn.arona.schale.top/turn/b/${item.id_str}`,
                     msgId: await redis.get("lastestMsgId") || undefined,
                 }).catch(err => {
                     log.error(err);
                 });
             }
 
-            await sleep(5 * 1000);
-
+            await sleep(10 * 1000);
         }
+        await sleep(30 * 1000);
     }
 
     delete require.cache[dynamicPushFilePath];
 }
 
-async function checkUser(biliUserId: string, timezoneOffset = 0, offset = ""): Promise<BiliDynamic.Item[]> {
+//参考: https://github.com/SocialSisterYi/bilibili-API-collect/issues/686
+async function getCookie(): Promise<string> {
+    const biliCookie = await redis.get("biliCookie") || "";
+    const happy = await checkUser("1", biliCookie).then(items => items.length != 0).catch(err => false);
+    // log.debug(`happy ${happy}`);
+    if (happy) return biliCookie;
+
+    const newCookie = await fetch("https://space.bilibili.com/1/dynamic", {
+        headers: { "User-Agent": userAgent },
+    }).then(async res => res.headers.raw()["set-cookie"]).then(rawCookies => {//
+        return rawCookies.map(k => k.split(";")[0].trim()).join("; ");
+    });
+    if (!newCookie) throw "not get Cookie in headers";
+
+    const payload = readFileSync(`${_path}/data/biliPayload.txt`).toString();
+    const checkJson = await fetch("https://api.bilibili.com/x/internal/gaia-gateway/ExClimbWuzhi", {
+        headers: {
+            "Cookie": newCookie,
+            "User-Agent": userAgent,
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Language": "zh-CN,zh;q=0.9",
+            "Cache-Control": "no-cache",
+            "Content-Length": "6244",
+            "Content-Type": "application/json;charset=UTF-8",
+            "Dnt": "1",
+            "Origin": "https://space.bilibili.com",
+            "Pragma": "no-cache",
+            "Referer": "https://space.bilibili.com/1/dynamic",
+            "Sec-Ch-Ua": `"Not.A/Brand";v="8", "Chromium";v="114", "Microsoft Edge";v="114"`,
+            "Sec-Ch-Ua-Mobile": "?0",
+            "Sec-Ch-Ua-Platform": "Windows",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-site",
+        },
+        method: "POST",
+        body: payload,
+    }).then(res => res.json());
+    if (checkJson.code == 0 || checkJson.message == "0")
+        await redis.set("biliCookie", newCookie).then(() => sendToAdmin("new cookie got it"));
+
+    const newHappy = await checkUser("1", newCookie).then(items => items.length != 0).catch(err => false);
+    log.debug(`newHappy ${newHappy}`);
+
+    if (newHappy) return newCookie;
+    else throw "newHappy not happy";
+}
+
+async function checkUser(biliUserId: string, cookies: string): Promise<BiliDynamic.Item[]> {
 
     //log.debug(`https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space?offset=${offset}&host_mid=${biliUserId}&timezone_offset=${timezoneOffset}`);
     return fetch(`https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space?host_mid=${biliUserId}`, {
         headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36 Edg/113.0.1774.57",
-            "Cookie": `buvid3=787EE807-E2BD-EF53-885A-E12E32E77CC214950infoc; b_nut=${(new Date().getTime() / 1000).toFixed(0)}; b_lsid=587410BF10_18922932796; _uuid=DA610A4AF-8E78-1B24-2F98-BBFF8FD486D1016609infoc; buvid4=2C2F7226-5028-EF70-A4B3-90D08DB8280E15822-023070504-cABoSJjJ1wNp8Ila+JI62fdsNbdFDFBFw7oqlJXWQ9Zp8rFuSqpCrg%3D%3D`,
+            "User-Agent": userAgent,
+            "Cookie": cookies,
         }
     }).then(res => res.json()).then((json: BiliDynamic.Root) => {
         //log.debug(json);
         if (!json.code) return json.data.items;
-        else return sendToAdmin(`api出错: ${JSON.stringify(json)}`).then(() => {
-            throw new Error(JSON.stringify(json));
-        });
+        throw json;
         //log.info(json.data.items);
-    }).catch(err => {
-        log.error(biliUserId, err);
-        return [];
     });
 }
 

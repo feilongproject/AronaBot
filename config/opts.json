@@ -171,6 +171,14 @@
                 "type": ["GUILD", "DIRECT"],
                 "describe": "向阿瓦隆系统删除监控列表"
             }
+        },
+        "biliDynamic": {
+            "mainCheck": {
+                "reg": "^/?check$",
+                "fnc": "mainCheck",
+                "type": ["DIRECT"],
+                "describe": "手动进行一次更新检查"
+            }
         }
     },
     "channelAllows": {
