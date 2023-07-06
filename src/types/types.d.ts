@@ -2,7 +2,7 @@ import log4js from "log4js";
 import { Browser } from "puppeteer";
 import { PoolConnection } from "mariadb";
 import { RedisClientType } from "@redis/client";
-import { IChannel, IMember, IUser, OpenAPI, WebsocketClient } from "qq-guild-bot";
+import { IChannel, IMember, IUser, createOpenAPI, createWebsocket } from "qq-guild-bot";
 
 
 declare global {
@@ -11,8 +11,8 @@ declare global {
     var adminId: string[];
     var log: log4js.Logger;
     var _path: string;
-    var client: OpenAPI;
-    var ws: WebsocketClient;
+    var client: ReturnType<typeof createOpenAPI>;
+    var ws: ReturnType<typeof createWebsocket>;
     var meId: string;
     var redis: RedisClientType;
     var mariadb: PoolConnection;
