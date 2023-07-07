@@ -22,7 +22,7 @@ declare global {
         msgSendNum: number;
         imageRenderNum: number;
     }
-    var hotLoadStatus: boolean;
+    var hotLoadStatus: number;
     var saveGuildsTree: { [guildId: string]: SaveGuild };
     var studentInfo: StudentInfo;
 

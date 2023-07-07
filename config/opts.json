@@ -21,7 +21,7 @@
                 "describe": "查询bot与服务器状态"
             },
             "hotLoad": {
-                "reg": "^/?(开启|关闭)热(加载|更新)$",
+                "reg": "^/?热(加载|更新)(-?\\d+)$",
                 "fnc": "hotLoad",
                 "type": ["DIRECT"],
                 "describe": "开启或关闭热加载"

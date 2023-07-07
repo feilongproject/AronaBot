@@ -19,7 +19,7 @@ export async function init() {
         msgSendNum: 0,
         imageRenderNum: 0,
     }
-    global.hotLoadStatus = false;
+    global.hotLoadStatus = 0;
 
     if (process.argv.includes("--dev")) {
         global.devEnv = true;
@@ -31,12 +31,10 @@ export async function init() {
         if (filepath.endsWith("src/init.ts") || filepath.endsWith("src/index.ts")) return;
         if (!devEnv && !hotLoadStatus) return;
         if (require.cache[filepath]) {
+            hotLoadStatus--;
             log.mark(`文件 ${filepath} 正在进行热更新`);
             delete require.cache[filepath];
-            if (!devEnv) return client.directMessageApi.postDirectMessage((await redis.hGet(`directUid->Gid`, adminId[0]))!, {
-                content: `文件 ${filepath} 正在进行热更新`,
-                msg_id: await redis.get("lastestMsgId") || undefined,
-            });
+            if (!devEnv) return sendToAdmin(`文件 ${filepath} 正在进行热更新 ${hotLoadStatus}`);
         }
     });
 
@@ -44,12 +42,10 @@ export async function init() {
     chokidar.watch(`${global._path}/config/opts.json`).on("change", async (filepath, stats) => {
         if (!devEnv && !hotLoadStatus) return;
         if (require.cache[filepath]) {
+            hotLoadStatus--;
             log.mark(`指令配置文件正在进行热更新`);
             delete require.cache[filepath];
-            if (!devEnv) return client.directMessageApi.postDirectMessage((await redis.hGet(`directUid->Gid`, adminId[0]))!, {
-                content: `指令配置文件正在进行热更新`,
-                msg_id: await redis.get("lastestMsgId") || undefined,
-            });
+            if (!devEnv) return sendToAdmin(`指令配置文件正在进行热更新 ${hotLoadStatus}`);
         }
     });
 

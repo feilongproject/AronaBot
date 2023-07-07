@@ -120,7 +120,7 @@ async function getCookie(): Promise<string> {
     log.debug(`newHappy ${newHappy}`);
 
     if (newHappy) return newCookie;
-    else throw "newHappy not happy";
+    else throw "newCookie not happy";
 }
 
 async function checkUser(biliUserId: string, cookies: string): Promise<BiliDynamic.Item[]> {
