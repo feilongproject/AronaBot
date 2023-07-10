@@ -72,12 +72,14 @@ export async function commandSetting(msg: IMessageGUILD) {
             break;
     }
 
-    return msg.sendMarkdown("102024160_1668504873", {
+    return msg.sendMarkdown("102024160_1688641352", {
         at_user: `<@${msg.author.id}> ${optStr}`,
         today_gacha: `当前卡池选择: ${status.server == "jp" ? "日服" : "国际服"}卡池`,
         total_gacha: `抽卡分析显示状态: ${status.analyzeHide == "true" ? "隐藏" : "显示"}`,
         gacha_analyze: "注: 使用按钮可以快速设置",
-        img_size: "img #1px #1px",
-        img_url: "  "
+        gacha_img_size: "img #-1px #1px",
+        gacha_img_url: "  ",
+        user_img_size: "img #-1px #1px",
+        user_img_url: "  ",
     }, "102024160_1673395908");
 }

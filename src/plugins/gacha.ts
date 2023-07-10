@@ -50,11 +50,13 @@ export async function gachaImage(msg: IMessageGUILD) {
             `\n${analyze?.gacha_analyze}`,
         imageUrl: `https://ip.arona.schale.top/p/gacha/${imageName}`,
     });
-    return msg.sendMarkdown("102024160_1668504873", {
+    return msg.sendMarkdown("102024160_1688641352", {
         at_user: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)`,
         ...analyze,
-        img_size: "img #1700px #980px",
-        img_url: `https://ip.arona.schale.top/p/gacha/${imageName}`,
+        gacha_img_size: "img #1700px #980px",
+        gacha_img_url: `https://ip.arona.schale.top/p/gacha/${imageName}`,
+        user_img_size: "img #-1px #1px",
+        user_img_url: "  ",
     }, "102024160_1687887014").catch(err => {
         log.error(err);
         return msg.sendMsgExRef({
