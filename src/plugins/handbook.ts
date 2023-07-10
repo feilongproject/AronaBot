@@ -1,11 +1,13 @@
 import fs from "fs";
+import path from "path";
 import fetch from "node-fetch";
 import * as cheerio from "cheerio";
+import imageSize from "image-size";
 import { findStudentInfo, settingUserConfig } from "../libs/common";
 import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 import config from "../../config/config.json";
 
-var handBookInfo: HandbookInfo.Root = JSON.parse(fs.readFileSync(`${_path}/data/handbook/info.json`).toString());
+var handBookInfo: HandbookInfo.Root = JSON.parse(fs.readFileSync(`${config.picPath.handbookRoot}/info.json`).toString());
 const noSetServerMessage = `\n(未指定/未设置服务器, 默认使用国际服)`;
 const getErrorMessage = `发送时出现了一些问题<@${adminId[0]}>\n这可能是因为腾讯获取图片出错导致, 请稍后重试\n`;
 const needUpdateMessage = `若数据未更新，请直接@bot管理`;
@@ -159,8 +161,10 @@ async function getServer(content: string, aid: string) {
 }
 
 async function getLastestImage(appname: string, type = "all"): Promise<HandbookInfo.Data> {
-    const lastestData: HandbookInfo.Data = JSON.parse(JSON.stringify(handBookInfo[appname][type]));
+    const lastestData = handBookInfo[appname][type];
+    const size = imageSize(`${config.picPath.handbookRoot}/${appname}/${type}.png`);
     return {
+        ...size as any,
         info: updateTimeMessage + lastestData.updateTime + lastestData.info,
         updateTime: lastestData.updateTime,
         url: await redis.hGet(`cache:handbook`, `baseUrl`) + `/${appname}/${type}.png!HandbookImageCompress?expired=${lastestData.updateTime}`,
@@ -170,39 +174,36 @@ async function getLastestImage(appname: string, type = "all"): Promise<HandbookI
 export async function flushHandBookInfo(msg: IMessageDIRECT) {
     if (!adminId.includes(msg.author.id)) return;
     handBookInfo = JSON.parse(fs.readFileSync(`${_path}/data/handbook/info.json`).toString());
-    const preheatList: { url: string; field: string; value: string; }[] = [];
-    var newPreheat = 0;
+    const preheatList: (HandbookInfo.Data & { field: string; isNew: boolean; })[] = [];
 
     for (const appname in handBookInfo) {
         for (const type in handBookInfo[appname]) {
             const data = await getLastestImage(appname, type);
             const _updateTime = await redis.hGet(`cache:handbook`, `${appname}:${type}`);
-            if (_updateTime != data.updateTime) newPreheat++;
             preheatList.push({
-                url: data.url,
+                ...data,
                 field: `${appname}:${type}`,
-                value: data.updateTime,
+                isNew: _updateTime != data.updateTime,
             });
         }
     }
 
-    return preheat(preheatList.map(value => value.url)).then(() =>
-        redis.hSet(`cache:handbook`, preheatList.map(v => ([v.field, v.value] as [string, string])))
-    ).then(() => msg.sendMsgEx({
-        content: `攻略刷新成功` +
-            `\n有效刷新: ${newPreheat}`,
-    }));
-}
+    for (let i = 0; i < preheatList.length; i++) {
+        const data = preheatList[i];
+        const p = path.parse(new URL(data.url).pathname);
 
-async function preheat(urls: string[]): Promise<UpyunPurge> {
-    return fetch("https://api.upyun.com/preheat", {
-        method: "POST",
-        headers: {
-            "Authorization": `Bearer ${await redis.hGet("setting:global", "upyunToken")}`,
-            "content-type": "application/json",
-        },
-        body: JSON.stringify({ url: urls.join("\n") }),
-    }).then(res => res.json());
+        await fetch(data.url, {
+            headers: { "user-agent": "QQShareProxy" },
+        }).then(res => res.buffer()).then(buff => msg.sendMsgEx({
+            content: `${i + 1}/${preheatList.length}  ----  ${data.updateTime}` +
+                `\n${p.dir}/${p.name}` +
+                `\nsize: ${(buff.length / 1024).toFixed(2)}K ---- ${data.width}x${data.height}` +
+                `\nisNew: ${data.isNew}`,
+        })).then(() => redis.hSet(`cache:handbook`, data.field, data.updateTime)).catch(err => {
+            log.error(err);
+            msg.sendMsgEx({ content: JSON.stringify(err).replaceAll(".", "。") });
+        }).catch(() => { });
+    }
 }
 
 
@@ -214,17 +215,10 @@ namespace HandbookInfo {
     }
 
     export interface Data {
+        height: number;
+        width: number;
         url: string;
         info: string;
         updateTime: string;
     }
-}
-
-interface UpyunPurge {
-    result: {
-        code: number;
-        status: string;
-        task_id: string;
-        url: string;
-    }[];
 }
