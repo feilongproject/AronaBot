@@ -128,8 +128,8 @@ async function checkUser(biliUserId: string, cookies: string): Promise<BiliDynam
     //log.debug(`https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space?offset=${offset}&host_mid=${biliUserId}&timezone_offset=${timezoneOffset}`);
     return fetch(`https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space?host_mid=${biliUserId}`, {
         headers: {
-            "User-Agent": userAgent,
-            "Cookie": cookies,
+            "User-Agent": "Mozilla/5.0",// userAgent,
+            "Cookie": "SESSDATA=feilongproject.com;", //cookies, //`SESSDATA=feilongproject.com;${cookies}`,
         }
     }).then(res => res.json()).then((json: BiliDynamic.Root) => {
         //log.debug(json);

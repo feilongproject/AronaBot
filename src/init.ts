@@ -80,7 +80,7 @@ export async function init() {
     });
 
     log.info(`初始化：正在创建定时任务`);
-    if (!devEnv) schedule.scheduleJob("0 0/10 * * * ? ", async () => (await import("./plugins/biliDynamic")).mainCheck().catch(err => {
+    if (!devEnv) schedule.scheduleJob("0 0/5 * * * ? ", async () => (await import("./plugins/biliDynamic")).mainCheck().catch(err => {
         log.error(err);
         sendToAdmin(typeof err == "object" ? JSON.stringify(err) : String(err)).catch(() => { });
     }));
