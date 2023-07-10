@@ -1,15 +1,15 @@
-import path from "path";
-import fetch from "node-fetch";
 import fs from "fs";
+import fetch from "node-fetch";
 import * as cheerio from "cheerio";
 import { findStudentInfo, settingUserConfig } from "../libs/common";
 import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 import config from "../../config/config.json";
 
-var handBookInfo: HandbookInfo = JSON.parse(fs.readFileSync(`${_path}/data/handbook/info.json`).toString());
+var handBookInfo: HandbookInfo.Root = JSON.parse(fs.readFileSync(`${_path}/data/handbook/info.json`).toString());
 const noSetServerMessage = `\n(未指定/未设置服务器, 默认使用国际服)`;
 const getErrorMessage = `发送时出现了一些问题<@${adminId[0]}>\n这可能是因为腾讯获取图片出错导致, 请稍后重试\n`;
 const needUpdateMessage = `若数据未更新，请直接@bot管理`;
+const updateTimeMessage = `\n图片更新时间: `;
 
 
 export async function totalAssault(msg: IMessageGUILD) {
@@ -158,83 +158,66 @@ async function getServer(content: string, aid: string) {
     return hasServer;
 }
 
-async function getLastestImage(appname: string, type = "all"): Promise<HandbookDataLastest> {
-    const expired = await getExpired(`${appname}:${type}`);
-    const lastestData = handBookInfo[appname].lastest[type];
+async function getLastestImage(appname: string, type = "all"): Promise<HandbookInfo.Data> {
+    const lastestData = handBookInfo[appname][type];
+    lastestData.info = updateTimeMessage + lastestData.updateTime + lastestData.info;
     return {
         ...lastestData,
-        url: handBookInfo["baseURL"].lastest + lastestData.url + `!HandbookImageCompress?expired=${expired}`,
+        url: await redis.hGet(`cache:handbook`, `baseUrl`) + `/${appname}/${type}.png!HandbookImageCompress?expired=${lastestData.updateTime}`,
     };
-}
-
-export async function flushCDNCache(msg: IMessageDIRECT) {
-    if (!adminId.includes(msg.author.id)) return;
-
-    const upyunToken = await redis.hGet("setting:global", "upyunToken");
-    const redisHSetData: [string, string][] = [], _timestamp = new Date().getTime().toString();
-    const lastestImageUrls: string[] = [];
-    for (const appKey in handBookInfo) {
-        const lastestData = handBookInfo[appKey].lastest;
-        if (typeof lastestData == "string") continue;
-        else for (const typeKey in lastestData) {
-            lastestImageUrls.push(handBookInfo["baseURL"].lastest + lastestData[typeKey].url + `!HandbookImageCompress?expired=${_timestamp}`);
-            redisHSetData.push([`${appKey}:${typeKey}`, _timestamp]);
-        }
-    }
-
-    return redis.hSet("setting:expired", redisHSetData).then(() => {
-        const sendStr = [`已设置缓存key值为${_timestamp}`];
-        for (const [d] of redisHSetData) sendStr.push(d);
-        return msg.sendMsgEx({ content: sendStr.join("\n") });
-    }).then(() => fetch("https://api.upyun.com/purge", {
-        method: "POST",
-        headers: {
-            "Authorization": `Bearer ${upyunToken}`,
-            "content-type": "application/json",
-        },
-        body: JSON.stringify({ "urls": lastestImageUrls.join("\n") }),
-    })
-    ).then(res => res.json()).then(async (json: UpyunPurge) => {
-        for (const [i, _result] of json.result.entries()) {
-            const p = path.parse(new URL(_result.url).pathname);
-            await msg.sendMsgEx({
-                content: `刷新URL ${i + 1}/${json.result.length}` +
-                    `\n${p.dir}/${p.name}` +
-                    `\n> status: ${_result.status}, code: ${_result.code}`
-            }).then(() => fetch(_result.url, {
-                headers: { "user-agent": "QQShareProxy" },
-            })).then(res => res.buffer()).then(buff => msg.sendMsgEx({
-                content: `加载URL ${i + 1}/${lastestImageUrls.length}` +
-                    `\n${p.dir}/${p.name}` +
-                    `\nsize: ${(buff.length / 1024).toFixed(2)}K`,
-                imageFile: buff,
-            })).catch(err => {
-                log.error(err);
-                return msg.sendMsgEx({
-                    content: String(err).replaceAll(".", "。"),
-                }).catch(() => { });
-            });
-        }
-    });
 }
 
 export async function flushHandBookInfo(msg: IMessageDIRECT) {
+    if (!adminId.includes(msg.author.id)) return;
     handBookInfo = JSON.parse(fs.readFileSync(`${_path}/data/handbook/info.json`).toString());
-    return msg.sendMsgEx({ content: "handBookInfo刷新成功" });
+    const preheatList: { url: string; field: string; value: string; }[] = [];
+    var newPreheat = 0;
+
+    for (const appname in handBookInfo) {
+        for (const type in handBookInfo[appname]) {
+            const data = await getLastestImage(appname, type);
+            const _updateTime = await redis.hGet(`cache:handbook`, `${appname}:${type}`);
+            if (_updateTime != data.updateTime) newPreheat++;
+            preheatList.push({
+                url: data.url,
+                field: `${appname}:${type}`,
+                value: data.updateTime,
+            });
+        }
+    }
+
+    return preheat(preheatList.map(value => value.url)).then(() =>
+        redis.hSet(`cache:handbook`, preheatList.map(v => ([v.field, v.value] as [string, string])))
+    ).then(() => msg.sendMsgEx({
+        content: `攻略刷新成功` +
+            `\n有效刷新: ${newPreheat}`,
+    }));
+}
+
+async function preheat(urls: string[]): Promise<UpyunPurge> {
+    return fetch("https://api.upyun.com/preheat", {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${await redis.hGet("setting:global", "upyunToken")}`,
+            "content-type": "application/json",
+        },
+        body: JSON.stringify({ url: urls.join("\n") }),
+    }).then(res => res.json());
 }
 
 
-interface HandbookInfo {
-    [appname: string]: {
-        lastest: {
-            [type: string]: HandbookDataLastest;
+namespace HandbookInfo {
+    export interface Root {
+        [appname: string]: {
+            [type: string]: Data;
         };
-    };
-}
+    }
 
-interface HandbookDataLastest {
-    url: string;
-    info: string;
+    export interface Data {
+        url: string;
+        info: string;
+        updateTime: string;
+    }
 }
 
 interface UpyunPurge {

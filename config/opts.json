@@ -125,12 +125,6 @@
                 "type": ["GUILD"],
                 "describe": "获取指定学生的评价"
             },
-            "flushCDNCache": {
-                "reg": "^刷新cdn$",
-                "fnc": "flushCDNCache",
-                "type": ["DIRECT"],
-                "describe": "刷新在又拍云上的cdn缓存"
-            },
             "flushHandBookInfo": {
                 "reg": "^刷新攻略$",
                 "fnc": "flushHandBookInfo",
