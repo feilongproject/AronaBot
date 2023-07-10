@@ -159,10 +159,10 @@ async function getServer(content: string, aid: string) {
 }
 
 async function getLastestImage(appname: string, type = "all"): Promise<HandbookInfo.Data> {
-    const lastestData = handBookInfo[appname][type];
-    lastestData.info = updateTimeMessage + lastestData.updateTime + lastestData.info;
+    const lastestData: HandbookInfo.Data = JSON.parse(JSON.stringify(handBookInfo[appname][type]));
     return {
-        ...lastestData,
+        info: updateTimeMessage + lastestData.updateTime + lastestData.info,
+        updateTime: lastestData.updateTime,
         url: await redis.hGet(`cache:handbook`, `baseUrl`) + `/${appname}/${type}.png!HandbookImageCompress?expired=${lastestData.updateTime}`,
     };
 }
