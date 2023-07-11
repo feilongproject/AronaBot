@@ -70,13 +70,11 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
         return this.sendMsgEx(option);
     }
 
-    async sendMarkdown(templateId: string, _params?: { [key: string]: string }, keyboardId?: string) {
-        return callWithRetry(this._sendMarkdown, [this.channel_id, templateId, _params, keyboardId]);
+    async sendMarkdown(templateId: string, params: { [key: string]: string }, keyboardId?: string) {
+        return callWithRetry(this._sendMarkdown, [this.channel_id, templateId, params, keyboardId]);
     }
 
-    private async _sendMarkdown(channelId: string, templateId: string, _params?: { [key: string]: string }, keyboardId?: string) {
-        const params: { key: string; values: [string]; }[] = [];
-        for (const key in _params) params.push({ key, values: [_params[key]] });
+    private async _sendMarkdown(channelId: string, templateId: string, params: { [key: string]: string }, keyboardId?: string) {
         return fetch(`https://api.sgroup.qq.com/channels/${channelId}/messages`, {
             method: "POST",
             headers: {
@@ -86,7 +84,9 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
             body: JSON.stringify({
                 markdown: {
                     custom_template_id: templateId,
-                    params: params,
+                    params: Object.entries(params).map(([key, value]) => {
+                        return { key, values: [value] };
+                    }),
                 },
                 keyboard: { id: keyboardId },
             }),
