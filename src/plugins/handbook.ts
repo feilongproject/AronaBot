@@ -156,10 +156,10 @@ async function getExpired(appname: string) {
 
 async function getServer(content: string, aid: string) {
     var hasServer: { server: "jp" | "global"; message: string; } = { server: "global", message: undefined } as any;
-    const cmdServer = /日|jp/.test(content) ? "jp" : (/国际|g/.test(content) ? "global" : undefined);
+    const cmdServer = /(日|jp)/.test(content) ? "jp" : (/(国际|g)/.test(content) ? "global" : undefined);
     if (cmdServer) hasServer = { server: cmdServer, message: "" };
     const settingServer = (await settingUserConfig(aid, "GET", ["server"])).server as "jp" | "global" | undefined;
-    if (settingServer) hasServer = { server: settingServer, message: "" };
+    if (settingServer && !cmdServer) hasServer = { server: settingServer, message: "" };
     if (hasServer.message == undefined) hasServer.message = noSetServerMessage;
     return hasServer;
 }
