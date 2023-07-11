@@ -81,6 +81,12 @@ export async function hotLoad(msg: IMessageDIRECT) {
     return msg.sendMsgEx({ content: `已${msg.content}` });
 }
 
+export async function controlMarkdown(msg: IMessageDIRECT) {
+    if (!adminId.includes(msg.author.id)) return;
+    showMarkdown = /关闭/.test(msg.content) ? false : true;
+    return msg.sendMsgEx({ content: `已${msg.content}` });
+}
+
 export async function mute(msg: IMessageGUILD) {
     const author = msg.member;
     if (!author || !author.roles || !(author.roles.includes("2") || author.roles.includes("4") || author.roles.includes("5"))) return;

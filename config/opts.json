@@ -26,6 +26,12 @@
                 "type": ["DIRECT"],
                 "describe": "开启或关闭热加载"
             },
+            "controlMarkdown": {
+                "reg": "^/?(开启|关闭)md$",
+                "fnc": "controlMarkdown",
+                "type": ["DIRECT"],
+                "describe": "开启或关闭热加载"
+            },
             "mute": {
                 "reg": "(抽卡|晒卡)?禁言(\\d+)((分钟?|m)|(小?时|h)|(天|d))",
                 "fnc": "mute",

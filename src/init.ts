@@ -20,6 +20,7 @@ export async function init() {
         imageRenderNum: 0,
     }
     global.hotLoadStatus = 0;
+    global.showMarkdown = true;
 
     if (process.argv.includes("--dev")) {
         global.devEnv = true;

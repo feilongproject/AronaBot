@@ -43,14 +43,7 @@ export async function gachaImage(msg: IMessageGUILD) {
     const analyze = setting.analyzeHide == "true" ? null : await analyzeRandData(setting.server == "jp" ? "jp" : "global", msg.author.id, o);
     const imageName = await buildImage(o);
     if (devEnv) log.debug(imageName);
-    if (0) return msg.sendMsgEx({
-        content: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)` +
-            `\n${analyze?.today_gacha}` +
-            `\n${analyze?.total_gacha}` +
-            `\n${analyze?.gacha_analyze}`,
-        imageUrl: `https://ip.arona.schale.top/p/gacha/${imageName}`,
-    });
-    return msg.sendMarkdown("102024160_1688641352", {
+    if (showMarkdown) return msg.sendMarkdown("102024160_1688641352", {
         at_user: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)`,
         ...analyze,
         gacha_img_size: "img #1700px #980px",
@@ -65,6 +58,15 @@ export async function gachaImage(msg: IMessageGUILD) {
                 + `\n${JSON.stringify(err).replaceAll(".", " .")}`,
         });
     });
+
+    return msg.sendMsgEx({
+        content: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)` +
+            `\n${analyze?.today_gacha}` +
+            `\n${analyze?.total_gacha}` +
+            `\n${analyze?.gacha_analyze}`,
+        imageUrl: `https://ip.arona.schale.top/p/gacha/${imageName}`,
+    });
+
 }
 
 function cTime(server: "global" | "jp", times: 1 | 10, testStar?: 1 | 2 | 3): GachaPools {

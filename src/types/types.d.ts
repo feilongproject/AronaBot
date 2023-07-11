@@ -23,6 +23,7 @@ declare global {
         imageRenderNum: number;
     }
     var hotLoadStatus: number;
+    var showMarkdown: boolean;
     var saveGuildsTree: { [guildId: string]: SaveGuild };
     var studentInfo: StudentInfo;
 
