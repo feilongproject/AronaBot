@@ -3,15 +3,15 @@ import path from "path";
 import fetch from "node-fetch";
 import * as cheerio from "cheerio";
 import imageSize from "image-size";
-import { findStudentInfo, settingUserConfig } from "../libs/common";
 import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
+import { findStudentInfo, settingUserConfig } from "../libs/common";
 import config from "../../config/config.json";
 
 var handBookInfo: HandbookInfo.Root = JSON.parse(fs.readFileSync(`${config.picPath.handbookRoot}/info.json`).toString());
 const noSetServerMessage = `\n(未指定/未设置服务器, 默认使用国际服)`;
 const getErrorMessage = `发送时出现了一些问题<@${adminId[0]}>\n这可能是因为腾讯获取图片出错导致, 请稍后重试\n`;
 const needUpdateMessage = `若数据未更新，请直接@bot管理`;
-const updateTimeMessage = `\n图片更新时间: `;
+const updateTimeMessage = `图片更新时间：`;
 
 
 export async function totalAssault(msg: IMessageGUILD) {
@@ -20,7 +20,8 @@ export async function totalAssault(msg: IMessageGUILD) {
     return msg.sendMsgEx({
         content: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}总力战一图流)${message}` +
             `\n${needUpdateMessage}` +
-            `\n攻略制作: 夜猫${lastestImage.info}`,
+            `\n攻略制作: 夜猫` +
+            `\n${lastestImage.info}`,
         imageUrl: lastestImage.url,
     }).catch(err => {
         log.error(err);
@@ -33,7 +34,8 @@ export async function globalClairvoyance(msg: IMessageGUILD) {
     return msg.sendMsgEx({
         content: `<@${msg.author.id}> (千里眼)` +
             `\n${needUpdateMessage}` +
-            `\n攻略制作: 夜猫${lastestImage.info}`,
+            `\n攻略制作: 夜猫` +
+            `\n${lastestImage.info}`,
         imageUrl: lastestImage.url,
     }).catch(err => {
         log.error(err);
@@ -47,7 +49,8 @@ export async function activityStrategy(msg: IMessageGUILD) {
     return msg.sendMsgEx({
         content: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}活动一图流)${message}` +
             `\n${needUpdateMessage}` +
-            `\n攻略制作: 夜猫${lastestImage.info}`,
+            `\n攻略制作: 夜猫` +
+            `\n${lastestImage.info}`,
         imageUrl: lastestImage.url,
     }).catch(err => {
         log.error(err);
@@ -118,7 +121,8 @@ export async function studentEvaluation(msg: IMessageGUILD) {
             content: `<@${msg.author.id}> (角评2.0)` +
                 `\n未指定角色, 默认发送角评2.0` +
                 `\n${needUpdateMessage}` +
-                `\n攻略制作: 夜猫${lastestImage.info}`,
+                `\n攻略制作: 夜猫` +
+                `\n${lastestImage.info}`,
             imageUrl: lastestImage.url,
         }).catch(err => {
             log.error(err);

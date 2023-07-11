@@ -25,6 +25,7 @@
         "date-format": "^4.0.14",
         "exceljs": "^4.3.0",
         "form-data": "^4.0.0",
+        "image-size": "^1.0.2",
         "log4js": "^6.5.2",
         "mariadb": "^3.0.2",
         "node-schedule": "^2.1.0",
