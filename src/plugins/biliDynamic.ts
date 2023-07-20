@@ -142,15 +142,14 @@ async function checkUser(biliUserId: string, cookies: string): Promise<BiliDynam
 
 async function screenshot(biliDynamicId: string, biliDynamicPubTs: string): Promise<Buffer | undefined> {
 
-    if (!global.browser) global.browser = await puppeteer.launch({
+    if (!global.browser || !browser.isConnected()) global.browser = await puppeteer.launch({
         headless: true,
         args: ['--no-sandbox'],
     });
 
     const page = await browser.newPage();
     const cookies: puppeteer.Protocol.Network.Cookie[] = JSON.parse(readFileSync(browserCkFile).toString() || "[]");
-    page.setCookie(...cookies);
-    const pic = await page.setUserAgent(userAgent).then(() => page.setViewport({
+    const pic = await page.setCookie(...cookies).then(() => page.setUserAgent(userAgent)).then(() => page.setViewport({
         height: 500,
         width: 700,
         deviceScaleFactor: 3,
