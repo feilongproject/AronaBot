@@ -1,12 +1,13 @@
 import fetch from "node-fetch";
-import { readFileSync } from "fs";
+import { readFileSync, writeFileSync } from "fs";
 import * as puppeteer from "puppeteer";
 import { sendImage } from "../libs/IMessageEx";
 import { pushToDB, searchDB, sendToAdmin, sleep } from "../libs/common";
 
 
+const browserCkFile = `${_path}/data/ck.json`;
 const dynamicPushFilePath = `${_path}/data/dynamicPush.json`;
-const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.67";
+const userAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36 Edg/114.0.1823.79";
 
 export async function mainCheck() {
 
@@ -21,8 +22,9 @@ export async function mainCheck() {
         const bUser = dynamicPush[bId];
         const dynamicItems = await checkUser(bId, cookies).catch(err => {
             log.error(bUser.bName, bId, err);
-            return sendToAdmin(`api出错: ${bUser.bName} ${bId} ${JSON.stringify(err)}`).then(() => [] as BiliDynamic.Item[]);
-        });
+            return sendToAdmin(`api出错: ${bUser.bName} ${bId} ${JSON.stringify(err)}`.replaceAll(".", "。")).then(() => [] as BiliDynamic.Item[]);
+        }).catch(err => { });
+        if (!dynamicItems) continue;
 
         for (const item of dynamicItems) {
             const searchResult: BiliDynamic.DB[] | undefined = await searchDB("biliMessage", "msgId", item.id_str);
@@ -54,7 +56,6 @@ export async function mainCheck() {
                     }).catch(err => {
                         log.error(err);
                     });
-
                 } else await sendImage({
                     channelId: cId,
                     sendType: "GUILD",
@@ -147,10 +148,11 @@ async function screenshot(biliDynamicId: string, biliDynamicPubTs: string): Prom
     });
 
     const page = await browser.newPage();
-    const ua = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36 Edg/114.0.1823.51";
-    const pic = await page.setUserAgent(ua).then(() => page.setViewport({
+    const cookies: puppeteer.Protocol.Network.Cookie[] = JSON.parse(readFileSync(browserCkFile).toString() || "[]");
+    page.setCookie(...cookies);
+    const pic = await page.setUserAgent(userAgent).then(() => page.setViewport({
         height: 500,
-        width: 500,
+        width: 700,
         deviceScaleFactor: 3,
     })).then(() => page.goto(`https://m.bilibili.com/dynamic/${biliDynamicId}`, {
         waitUntil: "networkidle2",
@@ -175,6 +177,7 @@ async function screenshot(biliDynamicId: string, biliDynamicPubTs: string): Prom
             type: "jpeg",
         }) as Promise<Buffer>;
     });
+    writeFileSync(browserCkFile, JSON.stringify(await page.cookies()));
     await page.close();
     return pic;
 }
