@@ -8,7 +8,7 @@ const nameToId = { jp: 0, global: 1 };
 var key: keyof typeof nameToId;
 
 export async function sendToAdmin(content: string) {
-    const msg = new IMessageDIRECT({
+    return new IMessageDIRECT({
         id: await redis.get(`lastestMsgId`) || "08f3fb8adca9d6ccf46710b4e66c38cba64e48a2cfa1a006",
     } as any, false).sendToAdmin(content);
 }

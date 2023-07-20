@@ -42,7 +42,7 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
 
     async sendMsgEx(option: Partial<SendMsgOption>) {
         global.botStatus.msgSendNum++;
-        option.msgId = option.msgId || this.id;
+        option.msgId = option.msgId || this.id || await redis.get("lastestMsgId") || undefined;
         option.guildId = option.guildId || this.guild_id;
         option.channelId = option.channelId || this.channel_id;
         option.sendType = option.sendType || this.messageType;
@@ -127,7 +127,7 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
     }
 }
 
-export async function sendImage(option: SendMsgOption): Promise<IMessage> {
+async function sendImage(option: SendMsgOption): Promise<IMessage> {
     const { sendType, content, imagePath, imageFile, imageUrl, msgId, guildId, channelId } = option;
     const pushUrl = (sendType == "DIRECT") ? `https://api.sgroup.qq.com/dms/${guildId}/messages` : `https://api.sgroup.qq.com/channels/${channelId}/messages`;
     const formdata = new FormData();

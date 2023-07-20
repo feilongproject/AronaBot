@@ -1,13 +1,13 @@
 import fetch from "node-fetch";
-import { readFileSync, writeFileSync } from "fs";
 import * as puppeteer from "puppeteer";
-import { sendImage } from "../libs/IMessageEx";
+import { readFileSync, writeFileSync } from "fs";
+import { IMessageGUILD } from "../libs/IMessageEx";
 import { pushToDB, searchDB, sendToAdmin, sleep } from "../libs/common";
 
 
 const browserCkFile = `${_path}/data/ck.json`;
 const dynamicPushFilePath = `${_path}/data/dynamicPush.json`;
-const userAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36 Edg/114.0.1823.79";
+const userAgent = "Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.91 Mobile Safari/537.36 Edg/114.0.0.0";
 
 export async function mainCheck() {
 
@@ -45,23 +45,22 @@ export async function mainCheck() {
 
             const picInfo = await screenshot(item.id_str, item.modules.module_author.pub_ts.toString());
             for (const cId in bUser.channels) {
+                const msg = new IMessageGUILD({ id: await redis.get(`lastestMsgId`), } as any, false);
                 if (cId == "544252608") {
                     if (item.type == "DYNAMIC_TYPE_FORWARD") continue;
-                    await sendImage({
+                    await msg.sendMsgEx({
                         channelId: cId,
                         sendType: "GUILD",
                         imageFile: picInfo,
                         content: `https://cdn.arona.schale.top/turn/b/${item.id_str}`,
-                        msgId: await redis.get("lastestMsgId") || undefined,
                     }).catch(err => {
                         log.error(err);
                     });
-                } else await sendImage({
+                } else await msg.sendMsgEx({
                     channelId: cId,
                     sendType: "GUILD",
                     imageFile: picInfo,
                     content: `${bUser.bName} 更新了一条动态\nhttps://cdn.arona.schale.top/turn/b/${item.id_str}`,
-                    msgId: await redis.get("lastestMsgId") || undefined,
                 }).catch(err => {
                     log.error(err);
                 });
@@ -69,7 +68,7 @@ export async function mainCheck() {
 
             await sleep(10 * 1000);
         }
-        await sleep(30 * 1000);
+        await sleep(10 * 1000);
     }
 
     delete require.cache[dynamicPushFilePath];
@@ -143,17 +142,17 @@ async function checkUser(biliUserId: string, cookies: string): Promise<BiliDynam
 async function screenshot(biliDynamicId: string, biliDynamicPubTs: string): Promise<Buffer | undefined> {
 
     if (!global.browser || !browser.isConnected()) global.browser = await puppeteer.launch({
-        headless: true,
+        headless: !devEnv,
         args: ['--no-sandbox'],
     });
 
     const page = await browser.newPage();
     const cookies: puppeteer.Protocol.Network.Cookie[] = JSON.parse(readFileSync(browserCkFile).toString() || "[]");
     const pic = await page.setCookie(...cookies).then(() => page.setUserAgent(userAgent)).then(() => page.setViewport({
+        width: 500,
         height: 500,
-        width: 700,
         deviceScaleFactor: 3,
-    })).then(() => page.goto(`https://m.bilibili.com/dynamic/${biliDynamicId}`, {
+    })).then(() => page.goto(`https://t.bilibili.com/${biliDynamicId}`, {
         waitUntil: "networkidle2",
     })).then(() => page.evaluate(() => {
         const r = "#app > div > div";
@@ -161,6 +160,7 @@ async function screenshot(biliDynamicId: string, biliDynamicPubTs: string): Prom
         document.querySelector(`${r}.openapp-dialog.large`)?.remove();//删除阴影遮罩
         document.querySelector(`${r}.v-switcher.v-switcher--fluid`)?.remove();//删除"评论"
 
+        document.querySelector(`${r}.launch-app-btn.card-wrap > div > div.dyn-share`)?.remove()//删除分享至 (dynamic)
         document.querySelector(`${r}.launch-app-btn.card-wrap > div > div.dyn-header > div.dyn-header__right`)?.remove();//删除"关注"按钮 (dynamic)
         document.querySelector(`${r}.launch-app-btn.card-wrap > div > div.dyn-content > div.dyn-content__orig.reference > div.dyn-content__orig__additional`)?.remove();//删除"相关游戏" (dynamic)
 
@@ -172,8 +172,7 @@ async function screenshot(biliDynamicId: string, biliDynamicPubTs: string): Prom
 
     })).then(() => page.$("#app > div > div")).then(value => {
         if (value) return value.screenshot({
-            quality: 50,
-            type: "jpeg",
+            type: "png",
         }) as Promise<Buffer>;
     });
     writeFileSync(browserCkFile, JSON.stringify(await page.cookies()));
