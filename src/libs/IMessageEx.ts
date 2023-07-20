@@ -142,9 +142,7 @@ export async function sendImage(option: SendMsgOption): Promise<IMessage> {
             "Content-Type": formdata.getHeaders()["content-type"],
             "Authorization": `Bot ${config.initConfig.appID}.${config.initConfig.token}`,
         }, body: formdata
-    }).then(res => {
-        return res.json();
-    }).then(body => {
+    }).then(res => res.json()).then(body => {
         if (body.code) throw body;
         return body;
     });

@@ -150,10 +150,6 @@ export async function studentEvaluation(msg: IMessageGUILD) {
     });
 }
 
-async function getExpired(appname: string) {
-    return redis.hGet("setting:expired", appname);
-}
-
 async function getServer(content: string, aid: string) {
     var hasServer: { server: "jp" | "global"; message: string; } = { server: "global", message: undefined } as any;
     const cmdServer = /(日|jp)/.test(content) ? "jp" : (/(国际|g)/.test(content) ? "global" : undefined);

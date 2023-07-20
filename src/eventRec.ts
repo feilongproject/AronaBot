@@ -34,7 +34,8 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             const data = event.msg as any as IntentMessage.GUILD_MESSAGES__body;
             if (global.devEnv && !adminId.includes(data.author.id)) return;
             const msg = new IMessageGUILD(data);
-            return execute(msg).then(async () => import("./plugins/AvalonSystem").then(e => e.avalonSystem(msg)));
+            msg.content = msg.content.replaceAll("@BA彩奈", "<@!5671091699016759820>");
+            return execute(msg).then(() => import("./plugins/AvalonSystem").then(e => e.avalonSystem(msg)));
         }
 
         case "DIRECT_MESSAGE": {
