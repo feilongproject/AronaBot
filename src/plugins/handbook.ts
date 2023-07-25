@@ -194,6 +194,7 @@ export async function flushHandBookInfo(msg: IMessageDIRECT) {
 
         await fetch(data.url, {
             headers: { "user-agent": "QQShareProxy" },
+            timeout: 20 * 1000,
         }).then(res => res.buffer()).then(buff => msg.sendMsgEx({
             content: `${i + 1}/${preheatList.length}  ----  ${data.updateTime}` +
                 `\n${p.dir}/${p.name}` +
@@ -201,8 +202,8 @@ export async function flushHandBookInfo(msg: IMessageDIRECT) {
                 `\nisNew: ${data.isNew}`,
         })).then(() => redis.hSet(`cache:handbook`, data.field, data.updateTime)).catch(err => {
             log.error(err);
-            msg.sendMsgEx({ content: JSON.stringify(err).replaceAll(".", "。") });
-        }).catch(() => { });
+            return msg.sendMsgEx({ content: JSON.stringify(err).replaceAll(".", "。") });
+        }).catch(err => log.error(err));
     }
 }
 

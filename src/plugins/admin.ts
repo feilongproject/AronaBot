@@ -112,7 +112,7 @@ export async function mute(msg: IMessageGUILD) {
         return null;
     }).catch(err => {
         log.error(err);
-        return `获取出错: ${String(err).replaceAll(".", "。")}`;
+        return `获取成员信息出错: ${JSON.stringify(err).replaceAll(".", "。")}`;
     });
     if (alart) return msg.sendMsgExRef({ content: alart });
 
