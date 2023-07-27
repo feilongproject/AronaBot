@@ -68,7 +68,7 @@ export async function status(msg: IMessageDIRECT) {
     return msg.sendMsgEx({ content });
 }
 
-export async function ping(msg: IMessageDIRECT) {
+export async function ping(msg: IMessageGUILD | IMessageDIRECT) {
     if (!adminId.includes(msg.author.id)) return;
     return msg.sendMsgEx({ content: await global.redis.ping() });
 }
