@@ -2,6 +2,12 @@
     "desc": "命令总览json,按照顺序进行匹配",
     "command": {
         "admin": {
+            "updateGithubVersion": {
+                "reg": "^/?update$",
+                "fnc": "updateGithubVersion",
+                "type": ["DIRECT"],
+                "describe": "检查SchaleDB镜像仓库是否更新"
+            },
             "help": {
                 "reg": "^/?help$",
                 "fnc": "help",

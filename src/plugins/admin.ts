@@ -3,11 +3,33 @@ import qr from "qr-image";
 import Excel from "exceljs";
 import xlsx from 'node-xlsx';
 import format from "date-format";
+import * as cheerio from "cheerio";
 import { IUser } from "qq-guild-bot";
 import child_process from "child_process";
-import { reloadStudentInfo } from "../libs/common";
+import { reloadStudentInfo, sendToAdmin } from "../libs/common";
 import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 
+export async function updateGithubVersion(msg?: IMessageDIRECT) {
+    if (await redis.exists("push:ghUpdate")) return;
+    return fetch("https://p.prpr.cf/feilongproject/SchaleDB?host=github.com").then(res => res.text()).then(html => {
+        const text = cheerio.load(html)("#repo-content-pjax-container > div > div").text();
+        const regexp = /This branch is ((\d+) commits? ahead,? (of)?)?((\d+) commits? behind)?(up to date with)? lonqie(\/SchaleDB)?:main/;
+        const reg = regexp.exec(text);
+        if (!reg) throw "reg unmatched";
+
+        if (msg) return msg.sendMsgEx({ content: reg[0] });
+
+        const behind = reg[5];
+        if (behind) return sendToAdmin(`github updated ${behind}`).then(() => redis.setEx("push:ghUpdate", 60 * 60 * 1, behind) as any);
+        // log.debug("ahead:", reg[2], "behind:", reg[5], reg[6]);
+    }).catch(err => {
+        log.error(err);
+        sendToAdmin(String(err).replaceAll(".", "。"));
+    }).catch(err => {
+        log.error(err);
+    });
+
+}
 
 export async function help(msg: IMessageDIRECT) {
     if (!adminId.includes(msg.author.id)) return;
