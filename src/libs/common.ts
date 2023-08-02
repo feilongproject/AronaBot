@@ -112,7 +112,7 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
             if (aliasStudentNameLocal[d.Name])//增加本地别名
                 _studentInfo[d.Id].name.push(...aliasStudentNameLocal[d.Name])
 
-            if (!fs.existsSync(`${config.picPath.characters}/Student_Portrait_${devName}.png`))
+            if (!fs.existsSync(`${config.images.characters}/Student_Portrait_${devName}.png`))
                 throw `not found png file in local: Student_Portrait_${devName}`;
         }
         global.studentInfo = _studentInfo;

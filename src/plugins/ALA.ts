@@ -77,11 +77,11 @@ function buildALA(content: string) {
 }
 
 async function buildImage(alaQueue: ("01" | "10" | "02" | "20" | "12" | "21")[]): Promise<string | null> {
-    var tmpOutPath = `${config.picPath.out}/${new Date().getTime()}.png`;
+    var tmpOutPath = `${config.imagesOut}/${new Date().getTime()}.png`;
     var files: { input: string, top: number, left: number, }[] = [];
     for (const [iv, id] of alaQueue.entries()) {
         files.push({
-            input: `${config.picPath.cutAris}/${id}.jpg`,
+            input: `${config.images.cutAris}/${id}.jpg`,
             top: iv * 200,
             left: Math.max((alaQueue.length * 20) / 2 - 100, 0),
         });

@@ -1,3 +1,3 @@
-[submodule "data/handbook"]
-	path = data/handbook
-	url = git@github.com:feilongproject/blueArchiveHandbook.git
+[submodule "data/images"]
+	path = data/images
+	url = git@github.com:feilongproject/AronaBotImages.git

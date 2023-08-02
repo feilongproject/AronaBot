@@ -7,7 +7,7 @@ import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 import { findStudentInfo, settingUserConfig } from "../libs/common";
 import config from "../../config/config.json";
 
-var handBookInfo: HandbookInfo.Root = JSON.parse(fs.readFileSync(`${config.picPath.handbookRoot}/info.json`).toString());
+var handBookInfo: HandbookInfo.Root = JSON.parse(fs.readFileSync(`${config.handbookRoot}/info.json`).toString());
 const noSetServerMessage = `\n(未指定/未设置服务器, 默认使用国际服)`;
 const getErrorMessage = `发送时出现了一些问题<@${adminId[0]}>\n这可能是因为腾讯获取图片出错导致, 请稍后重试\n`;
 const needUpdateMessage = `若数据未更新，请直接@bot管理`;
@@ -133,7 +133,7 @@ export async function studentEvaluation(msg: IMessageGUILD) {
     const studentInfo = reg[2] ? findStudentInfo(reg[2]) : null;
     if (!studentInfo) return msg.sendMsgExRef({ content: `未找到学生『${reg[2]}』数据` });
 
-    const map = JSON.parse(fs.readFileSync(`${_path}/data/handbook/studentEvaluation/_map.json`).toString());
+    const map = JSON.parse(fs.readFileSync(`${_path}/data/AronaBotImages/handbook/studentEvaluation/_map.json`).toString());
     const studentPathName = studentInfo.pathName;
     const imageLocalInfo: { info: string; path: string; } | undefined = map[studentPathName];
 
@@ -143,7 +143,7 @@ export async function studentEvaluation(msg: IMessageGUILD) {
             `\n${needUpdateMessage}` +
             `\n攻略制作: 夜猫` +
             `\n${imageLocalInfo.info}`,
-        imagePath: `${_path}/data/handbook/studentEvaluation/${imageLocalInfo.path}`,
+        imagePath: `${_path}/data/AronaBotImages/handbook/studentEvaluation/${imageLocalInfo.path}`,
     }).catch(err => {
         log.error(err);
         return msg.sendMsgExRef({ content: getErrorMessage + JSON.stringify(err) });
@@ -162,7 +162,7 @@ async function getServer(content: string, aid: string) {
 
 async function getLastestImage(appname: string, type = "all"): Promise<HandbookInfo.Data> {
     const lastestData = handBookInfo[appname][type];
-    const size = imageSize(`${config.picPath.handbookRoot}/${appname}/${type}.png`);
+    const size = imageSize(`${config.handbookRoot}/${appname}/${type}.png`);
     return {
         ...size as any,
         info: updateTimeMessage + lastestData.updateTime + lastestData.info,
@@ -173,7 +173,7 @@ async function getLastestImage(appname: string, type = "all"): Promise<HandbookI
 
 export async function flushHandBookInfo(msg: IMessageDIRECT) {
     if (!adminId.includes(msg.author.id)) return;
-    handBookInfo = JSON.parse(fs.readFileSync(`${_path}/data/handbook/info.json`).toString());
+    handBookInfo = JSON.parse(fs.readFileSync(`${config.handbookRoot}/info.json`).toString());
     const preheatList: (HandbookInfo.Data & { field: string; isNew: boolean; })[] = [];
 
     for (const appname in handBookInfo) {
@@ -194,7 +194,7 @@ export async function flushHandBookInfo(msg: IMessageDIRECT) {
 
         await fetch(data.url, {
             headers: { "user-agent": "QQShareProxy" },
-            timeout: 20 * 1000,
+            timeout: 60 * 1000,
         }).then(res => res.buffer()).then(buff => msg.sendMsgEx({
             content: `${i + 1}/${preheatList.length}  ----  ${data.updateTime}` +
                 `\n${p.dir}/${p.name}` +

@@ -20,7 +20,7 @@ export async function updateGithubVersion(msg?: IMessageDIRECT) {
         if (msg) return msg.sendMsgEx({ content: reg[0] });
 
         const behind = reg[5];
-        if (behind) return sendToAdmin(`github updated ${behind}`).then(() => redis.setEx("push:ghUpdate", 60 * 60 * 1, behind) as any);
+        if (behind) return sendToAdmin(reg[0]).then(() => redis.setEx("push:ghUpdate", 60 * 60 * 1, behind) as any);
         // log.debug("ahead:", reg[2], "behind:", reg[5], reg[6]);
     }).catch(err => {
         log.error(err);
