@@ -110,8 +110,9 @@ export async function controlMarkdown(msg: IMessageDIRECT) {
 }
 
 export async function mute(msg: IMessageGUILD) {
-    const author = msg.member;
-    if (!author || !author.roles || !(author.roles.includes("2") || author.roles.includes("4") || author.roles.includes("5"))) return;
+    const roles = msg?.member?.roles || [];
+    const allowRoles = ["11146065", "4", "2"];
+    if (!roles.filter(v => allowRoles.includes(v)).length) return;
 
     const timeExec = /(抽卡|晒卡)?禁言(\d+)((分钟?|m)|(小?时|h)|(天|d))/.exec(msg.content);
     if (!timeExec) return msg.sendMsgExRef({ content: `未指定禁言时间` });
