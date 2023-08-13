@@ -22,11 +22,14 @@ export async function callWithRetry<T extends (...args: A) => Promise<R>, R, A e
         const result = await functionCall(...args);
         return { result, errors };
     } catch (err) {
-        log.error(err);
+        if (err && ((err as any).code == 304027) && args && args[0] && args[0].msgId) { //message is expired
+            retries--;
+            args[0].msgId = await redis.get(`lastestMsgId`);
+        } else log.error(err);
         if (typeof err == "object") errors.push(JSON.stringify(err));
         else errors.push(String(err));
         if (retries < config.retryTime - 1) {
-            await sleep(500);
+            await sleep(300);
             return await callWithRetry(functionCall, args, ++retries, errors);
         } else {
             if (args && args[0] && args[0].imageFile) args[0].imageFile = { type: "Buffer", length: args[0].imageFile.length };

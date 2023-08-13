@@ -16,3 +16,5 @@ data/biliPayload.txt
 data/getPromotion.nx
 data/npparams
 data/ck.json
+data/extract/*
+test/

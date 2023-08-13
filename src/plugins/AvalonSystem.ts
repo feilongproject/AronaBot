@@ -1,8 +1,9 @@
 import { IMessageGUILD, IMessageDIRECT } from "../libs/IMessageEx";
+import { sendToAdmin } from "../libs/common";
 
 
 export async function avalonSystem(msg: IMessageGUILD) {
-    avalonSystemWatcher(msg).then(() => {
+    return avalonSystemWatcher(msg).then(() => {
         if (msg.channel_id == "43227251") return meituChannel(msg);
     });
 }
@@ -16,8 +17,9 @@ export async function avalonSystemWatcher(msg: IMessageGUILD) {
             `\n来源子频道id: ${msg.channel_id}` +
             `\n内容${msg._atta}: \n` +
             msg.content.replaceAll(".", ". "),
+        imageUrl: msg.attachments ? "http://" + msg.attachments[0].url : undefined,
         channelId: watchChannel,
-    });
+    }).catch(err => sendToAdmin(JSON.stringify(err).replaceAll(".", "。")));
 }
 
 export async function addWatchList(msg: IMessageGUILD | IMessageDIRECT) {
