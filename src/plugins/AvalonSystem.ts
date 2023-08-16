@@ -1,6 +1,70 @@
-import { IMessageGUILD, IMessageDIRECT } from "../libs/IMessageEx";
+import fs from "fs";
+import fetch from "node-fetch";
+import { PythonShell } from "python-shell";
+import { MessageAttachment } from "qq-guild-bot";
 import { sendToAdmin } from "../libs/common";
+import { IMessageGUILD, IMessageDIRECT } from "../libs/IMessageEx";
+import config from "../../config/config.json";
 
+const starString = ["☆☆☆", "★☆☆", "★★☆", "★★★"];
+var isChecking = false;
+
+export async function gachaCheck(msg: IMessageGUILD) {
+    const roles = msg?.member?.roles || [];
+    const allowRoles = ["11146065", "4", "2"];
+    if (!roles.filter(v => allowRoles.includes(v)).length) return;
+
+
+    try {
+        if (isChecking) return msg.sendMsgExRef({ content: `当前队列中存在正在检测的图片, 请稍候` });
+
+        await sendToAdmin(`管理正在gc\n管理:${msg.author.username}(${msg.author.id})`);
+
+        const srcMsg = msg.message_reference?.message_id
+            ? await client.messageApi
+                .message(msg.channel_id, msg.message_reference?.message_id)
+                .then(data => new IMessageGUILD({ ...data.data.message, seq: 0, seq_in_channel: "" }, false))
+            : undefined;
+        if (srcMsg && !srcMsg.attachments) return msg.sendMsgEx({ content: "引用消息中不存在图片信息" });
+        else if (!srcMsg && !msg.attachments) return msg.sendMsgExRef({ content: "不存在图片信息" });
+
+        isChecking = true;
+
+        await msg.sendMsgExRef({ content: "正在检测中" });
+
+        for (const attachment of (srcMsg || msg).attachments as MessageAttachment[]) {
+            const fileName = `${config.imagesOut}/gc_${new Date().getTime()}.jpg`;
+            await fetch("https://" + attachment.url).then(res => res.buffer()).then(buff => fs.writeFileSync(fileName, buff));
+
+            const gachaInfo: { [key: string]: [string, number, number] } = await PythonShell.run(`${config.extractRoot}/gachaRecognition.py`, {
+                pythonPath: "/usr/bin/python3.11",
+                args: [
+                    "--big-file-path", fileName,
+                    "--small-images-path", config.images.characters,
+                    "--json", "true"
+                ],
+            }).then(res => JSON.parse(res[0]));
+
+            const sendMsg = ["已找到:"];
+            var possibleTotal = 0;
+            for (const key in gachaInfo) {
+                const e = gachaInfo[key];
+                const name = e[0].replace("Student_Portrait_", "");
+                const info = Object.values(studentInfo).find(v => v.devName == name ? v : null);
+                possibleTotal += Math.min(...[e[1], e[2]]);
+                sendMsg.push(info ? `${starString[info?.star]} ${info.name[0]} 数量: ${e[1]} -> ${e[2]} ` : `${name} 未找到`);
+            }
+            sendMsg.push(`总计已找到: ${possibleTotal}`);
+            await msg.sendMsgEx({ content: sendMsg.join("\n"), ref: true, });
+
+            // log.debug(gachaInfo);
+        }
+    } catch (err) {
+        await msg.sendMsgExRef({ content: `检测过程中出现了一些问题<@${adminId[0]}>\n${JSON.stringify(err).replaceAll(".", "。")}` });
+    }
+
+    isChecking = false;
+}
 
 export async function avalonSystem(msg: IMessageGUILD) {
     return avalonSystemWatcher(msg).then(() => {
