@@ -18,3 +18,4 @@ data/npparams
 data/ck.json
 data/extract/*
 test/
+nodemon.test.json

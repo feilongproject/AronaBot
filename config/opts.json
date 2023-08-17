@@ -180,7 +180,8 @@
             "gachaCheck": {
                 "reg": "^gc$",
                 "fnc": "gachaCheck",
-                "type": ["GUILD", "DIRECT"],
+                "channelAllows": ["all"],
+                "type": ["GUILD"],
                 "describe": "进行一次抽卡检测"
             }
         },

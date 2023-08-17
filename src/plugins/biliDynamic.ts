@@ -1,7 +1,6 @@
 import fetch from "node-fetch";
 import * as puppeteer from "puppeteer";
 import { readFileSync, writeFileSync } from "fs";
-import { updateGithubVersion } from "./admin";
 import { IMessageGUILD } from "../libs/IMessageEx";
 import { pushToDB, searchDB, sendToAdmin, sleep } from "../libs/common";
 
@@ -74,7 +73,7 @@ export async function mainCheck() {
 
     delete require.cache[dynamicPushFilePath];
 
-    await updateGithubVersion();
+    await import("./admin").then(m => m.updateGithubVersion());
 }
 
 //参考: https://github.com/SocialSisterYi/bilibili-API-collect/issues/686

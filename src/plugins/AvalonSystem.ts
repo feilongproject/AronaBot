@@ -18,7 +18,7 @@ export async function gachaCheck(msg: IMessageGUILD) {
     try {
         if (isChecking) return msg.sendMsgExRef({ content: `当前队列中存在正在检测的图片, 请稍候` });
 
-        await sendToAdmin(`管理正在gc\n管理:${msg.author.username}(${msg.author.id})`);
+        if (msg.author.id != adminId[0]) await sendToAdmin(`管理正在gc\n管理:${msg.author.username}(${msg.author.id})`);
 
         const srcMsg = msg.message_reference?.message_id
             ? await client.messageApi

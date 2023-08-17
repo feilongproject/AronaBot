@@ -24,7 +24,7 @@ export async function updateGithubVersion(msg?: IMessageDIRECT) {
         // log.debug("ahead:", reg[2], "behind:", reg[5], reg[6]);
     }).catch(err => {
         log.error(err);
-        sendToAdmin(String(err).replaceAll(".", "。"));
+        sendToAdmin("updateGithubVersion\n" + JSON.stringify(err).replaceAll(".", "。"));
     }).catch(err => {
         log.error(err);
     });

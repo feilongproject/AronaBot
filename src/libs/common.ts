@@ -100,6 +100,7 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
         for (const d of netStudents) {
             const devName = d.DevName[0].toLocaleUpperCase() + d.DevName.slice(1);
             _studentInfo[d.Id] = {
+                id: d.Id,
                 releaseStatus: d.IsReleased,
                 name: [d.Name],
                 devName,

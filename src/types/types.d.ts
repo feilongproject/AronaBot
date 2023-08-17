@@ -29,6 +29,7 @@ declare global {
 
     interface StudentInfo {
         [id: string]: {
+            id: number;
             releaseStatus: [boolean, boolean];
             name: string[];
             pathName: string;
