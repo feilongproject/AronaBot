@@ -27,7 +27,7 @@ export async function init() {
         log.mark("当前环境处于开发环境，请注意！");
     } else global.devEnv = false;
 
-    log.info(`初始化：正在创建插件热加载监听`);
+    log.info(`初始化: 正在创建插件热加载监听`);
     chokidar.watch(`${global._path}/src/`,).on("change", async (filepath, stats) => {
         if (filepath.endsWith("src/init.ts") || filepath.endsWith("src/index.ts")) return;
         if (!devEnv && !hotLoadStatus) return;
@@ -39,7 +39,7 @@ export async function init() {
         }
     });
 
-    log.info(`初始化：正在创建指令文件热加载监听`);
+    log.info(`初始化: 正在创建指令文件热加载监听`);
     chokidar.watch(`${global._path}/config/opts.json`).on("change", async (filepath, stats) => {
         if (!devEnv && !hotLoadStatus) return;
         if (require.cache[filepath]) {
@@ -50,28 +50,31 @@ export async function init() {
         }
     });
 
-    log.info(`初始化：正在连接数据库`);
+    log.info(`初始化: 正在连接数据库`);
     global.redis = createClient({
         socket: { host: "127.0.0.1", port: 6379, },
         database: 0,
     });
     await global.redis.connect().then(() => {
-        log.info(`初始化：redis 数据库连接成功`);
+        log.info(`初始化: redis 数据库连接成功`);
     }).catch(err => {
-        log.error(`初始化：redis 数据库连接失败，正在退出程序\n${err}`);
+        log.error(`初始化: redis 数据库连接失败，正在退出程序\n${err}`);
         process.exit();
     });
 
     global.mariadb = await createPool(config.mariadb).getConnection().then(conn => {
-        log.info(`初始化：mariadb 数据库连接成功`);
+        log.info(`初始化: mariadb 数据库连接成功`);
         return conn;
+    }).catch(err => {
+        log.error(`初始化: mariadb 数据库连接失败，正在退出程序\n${err}`);
+        process.exit();
     });
 
-    log.info(`初始化：正在创建 client 与 ws`);
+    log.info(`初始化: 正在创建 client 与 ws`);
     global.client = createOpenAPI(config.initConfig);
     global.ws = createWebsocket(config.initConfig as any);
 
-    log.info(`初始化：正在创建频道树`);
+    log.info(`初始化: 正在创建频道树`);
     await loadGuildTree(true);
 
     global.client.meApi.me().then(res => global.meId = res.data.id);
@@ -80,7 +83,7 @@ export async function init() {
         log.info(`学生数据加载完毕 ${d}`);
     });
 
-    log.info(`初始化：正在创建定时任务`);
+    log.info(`初始化: 正在创建定时任务`);
     if (!devEnv) schedule.scheduleJob("0 0/5 * * * ? ", async () => (await import("./plugins/biliDynamic")).mainCheck().catch(err => {
         log.error(err);
         sendToAdmin(typeof err == "object" ? JSON.stringify(err) : String(err)).catch(() => { });
