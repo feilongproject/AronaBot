@@ -177,12 +177,12 @@
                 "type": ["GUILD", "DIRECT"],
                 "describe": "向阿瓦隆系统删除监控列表"
             },
-            "gachaCheck": {
-                "reg": "^gc$",
-                "fnc": "gachaCheck",
+            "accuseGacha": {
+                "reg": "^/?(举报晒卡|晒卡举报)$",
+                "fnc": "accuseGacha",
                 "channelAllows": ["all"],
                 "type": ["GUILD"],
-                "describe": "进行一次抽卡检测"
+                "describe": "举报晒卡行为"
             }
         },
         "biliDynamic": {

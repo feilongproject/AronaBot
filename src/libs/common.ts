@@ -84,7 +84,7 @@ export async function searchDB(table: string, key: string, value: string) {
 
 export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok" | "local ok" | "ok"> {
 
-    const _studentInfo: StudentInfo = {};
+    const _studentInfo: StudentInfos = {};
     if (type == "net") {
         const netStudents: StudentInfoNet[] = await fetch("https://ghproxy.com/https://raw.githubusercontent.com/lonqie/SchaleDB/main/data/cn/students.json").then(res => {
             return res.json();
@@ -98,7 +98,7 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
         if (!aliasStudentNameWeb) throw `can't fetch json:aliasStudentNameWeb`;
 
         for (const d of netStudents) {
-            const devName = d.DevName[0].toLocaleUpperCase() + d.DevName.slice(1);
+            const devName = d.DevName[0].toUpperCase() + d.DevName.slice(1);
             _studentInfo[d.Id] = {
                 id: d.Id,
                 releaseStatus: d.IsReleased,

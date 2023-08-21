@@ -25,18 +25,20 @@ declare global {
     var hotLoadStatus: number;
     var showMarkdown: boolean;
     var saveGuildsTree: { [guildId: string]: SaveGuild };
-    var studentInfo: StudentInfo;
+    var studentInfo: StudentInfos;
+
+    interface StudentInfos {
+        [id: string]: StudentInfo;
+    }
 
     interface StudentInfo {
-        [id: string]: {
-            id: number;
-            releaseStatus: [boolean, boolean];
-            name: string[];
-            pathName: string;
-            devName: string;
-            star: 1 | 2 | 3;
-            limitedType: number;
-        };
+        id: number;
+        releaseStatus: [boolean, boolean];
+        name: string[];
+        pathName: string;
+        devName: string;
+        star: 1 | 2 | 3;
+        limitedType: number;
     }
 
     interface SaveGuild {

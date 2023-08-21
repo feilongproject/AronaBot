@@ -1,69 +1,145 @@
 import fs from "fs";
 import fetch from "node-fetch";
+import format from "date-format";
 import { PythonShell } from "python-shell";
-import { MessageAttachment } from "qq-guild-bot";
 import { sendToAdmin } from "../libs/common";
 import { IMessageGUILD, IMessageDIRECT } from "../libs/IMessageEx";
 import config from "../../config/config.json";
 
-const starString = ["☆☆☆", "★☆☆", "★★☆", "★★★"];
 var isChecking = false;
 
-export async function gachaCheck(msg: IMessageGUILD) {
-    const roles = msg?.member?.roles || [];
-    const allowRoles = ["11146065", "4", "2"];
-    if (!roles.filter(v => allowRoles.includes(v)).length) return;
+
+export async function accuseGacha(msg: IMessageGUILD) {
+
+    if (msg.channel_id == "1952333") return msg.sendMsgEx({ content: "要不先看看子频道名字?" });
+    if (!msg.message_reference) return msg.sendMsgExRef({ content: `未指定引用信息` });
+    if (isChecking) return msg.sendMsgExRef({ content: `当前队列中存在正在检测的图片, 请稍候` });
+
+    const srcMsg = await client.messageApi
+        .message(msg.channel_id, msg.message_reference!.message_id)
+        .then(data => new IMessageGUILD({ ...data.data.message, seq: 0, seq_in_channel: "" }, false));
+    if (!srcMsg.attachments) return "引用消息中不存在图片信息";
+
+    await sendToAdmin(`accuseGacha触发` +
+        `\n子频道: ${msg.channelName}(${msg.channel_id})` +
+        `\n目标: ${srcMsg.author.username}(${srcMsg.author.id})` +
+        `\n举报人: ${msg.author.username}(${msg.author.id})`
+    );
+    const sendAccuseGachaInfoChannel = await redis.hGet("mute:sendAccuseGachaInfoChannel", msg.guild_id);
+    if (!sendAccuseGachaInfoChannel) return msg.sendMsgExRef({ content: "未指定发送频道" });
 
 
     try {
-        if (isChecking) return msg.sendMsgExRef({ content: `当前队列中存在正在检测的图片, 请稍候` });
-
-        if (msg.author.id != adminId[0]) await sendToAdmin(`管理正在gc\n管理:${msg.author.username}(${msg.author.id})`);
-
-        const srcMsg = msg.message_reference?.message_id
-            ? await client.messageApi
-                .message(msg.channel_id, msg.message_reference?.message_id)
-                .then(data => new IMessageGUILD({ ...data.data.message, seq: 0, seq_in_channel: "" }, false))
-            : undefined;
-        if (srcMsg && !srcMsg.attachments) return msg.sendMsgEx({ content: "引用消息中不存在图片信息" });
-        else if (!srcMsg && !msg.attachments) return msg.sendMsgExRef({ content: "不存在图片信息" });
-
         isChecking = true;
-
-        await msg.sendMsgExRef({ content: "正在检测中" });
-
-        for (const attachment of (srcMsg || msg).attachments as MessageAttachment[]) {
-            const fileName = `${config.imagesOut}/gc_${new Date().getTime()}.jpg`;
-            await fetch("https://" + attachment.url).then(res => res.buffer()).then(buff => fs.writeFileSync(fileName, buff));
-
-            const gachaInfo: { [key: string]: [string, number, number] } = await PythonShell.run(`${config.extractRoot}/gachaRecognition.py`, {
-                pythonPath: "/usr/bin/python3.11",
-                args: [
-                    "--big-file-path", fileName,
-                    "--small-images-path", config.images.characters,
-                    "--json", "true"
-                ],
-            }).then(res => JSON.parse(res[0]));
-
-            const sendMsg = ["已找到:"];
-            var possibleTotal = 0;
-            for (const key in gachaInfo) {
-                const e = gachaInfo[key];
-                const name = e[0].replace("Student_Portrait_", "");
-                const info = Object.values(studentInfo).find(v => v.devName == name ? v : null);
-                possibleTotal += Math.min(...[e[1], e[2]]);
-                sendMsg.push(info ? `${starString[info?.star]} ${info.name[0]} 数量: ${e[1]} -> ${e[2]} ` : `${name} 未找到`);
-            }
-            sendMsg.push(`总计已找到: ${possibleTotal}`);
-            await msg.sendMsgEx({ content: sendMsg.join("\n"), ref: true, });
-
-            // log.debug(gachaInfo);
+        await msg.sendMsgExRef({
+            content: `正在检测中...` +
+                `\n注意: 该步骤会对服务器CPU与内存资源造成大量消耗, 若无意义使用(指对明显没有三星的图片使用)或恶意使用可能会导致无法使用bot任何功能, 具体规定请看<#7673195>子频道`,
+        });
+        const gachaInfo = await accuseGachaWapper(srcMsg);
+        // log.debug(gachaInfo[0].gachaInfo[0]);
+        if (!gachaInfo.map(v => v.possibleTotal).reduce((a, b) => a + b)) {
+            isChecking = false;
+            return msg.sendMsgExRef({ content: `opencv 未匹配到角色特征 <@${adminId[0]}>` });
         }
-    } catch (err) {
-        await msg.sendMsgExRef({ content: `检测过程中出现了一些问题<@${adminId[0]}>\n${JSON.stringify(err).replaceAll(".", "。")}` });
-    }
+        await msg.sendMsgExRef({ content: "存在角色特征, 继续执行" });
+        var total3star = 0;
+        const miserableNames = ["Saya", "Izumi", "Sumire", "Saya_Casual"];// 鼠 八 堇 便服鼠
+        var isMiserable = false;
+        for (const [i, gacha] of gachaInfo.entries()) {
+            const studentInfo: StudentInfo[] = gacha.gachaInfo.map(v => v.pop()) as any;
+            await msg.sendMsgEx({
+                content: `子频道<#${srcMsg.channel_id}>` +
+                    `\n第${i + 1}张图检测统计(${gacha.possibleTotal}): \n` +
+                    gacha.gachaInfo.map((vv, vi) =>
+                        `${studentInfo[vi].star}${vv[0][1]}(${vv[0][0]}) ${vv[1].join('->')}  ` + vv[2].map(point => `(${point.map(p => p.toFixed()).join(",")})`).join("---")
+                    ).join("\n"),
+                imagePath: gacha.pointsFileName,
+                channelId: sendAccuseGachaInfoChannel,
+            });
+            const studentInfo3star = studentInfo.filter(v => v.star == 3);
+            // log.debug(studentInfo3star.map(v => v.name[0]));
+            if (!studentInfo3star.length) continue;
+            total3star += studentInfo3star.length;
 
+            //惨 鼠八堇 惨
+            const notMiserable = studentInfo3star.find(v => !miserableNames.includes(v.devName));
+            // log.debug(notMiserable);
+            if (!notMiserable) isMiserable = true;
+        }
+
+        await client.messageApi.deleteMessage(srcMsg.channel_id, srcMsg.id);
+        if (isMiserable) return msg.sendMsgExRef({ content: `惨 鼠八堇 惨` });
+
+        // const muteTime = 60 * 60 * 24 * total3star;
+        const muteTime = 60 * 60 * 24 * 1;
+        await client.muteApi.muteMember(srcMsg.guild_id, srcMsg.author.id, { seconds: muteTime.toString(), });
+
+        await redis.hSet(`mute:${srcMsg.author.id}`, new Date().getTime(), "accuseGacha");
+        await redis.hGetAll(`mute:${srcMsg.author.id}`).then(async muteInfo => {
+            const f = (ts: string) => format.asString(new Date(Number(ts)));
+            const t = async (type: string) => (await redis.hGet("muteType", type) || type);
+            const s = Object.keys(muteInfo).map(async ts => `时间: ${f(ts)} | 类型: ${await t(muteInfo[ts])}`);
+            return Promise.all(s);
+        }).then(m => msg.sendMsgExRef({
+            content: ["禁言记录", ...m].join("\n"),
+        }));
+        await msg.sendMsgEx({
+            content: `<@${srcMsg.author.id}>(id: ${srcMsg.author.id})` +
+                `\n禁言${(muteTime / 60 / 60)}小时` +
+                `\n原因: 被举报晒卡` +
+                `\n子频道: <#${srcMsg.channel_id}>(id: ${srcMsg.channel_id})` +
+                `\n举报人: <@${msg.author.id}>(id: ${msg.author.id})` +
+                `\n注意: 该消息由<@${msg.author.id}>举报, 并由bot自动检测出存在晒卡行为, 如有误判或异议请联系举报人与<@${adminId[0]}>` +
+                `\n(该步骤为初步操作, 若无后续则以本次为准)`,
+            channelId: await redis.hGet("mute:sendChannel", msg.guild_id),
+        });
+
+    } catch (err) {
+        isChecking = false;
+        log.error(err);
+        await msg.sendMsgExRef({ content: `检测过程中出现了一些问题 <@${adminId[0]}>\n${JSON.stringify(err).replaceAll(".", "。")}` });
+    }
     isChecking = false;
+}
+
+async function accuseGachaWapper(srcMsg: IMessageGUILD) {
+    const total = [];
+
+    for (const attachment of srcMsg.attachments!) {
+        const ts = new Date().getTime();
+        const srcFileName = `${config.imagesOut}/gc_${ts}_src.jpg`;
+        const pointsFileName = `${config.imagesOut}/gc_${ts}_points.jpg`;
+
+        await fetch("https://" + attachment.url).then(res => res.buffer()).then(buff => fs.writeFileSync(srcFileName, buff));
+        const gachaInfo: [(string | [string, string]), number[], [number, number][], [number, number][], number][] = await PythonShell.run(`${config.extractRoot}/gachaRecognition.py`, {
+            pythonPath: "/usr/bin/python3.11",
+            args: [
+                "--big-file-path", srcFileName,
+                "--small-images-path", config.images.characters,
+                "--json", "true",
+                "--save-path", pointsFileName,
+            ],
+        }).then(res => JSON.parse(res[0]));
+
+        // const sendMsg = ["已找到:"];
+        var possibleTotal = 0;
+        var has3star = false;
+        for (const [i, e] of gachaInfo.entries()) {
+            const name = (e[0] as string).replace("Student_Portrait_", "");
+            const info = Object.values(studentInfo).find(v => v.devName == name ? v : null);
+            if (!info) throw `未找到 ${name} 对应数据`;
+            if (info.star == 3) has3star = true;
+            possibleTotal += Math.min(...e[1]);
+            e[0] = [name, info.name[0]];
+            e.push(info as any);
+            gachaInfo[i] = e;
+        }
+        total.push({ gachaInfo, pointsFileName, possibleTotal });
+        // await msg.sendMsgEx({ content: sendMsg.join("\n"), ref: true, });
+        // log.debug(gachaInfo);
+    }
+    isChecking = false;
+    return total;
 }
 
 export async function avalonSystem(msg: IMessageGUILD) {
