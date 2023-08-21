@@ -41,14 +41,16 @@ export async function accuseGacha(msg: IMessageGUILD) {
             isChecking = false;
             return msg.sendMsgExRef({ content: `opencv 未匹配到角色特征 <@${adminId[0]}>` });
         }
-        await msg.sendMsgExRef({ content: "存在角色特征, 继续执行" });
+        // await msg.sendMsgExRef({ content: "存在角色特征, 继续执行" });
         var total3star = 0;
         const miserableNames = ["Saya", "Izumi", "Sumire", "Saya_Casual"];// 鼠 八 堇 便服鼠
         var isMiserable = false;
         for (const [i, gacha] of gachaInfo.entries()) {
             const studentInfo: StudentInfo[] = gacha.gachaInfo.map(v => v.pop()) as any;
             await msg.sendMsgEx({
-                content: `子频道<#${srcMsg.channel_id}>` +
+                content: `子频道: ${msg.channelName}(${msg.channel_id})` +
+                    `\n目标: ${srcMsg.author.username}(${srcMsg.author.id})` +
+                    `\n举报人: ${msg.author.username}(${msg.author.id})` +
                     `\n第${i + 1}张图检测统计(${gacha.possibleTotal}): \n` +
                     gacha.gachaInfo.map((vv, vi) =>
                         `${studentInfo[vi].star}${vv[0][1]}(${vv[0][0]}) ${vv[1].join('->')}  ` + vv[2].map(point => `(${point.map(p => p.toFixed()).join(",")})`).join("---")
@@ -71,7 +73,7 @@ export async function accuseGacha(msg: IMessageGUILD) {
         if (isMiserable) return msg.sendMsgExRef({ content: `惨 鼠八堇 惨` });
 
         // const muteTime = 60 * 60 * 24 * total3star;
-        const muteTime = 60 * 60 * 24 * 1;
+        const muteTime = 60 * 60 * 24 * 0.5;
         await client.muteApi.muteMember(srcMsg.guild_id, srcMsg.author.id, { seconds: muteTime.toString(), });
 
         await redis.hSet(`mute:${srcMsg.author.id}`, new Date().getTime(), "accuseGacha");
@@ -89,7 +91,7 @@ export async function accuseGacha(msg: IMessageGUILD) {
                 `\n原因: 被举报晒卡` +
                 `\n子频道: <#${srcMsg.channel_id}>(id: ${srcMsg.channel_id})` +
                 `\n举报人: <@${msg.author.id}>(id: ${msg.author.id})` +
-                `\n注意: 该消息由<@${msg.author.id}>举报, 并由bot自动检测出存在晒卡行为, 如有误判或异议请联系举报人与<@${adminId[0]}>` +
+                `\n注意: 该消息由举报人进行举报, 并由bot自动检测出存在晒卡行为, 如有误判或异议请联系举报人与<@${adminId[0]}>` +
                 `\n(该步骤为初步操作, 若无后续则以本次为准)`,
             channelId: await redis.hGet("mute:sendChannel", msg.guild_id),
         });
@@ -115,7 +117,7 @@ async function accuseGachaWapper(srcMsg: IMessageGUILD) {
             pythonPath: "/usr/bin/python3.11",
             args: [
                 "--big-file-path", srcFileName,
-                "--small-images-path", config.images.characters,
+                "--small-images-path", config.images.accuseCharacters,
                 "--json", "true",
                 "--save-path", pointsFileName,
             ],
