@@ -48,7 +48,7 @@ export async function accuseGacha(msg: IMessageGUILD) {
         for (const [i, gacha] of gachaInfo.entries()) {
             const studentInfo: StudentInfo[] = gacha.gachaInfo.map(v => v.pop()) as any;
             await msg.sendMsgEx({
-                content: `子频道: ${msg.channelName}(${msg.channel_id})` +
+                content: `子频道: <#${msg.channel_id}>(${msg.channel_id})` +
                     `\n目标: ${srcMsg.author.username}(${srcMsg.author.id})` +
                     `\n举报人: ${msg.author.username}(${msg.author.id})` +
                     `\n第${i + 1}张图检测统计(${gacha.possibleTotal}): \n` +
