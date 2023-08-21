@@ -14,9 +14,14 @@ async function execute(msg: IMessageDIRECT | IMessageGUILD) {
         if (global.devEnv) log.debug(`${_path}/src/plugins/${opt.path}:${opt.fnc}`);
 
         const plugin = await import(`./plugins/${opt.path}.ts`);
-        if (typeof plugin[opt.fnc] != "function") return log.error(`not found function ${opt.fnc}() at "${global._path}/src/plugins/${opt.path}.ts"`);
-        else return (plugin[opt.fnc] as PluginFnc)(msg).catch(err => {
-            log.error(err);
+        if (typeof plugin[opt.fnc] != "function") log.error(`not found function ${opt.fnc}() at "${global._path}/src/plugins/${opt.path}.ts"`);
+        else await (plugin[opt.fnc] as PluginFnc)(msg).catch(err => log.error(err));
+
+        await pushToDB("executeRecord", {
+            mid: msg.id,
+            type: String(Object.getPrototypeOf(msg).constructor.name),
+            optFather: opt.path,
+            optChild: opt.fnc,
         });
     } catch (err) {
         log.error(err);
