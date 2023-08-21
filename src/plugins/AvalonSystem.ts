@@ -41,6 +41,12 @@ export async function accuseGacha(msg: IMessageGUILD) {
             isChecking = false;
             return msg.sendMsgExRef({ content: `opencv 未匹配到角色特征 <@${adminId[0]}>` });
         }
+
+        if (!gachaInfo.find(v => v.has3star)) {
+            isChecking = false;
+            return msg.sendMsgExRef({ content: `未找到三星 <@${adminId[0]}>` });
+        }
+
         // await msg.sendMsgExRef({ content: "存在角色特征, 继续执行" });
         var total3star = 0;
         const miserableNames = ["Saya", "Izumi", "Sumire", "Saya_Casual"];// 鼠 八 堇 便服鼠
