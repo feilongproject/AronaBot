@@ -39,6 +39,16 @@ export async function accuseGacha(msg: IMessageGUILD) {
         // log.debug(gachaInfo[0].gachaInfo[0]);
         if (!gachaInfo.map(v => v.possibleTotal).reduce((a, b) => a + b)) {
             isChecking = false;
+            for (const [i, attachment] of srcMsg.attachments.entries()) {
+                await msg.sendMsgEx({
+                    content: `子频道: <#${msg.channel_id}>(${msg.channel_id})` +
+                        `\n目标: ${srcMsg.author.username}(${srcMsg.author.id})` +
+                        `\n举报人: ${msg.author.username}(${msg.author.id})` +
+                        `\n第${i + 1}张图未检测出`,
+                    imagePath: "https://" + attachment.url,
+                    channelId: sendAccuseGachaInfoChannel,
+                });
+            }// 发送原图
             return msg.sendMsgExRef({ content: `opencv 未匹配到角色特征 <@${adminId[0]}>` });
         }
 
@@ -73,7 +83,7 @@ export async function accuseGacha(msg: IMessageGUILD) {
             const notMiserable = studentInfo3star.find(v => !miserableNames.includes(v.devName));
             // log.debug(notMiserable);
             if (!notMiserable) isMiserable = true;
-        }
+        }// 发送日志
 
         await client.messageApi.deleteMessage(srcMsg.channel_id, srcMsg.id);
         if (isMiserable) return msg.sendMsgExRef({ content: `惨 鼠八堇 惨` });
@@ -90,7 +100,7 @@ export async function accuseGacha(msg: IMessageGUILD) {
             return Promise.all(s);
         }).then(m => msg.sendMsgExRef({
             content: ["禁言记录", ...m].join("\n"),
-        }));
+        }));// 发送禁言记录
         await msg.sendMsgEx({
             content: `<@${srcMsg.author.id}>(id: ${srcMsg.author.id})` +
                 `\n禁言${(muteTime / 60 / 60)}小时` +
@@ -100,7 +110,7 @@ export async function accuseGacha(msg: IMessageGUILD) {
                 `\n注意: 该消息由举报人进行举报, 并由bot自动检测出存在晒卡行为, 如有误判或异议请联系举报人与<@${adminId[0]}>` +
                 `\n(该步骤为初步操作, 若无后续则以本次为准)`,
             channelId: await redis.hGet("mute:sendChannel", msg.guild_id),
-        });
+        });// 发送小黑屋
 
     } catch (err) {
         isChecking = false;
@@ -142,7 +152,7 @@ async function accuseGachaWapper(srcMsg: IMessageGUILD) {
             e.push(info as any);
             gachaInfo[i] = e;
         }
-        total.push({ gachaInfo, pointsFileName, possibleTotal });
+        total.push({ gachaInfo, pointsFileName, possibleTotal, has3star, });
         // await msg.sendMsgEx({ content: sendMsg.join("\n"), ref: true, });
         // log.debug(gachaInfo);
     }
