@@ -21,12 +21,12 @@ const log = log4js.configure({
 log.setParseCallStackFunction((error: Error) => {
     if (!devEnv && error.stack?.split("\n")[3].match(/at Logger\.<computed> \[as (.*?)\]/)![1] != "error") return;
     if (!devEnv && error.name != "Error") return;
-    const stacklines = error.stack?.split("\n")!.splice(4)!;
+    const stacklines = error.stack!.split("\n").splice(4);
     const lineMatch = /at (?:(.+)\s+\()?(?:(.+?):(\d+)(?::(\d+))?|([^)]+))\)?/.exec(stacklines[0]);
     /* istanbul ignore else: failsafe */
     if (lineMatch && lineMatch.length === 6) {
         const filepath = lineMatch[2].replace(_path, "");
-        return { fileName: ` [${filepath[0] == "/" ? filepath.slice(1) : filepath}:${lineMatch[3]}:${lineMatch[4]}]` };
+        return { fileName: ` [${["/", "\\"].includes(filepath[0]) ? filepath.slice(1) : filepath}:${lineMatch[3]}:${lineMatch[4]}]` };
     }
 });
 export default log
