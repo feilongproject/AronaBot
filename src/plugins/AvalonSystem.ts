@@ -28,7 +28,6 @@ export async function accuseGacha(msg: IMessageGUILD) {
     const sendAccuseGachaInfoChannel = await redis.hGet("mute:sendAccuseGachaInfoChannel", msg.guild_id);
     if (!sendAccuseGachaInfoChannel) return msg.sendMsgExRef({ content: "未指定发送频道" });
 
-
     try {
         isChecking = true;
         await msg.sendMsgExRef({
@@ -36,57 +35,81 @@ export async function accuseGacha(msg: IMessageGUILD) {
                 `\n注意: 该步骤会对服务器CPU与内存资源造成大量消耗, 若无意义使用(指对明显没有三星的图片使用)或恶意使用可能会导致无法使用bot任何功能, 具体规定请看<#7673195>子频道`,
         });
         const gachaInfo = await accuseGachaWapper(srcMsg);
-        // log.debug(gachaInfo[0].gachaInfo[0]);
+        isChecking = false;
         if (!gachaInfo.map(v => v.possibleTotal).reduce((a, b) => a + b)) {
-            isChecking = false;
             for (const [i, attachment] of srcMsg.attachments.entries()) {
                 await msg.sendMsgEx({
                     content: `子频道: <#${msg.channel_id}>(${msg.channel_id})` +
                         `\n目标: ${srcMsg.author.username}(${srcMsg.author.id})` +
                         `\n举报人: ${msg.author.username}(${msg.author.id})` +
-                        `\n第${i + 1}张图未检测出`,
-                    imagePath: "https://" + attachment.url,
+                        `\n第${i + 1}张图未匹配到角色特征`,
+                    imageUrl: "http://" + attachment.url,
                     channelId: sendAccuseGachaInfoChannel,
                 });
             }// 发送原图
             return msg.sendMsgExRef({ content: `opencv 未匹配到角色特征 <@${adminId[0]}>` });
-        }
+        }// 未匹配到任何特征
 
         if (!gachaInfo.find(v => v.has3star)) {
-            isChecking = false;
+            for (const [i, gacha] of gachaInfo.entries()) {
+                // log.debug(gacha);
+                await msg.sendMsgEx({
+                    content: `子频道: <#${msg.channel_id}>(${msg.channel_id})` +
+                        `\n目标: ${srcMsg.author.username}(${srcMsg.author.id})` +
+                        `\n举报人: ${msg.author.username}(${msg.author.id})` +
+                        `\n第${i + 1}张图未找到三星(${gacha.possibleTotal}): lang-${gacha.gachaInfo.firstChecker.length}\n` +
+                        gacha.gachaInfo.firstChecker.map(v => `${v[0]}->${v[1]} (${v[2].map(vv => vv.toFixed()).join(",")})`).join("\n") + `\n` +
+                        gacha.gachaInfo.main.map((vv, vi) =>
+                            `${vv.studentInfo.star}${vv.nameCn}(${vv.nameDev}) ${vv.possible.join('->')}  ` + vv.center.map(point => `(${point.map(p => p.toFixed()).join(",")})`).join("---")
+                        ).join("\n"),
+
+                    imagePath: gacha.pointsFileName,
+                    channelId: sendAccuseGachaInfoChannel,
+                });
+            }// 发送点集图
             return msg.sendMsgExRef({ content: `未找到三星 <@${adminId[0]}>` });
-        }
+        }// 未找到三星
 
         // await msg.sendMsgExRef({ content: "存在角色特征, 继续执行" });
+        // log.debug("存在角色特征, 继续执行");
         var total3star = 0;
+        var has3star = 0;// 存在3star的图片数量
         const miserableNames = ["Saya", "Izumi", "Sumire", "Saya_Casual"];// 鼠 八 堇 便服鼠
-        var isMiserable = false;
+        var isMiserable = 0;
         for (const [i, gacha] of gachaInfo.entries()) {
-            const studentInfo: StudentInfo[] = gacha.gachaInfo.map(v => v.pop()) as any;
+            // const studentInfo: StudentInfo[] = gacha.gachaInfo.main.map(v => v.pop()) as any;
             await msg.sendMsgEx({
                 content: `子频道: <#${msg.channel_id}>(${msg.channel_id})` +
                     `\n目标: ${srcMsg.author.username}(${srcMsg.author.id})` +
                     `\n举报人: ${msg.author.username}(${msg.author.id})` +
-                    `\n第${i + 1}张图检测统计(${gacha.possibleTotal}): \n` +
-                    gacha.gachaInfo.map((vv, vi) =>
-                        `${studentInfo[vi].star}${vv[0][1]}(${vv[0][0]}) ${vv[1].join('->')}  ` + vv[2].map(point => `(${point.map(p => p.toFixed()).join(",")})`).join("---")
+                    `\n第${i + 1}张图检测统计(${gacha.possibleTotal}): ${gacha.gachaInfo.firstChecker.length}lang\n` +
+                    gacha.gachaInfo.firstChecker.map(v => `${v[0]}->${v[1]} (${v[2].map(vv => vv.toFixed()).join(",")})`).join("\n") + `\n` +
+                    gacha.gachaInfo.main.map((vv, vi) =>
+                        `${vv.studentInfo.star}${vv.nameCn}(${vv.nameDev}) ${vv.possible.join('->')}  ` + vv.center.map(point => `(${point.map(p => p.toFixed()).join(",")})`).join("---")
                     ).join("\n"),
                 imagePath: gacha.pointsFileName,
                 channelId: sendAccuseGachaInfoChannel,
             });
-            const studentInfo3star = studentInfo.filter(v => v.star == 3);
+            const studentInfo3star = gacha.gachaInfo.main.filter(vv => vv.studentInfo.star == 3);
             // log.debug(studentInfo3star.map(v => v.name[0]));
             if (!studentInfo3star.length) continue;
+            has3star++;
             total3star += studentInfo3star.length;
 
             //惨 鼠八堇 惨
-            const notMiserable = studentInfo3star.find(v => !miserableNames.includes(v.devName));
+            const notMiserable = studentInfo3star.find(v => !miserableNames.includes(v.nameDev));
             // log.debug(notMiserable);
-            if (!notMiserable) isMiserable = true;
+            if (!notMiserable) isMiserable++;
         }// 发送日志
 
+
+        if (!gachaInfo.find(v => v.gachaInfo.firstChecker.length)) {
+            return msg.sendMsgExRef({ content: `未匹配到抽卡图标志, 当前支持: ${fs.readdirSync(config.images.firstChecker).map(n => n.replace(".png", "")).join(",")}` });
+        }// 不存在 firstChecker
+
         await client.messageApi.deleteMessage(srcMsg.channel_id, srcMsg.id);
-        if (isMiserable) return msg.sendMsgExRef({ content: `惨 鼠八堇 惨` });
+        if (isMiserable == has3star) return msg.sendMsgExRef({ content: `惨 鼠八堇 惨` });
+        // else if (isMiserable)await msg.sendMsgExRef()
 
         // const muteTime = 60 * 60 * 24 * total3star;
         const muteTime = 60 * 60 * 24 * 0.5;
@@ -115,48 +138,46 @@ export async function accuseGacha(msg: IMessageGUILD) {
     } catch (err) {
         isChecking = false;
         log.error(err);
-        await msg.sendMsgExRef({ content: `检测过程中出现了一些问题 <@${adminId[0]}>\n${JSON.stringify(err).replaceAll(".", "。")}` });
+        await msg.sendMsgExRef({ content: `检测过程中出现了一些问题 <@${adminId[0]}>\n${(typeof (err) == "object" ? JSON.stringify(err) : String(err)).replaceAll(".", "。")}` });
     }
-    isChecking = false;
 }
 
 async function accuseGachaWapper(srcMsg: IMessageGUILD) {
     const total = [];
-
     for (const attachment of srcMsg.attachments!) {
         const ts = new Date().getTime();
         const srcFileName = `${config.imagesOut}/gc_${ts}_src.jpg`;
         const pointsFileName = `${config.imagesOut}/gc_${ts}_points.jpg`;
 
         await fetch("https://" + attachment.url).then(res => res.buffer()).then(buff => fs.writeFileSync(srcFileName, buff));
-        const gachaInfo: [(string | [string, string]), number[], [number, number][], [number, number][], number][] = await PythonShell.run(`${config.extractRoot}/gachaRecognition.py`, {
+        const gachaInfo: PythonGachaInfo = await PythonShell.run(`${config.extractRoot}/gachaRecognition.py`, {
             pythonPath: "/usr/bin/python3.11",
             args: [
                 "--big-file-path", srcFileName,
                 "--small-images-path", config.images.accuseCharacters,
                 "--json", "true",
                 "--save-path", pointsFileName,
+                "--first-checkers-path", config.images.firstChecker,
             ],
-        }).then(res => JSON.parse(res[0]));
+        }).then(res => JSON.parse(res.pop()));
 
         // const sendMsg = ["已找到:"];
         var possibleTotal = 0;
         var has3star = false;
-        for (const [i, e] of gachaInfo.entries()) {
-            const name = (e[0] as string).replace("Student_Portrait_", "");
-            const info = Object.values(studentInfo).find(v => v.devName == name ? v : null);
-            if (!info) throw `未找到 ${name} 对应数据`;
+        for (const [i, e] of gachaInfo.main.entries()) {
+            e.nameDev = e.nameDev.replace("Student_Portrait_", "");
+            const info = Object.values(studentInfo).find(v => v.devName == e.nameDev ? v : null);
+            if (!info) throw `未找到 ${e.nameDev} 对应数据`;
             if (info.star == 3) has3star = true;
-            possibleTotal += Math.min(...e[1]);
-            e[0] = [name, info.name[0]];
-            e.push(info as any);
-            gachaInfo[i] = e;
+            possibleTotal += Math.min(...e.possible);
+            e.nameCn = info.name[0];
+            e.studentInfo = info;
+            gachaInfo.main[i] = e;
         }
         total.push({ gachaInfo, pointsFileName, possibleTotal, has3star, });
         // await msg.sendMsgEx({ content: sendMsg.join("\n"), ref: true, });
         // log.debug(gachaInfo);
     }
-    isChecking = false;
     return total;
 }
 
@@ -279,4 +300,20 @@ export async function meituChannel(msg: IMessageGUILD) {
     ).catch(err => {
         log.error(err);
     });
+}
+
+
+interface PythonGachaInfo {
+    firstChecker: [
+        string,// 语言名字
+        number,// 匹配到的特征点数量
+        [number, number]// 中心坐标
+    ][];
+    main: {
+        nameDev: string;
+        nameCn: string;
+        possible: [number, number];// possible possible_ed
+        center: [number, number][];// 中心坐标
+        studentInfo: StudentInfo;//学生数据
+    }[];//多个匹配, 一般长度为10
 }
