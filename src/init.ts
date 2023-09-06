@@ -84,18 +84,17 @@ export async function init() {
     });
 
     log.info(`初始化: 正在创建定时任务`);
-    if (!devEnv) schedule.scheduleJob("0 0/5 * * * ? ", async () => (await import("./plugins/biliDynamic")).mainCheck().catch(err => {
-        log.error(err);
-        sendToAdmin(typeof err == "object" ? JSON.stringify(err) : String(err)).catch(() => { });
-    }));
-    schedule.scheduleJob("0 * * * * ? ", async () => {
-        if (devEnv) await redis.setEx("devEnv", 60, "1");
-        else {
-            log.mark(`保存数据库中`);
-            await redis.save();
-        }
-    });
-    if (devEnv) await redis.setEx("devEnv", 60, "1");
+    if (devEnv) {
+        await redis.setEx("devEnv", 10, "1");
+        schedule.scheduleJob("*/10 * * * * ? ", () => redis.setEx("devEnv", 10, "1"));
+    } else {
+        schedule.scheduleJob("0 * * * * ? ", () => redis.save().then(v => log.mark(`保存数据库:${v}`)));
+        schedule.scheduleJob("0 */3 * * * ?", () => import("./plugins/admin").then(module => module.updateEventId()));
+        schedule.scheduleJob("0 */5 * * * ? ", () => import("./plugins/biliDynamic").then(module => module.mainCheck()).catch(err => {
+            log.error(err);
+            sendToAdmin(typeof err == "object" ? JSON.stringify(err) : String(err)).catch(() => { });
+        }));
+    }
 
 }
 
@@ -106,15 +105,15 @@ export async function loadGuildTree(init?: boolean) {
     if (!guildData) return;
     for (const guild of guildData.data) {
         if (init) log.mark(`${guild.name}(${guild.id})`);
-        if (!saveGuildsTree[guild.id]) saveGuildsTree[guild.id] = { ...guild, channels: {} };
-        else saveGuildsTree[guild.id].name = guild.name;
+        const guildInfo: SaveGuild = { ...guild, channels: {} };
 
         const channelData = await client.channelApi.channels(guild.id).catch(err => log.error(err));
-        if (!channelData) return;
+        if (!channelData) continue;
         for (const channel of channelData.data) {
             if (init) log.mark(`${guild.name}(${guild.id})-${channel.name}(${channel.id})-father:${channel.parent_id}`);
-            saveGuildsTree[guild.id].channels[channel.id] = { name: channel.name, id: channel.id };
+            guildInfo.channels[channel.id] = { ...channel };
         }
+        global.saveGuildsTree[guild.id] = guildInfo;
     }
 }
 

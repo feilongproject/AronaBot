@@ -31,7 +31,7 @@ export async function updateGithubVersion(msg?: IMessageDIRECT) {
 
 }
 
-export async function help(msg: IMessageDIRECT) {
+export async function help(msg: IMessageGUILD | IMessageDIRECT) {
     if (!adminId.includes(msg.author.id)) return;
 
     const optss: {
@@ -53,10 +53,9 @@ export async function help(msg: IMessageDIRECT) {
         for (const optName in opts) {
             const opt = opts[optName];
             sendStr.push(
-                `╠ ${opt.fnc}`,
-                `┃ ┣ reg:  ${opt.reg}`,
-                `┃ ┣ type: ${opt.type}`,
-                `┃ ┗ desc: ${opt.describe}`,
+                `╠ ${opt.fnc} [${opt.type}]`,
+                `- ┣ reg:  ${opt.reg}`,
+                `- ┗ desc: ${opt.describe}`,
             );
         }
         sendStr.push("");

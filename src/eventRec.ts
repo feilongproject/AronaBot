@@ -60,8 +60,9 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             });
         }
         case "GUILD_MEMBERS": {
+            import("./plugins/admin").then(module => module.updateEventId(event as IntentMessage.GUILD_MEMBERS)).catch(err => log.error(err));
             if (devEnv) return;
-            const msg = event.msg as any as IntentMessage.GUILD_MEMBERS__body;
+            const msg = (event as IntentMessage.GUILD_MEMBERS).msg;
             return pushToDB("GUILD_MEMBERS", {
                 type: event.eventType,
                 eId: event.eventId,
@@ -72,6 +73,8 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
                 gid: msg.guild_id,
                 jts: msg.joined_at,
                 cts: new Date().toDBString(),
+                opUserId: msg.op_user_id || "",
+                roles: (msg.roles || []).join() || "",
             });
         }
 

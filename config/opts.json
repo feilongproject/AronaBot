@@ -11,13 +11,15 @@
             "help": {
                 "reg": "^/?help$",
                 "fnc": "help",
-                "type": ["DIRECT"],
+                "type": ["GUILD", "DIRECT"],
+                "channelAllows": ["all"],
                 "describe": "获取帮助"
             },
             "ping": {
                 "reg": "^/?ping$",
                 "fnc": "ping",
                 "type": ["GUILD", "DIRECT"],
+                "channelAllows": ["all"],
                 "describe": "检测数据库是否正常"
             },
             "status": {
@@ -54,7 +56,7 @@
             "dumpChatRecord": {
                 "reg": "^dump\\s*(\\d+)$",
                 "fnc": "dumpChatRecord",
-                "type": ["DIRECT"],
+                "type": ["GUILD", "DIRECT"],
                 "describe": "dump发言记录"
             }
         },
@@ -138,7 +140,7 @@
                 "describe": "获取指定学生的评价"
             },
             "flushHandBookInfo": {
-                "reg": "^刷新攻略$",
+                "reg": "^(刷新攻略|攻略刷新)$",
                 "fnc": "flushHandBookInfo",
                 "type": ["DIRECT"],
                 "describe": "刷新本地攻略缓存"
@@ -190,7 +192,7 @@
                 "reg": "^/?check$",
                 "fnc": "mainCheck",
                 "type": ["DIRECT"],
-                "describe": "手动进行一次更新检查"
+                "describe": "手动检查一次推送"
             }
         }
     },
