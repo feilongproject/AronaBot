@@ -40,6 +40,11 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
         this._atta = this.attachments ? `[图片${this.attachments.length + "张"}]` : "";
     }
 
+    async sendMsgExRef(option: Partial<SendMsgOption>) {
+        option.ref = true;
+        return this.sendMsgEx(option);
+    }
+
     async sendMsgEx(option: Partial<SendMsgOption>) {
         global.botStatus.msgSendNum++;
         option.msgId = option.msgId || this.id || await redis.get("lastestMsgId") || undefined;
@@ -49,7 +54,7 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
         return callWithRetry(this._sendMsgEx, [option]);
     }
 
-    private async _sendMsgEx(option: Partial<SendMsgOption>) {
+    private _sendMsgEx = async (option: Partial<SendMsgOption>) => {
         if (option.imagePath || option.imageFile) return sendImage(option as any);
         const { ref, content, imageUrl } = option;
         if (option.sendType == "GUILD") return global.client.messageApi.postMessage(option.channelId || "", {
@@ -65,30 +70,27 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
         }).then(res => res.data);
     }
 
-    async sendMsgExRef(option: Partial<SendMsgOption>) {
-        option.ref = true;
-        return this.sendMsgEx(option);
+    async sendMarkdown(option: Partial<SendMsgOption> & SendMsgOption.Markdown) {
+        return callWithRetry(this._sendMarkdown, [option]);
     }
 
-    async sendMarkdown(templateId: string, params: { [key: string]: string }, keyboardId?: string) {
-        return callWithRetry(this._sendMarkdown, [this.channel_id, templateId, params, keyboardId]);
-    }
-
-    private async _sendMarkdown(channelId: string, templateId: string, params: { [key: string]: string }, keyboardId?: string) {
-        return fetch(`https://api.sgroup.qq.com/channels/${channelId}/messages`, {
+    private _sendMarkdown = async (options: Partial<SendMsgOption> & SendMsgOption.Markdown) => {
+        const eventId = await redis.get(`lastestEventId:${options.guildId || this.guild_id}`);
+        return fetch(`https://api.sgroup.qq.com/channels/${options.channelId || this.channel_id}/messages`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": `Bot ${config.initConfig.appID}.${config.initConfig.token}`,
             },
             body: JSON.stringify({
+                event_id: eventId,
                 markdown: {
-                    custom_template_id: templateId,
-                    params: Object.entries(params).map(([key, value]) => {
+                    custom_template_id: options.templateId,
+                    params: Object.entries(options.params).map(([key, value]) => {
                         return { key, values: [value] };
                     }),
                 },
-                keyboard: { id: keyboardId },
+                keyboard: { id: options.keyboardId },
             }),
         }).then(async res => {
             const json = await res.json();
@@ -198,6 +200,16 @@ interface SendMsgOption {
     content?: string;
     sendType: "DIRECT" | "GUILD";
     msgId?: string;
+    eventId?: string;
     guildId?: string;
     channelId: string;
+    markdown: SendMsgOption.Markdown;
+}
+
+namespace SendMsgOption {
+    export interface Markdown {
+        templateId: string;
+        params: { [key: string]: string };
+        keyboardId?: string;
+    }
 }
