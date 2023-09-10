@@ -9,6 +9,27 @@ import child_process from "child_process";
 import { reloadStudentInfo, sendToAdmin } from "../libs/common";
 import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 
+
+export async function updateEventId(event?: IntentMessage.GUILD_MEMBERS) {
+    const opUserId = "15874984758683127001";
+    // if (devEnv) log.debug(event);
+    if (event?.msg.user.id == opUserId) {
+        return await redis.setEx(`lastestEventId:${event.msg.guild_id}`, 60 * 4, event.eventId,);
+    }
+    if (event) return;
+
+    for (const guildId in saveGuildsTree) {
+        const channel = Object.values(saveGuildsTree[guildId].channels).find(v => v.name == "bot操作记录日志");
+        if (!channel) continue;
+        if (devEnv && guildId != "9919414431536104110") continue;
+
+        await client.memberApi.memberAddRole(guildId, "5", opUserId, channel.id).catch(err => {
+            log.error(err);
+            sendToAdmin(JSON.stringify(err).replaceAll(".", "。")).catch(err => log.error(err));
+        });
+    }
+}
+
 export async function updateGithubVersion(msg?: IMessageDIRECT) {
     if (await redis.exists("push:ghUpdate")) return;
     return fetch("https://p.prpr.cf/feilongproject/SchaleDB?host=github.com").then(res => res.text()).then(html => {
