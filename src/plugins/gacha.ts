@@ -43,14 +43,18 @@ export async function gachaImage(msg: IMessageGUILD) {
     const analyze = setting.analyzeHide == "true" ? null : await analyzeRandData(setting.server == "jp" ? "jp" : "global", msg.author.id, o);
     const imageName = await buildImage(o);
     if (devEnv) log.debug(imageName);
-    if (showMarkdown) return msg.sendMarkdown("102024160_1688641352", {
-        at_user: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)`,
-        ...analyze,
-        gacha_img_size: "img #1700px #980px",
-        gacha_img_url: `https://ip.arona.schale.top/p/gacha/${imageName}`,
-        user_img_size: "img #-1px #1px",
-        user_img_url: "  ",
-    }, "102024160_1687887014").catch(err => {
+    if (showMarkdown) return msg.sendMarkdown({
+        templateId: "102024160_1688641352",
+        params: {
+            at_user: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)`,
+            ...analyze,
+            gacha_img_size: "img #1700px #980px",
+            gacha_img_url: `https://ip.arona.schale.top/p/gacha/${imageName}`,
+            user_img_size: "img #-1px #1px",
+            user_img_url: "  ",
+        },
+        keyboardId: "102024160_1692938526",
+    }).catch(err => {
         log.error(err);
         return msg.sendMsgExRef({
             content: `发送消息时出现了错误 <@${adminId[0]}>`
