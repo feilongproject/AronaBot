@@ -8,7 +8,7 @@ import { findStudentInfo, settingUserConfig } from "../libs/common";
 import config from "../../config/config.json";
 
 var handBookInfo: HandbookInfo.Root = JSON.parse(fs.readFileSync(`${config.handbookRoot}/info.json`).toString());
-const noSetServerMessage = `\n(未指定/未设置服务器, 默认使用国际服)`;
+const noSetServerMessage = `\r(未指定/未设置服务器, 默认使用国际服)`;
 const getErrorMessage = `发送时出现了一些问题<@${adminId[0]}>\n这可能是因为腾讯获取图片出错导致, 请稍后重试\n`;
 const needUpdateMessage = `若数据未更新，请直接@bot管理`;
 const updateTimeMessage = `图片更新时间：`;
@@ -17,6 +17,22 @@ const updateTimeMessage = `图片更新时间：`;
 export async function totalAssault(msg: IMessageGUILD) {
     const { server, message } = await getServer(msg.content, msg.author.id);
     const lastestImage = await getLastestImage("totalAssault", server);
+
+    if (showMarkdown) return msg.sendMarkdown({
+        templateId: "102024160_1694231940",
+        params: {
+            at_user: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}总力战一图流)${message}`,
+            today_gacha: needUpdateMessage,
+            total_gacha: `攻略制作: 夜猫`,
+            // gacha_analyze: lastestImage.info + "\u200b",
+            img_info: "\u200b](https://ip.arona.schale.top/turn/",
+            gacha_img: `img #${lastestImage.width}px #${lastestImage.height}px](${lastestImage.url}`,
+            gacha_stats: "\r" + lastestImage.updateTime,
+            user_img: "img #-1px #1px](  ",
+        },
+        keyboardId: "102024160_1694010888",
+    });
+
     return msg.sendMsgEx({
         content: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}总力战一图流)${message}` +
             `\n${needUpdateMessage}` +
@@ -31,6 +47,22 @@ export async function totalAssault(msg: IMessageGUILD) {
 
 export async function globalClairvoyance(msg: IMessageGUILD) {
     const lastestImage = await getLastestImage("globalClairvoyance");
+
+    if (showMarkdown) return msg.sendMarkdown({
+        templateId: "102024160_1694231940",
+        params: {
+            at_user: `<@${msg.author.id}> (千里眼)`,
+            today_gacha: needUpdateMessage,
+            total_gacha: `攻略制作: 夜猫`,
+            // gacha_analyze: lastestImage.info + "\u200b",
+            img_info: "\u200b](https://ip.arona.schale.top/turn/",
+            gacha_img: `img #${lastestImage.width}px #${lastestImage.height}px](${lastestImage.url}`,
+            gacha_stats: "\r" + lastestImage.updateTime,
+            user_img: "img #-1px #1px](  ",
+        },
+        keyboardId: "102024160_1694010888",
+    });
+
     return msg.sendMsgEx({
         content: `<@${msg.author.id}> (千里眼)` +
             `\n${needUpdateMessage}` +
@@ -46,6 +78,22 @@ export async function globalClairvoyance(msg: IMessageGUILD) {
 export async function activityStrategy(msg: IMessageGUILD) {
     const { server, message } = await getServer(msg.content, msg.author.id);
     const lastestImage = await getLastestImage("activityStrategy", server);
+
+    if (showMarkdown) return msg.sendMarkdown({
+        templateId: "102024160_1694231940",
+        params: {
+            at_user: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}总力战一图流)${message}`,
+            today_gacha: needUpdateMessage,
+            total_gacha: `攻略制作: 夜猫`,
+            // gacha_analyze: ,
+            img_info: `🔗详情点我](${lastestImage.infoUrl}`,
+            gacha_img: `img #${lastestImage.width}px #${lastestImage.height}px](${lastestImage.url}`,
+            gacha_stats: "\r" + lastestImage.updateTime,
+            user_img: "img #-1px #1px](  ",
+        },
+        keyboardId: "102024160_1694010888",
+    });
+
     return msg.sendMsgEx({
         content: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}活动一图流)${message}` +
             `\n${needUpdateMessage}` +
@@ -165,8 +213,10 @@ async function getLastestImage(appname: string, type = "all"): Promise<HandbookI
     const size = imageSize(`${config.handbookRoot}/${appname}/${type}.png`);
     return {
         ...size as any,
-        info: updateTimeMessage + lastestData.updateTime + lastestData.info,
-        updateTime: lastestData.updateTime,
+        ...lastestData,
+        totalInfo: updateTimeMessage + lastestData.updateTime + "\r" + lastestData.info,
+        info: lastestData.info,
+        updateTime: updateTimeMessage + lastestData.updateTime,
         url: await redis.hGet(`cache:handbook`, `baseUrl`) + `/${appname}/${type}.png!HandbookImageCompress?expired=${lastestData.updateTime}`,
     };
 }
@@ -219,7 +269,9 @@ namespace HandbookInfo {
         height: number;
         width: number;
         url: string;
-        info: string;
+        totalInfo: string;
+        info?: string;
+        infoUrl?: string;
         updateTime: string;
     }
 }

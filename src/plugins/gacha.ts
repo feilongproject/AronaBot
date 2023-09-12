@@ -44,14 +44,13 @@ export async function gachaImage(msg: IMessageGUILD) {
     const imageName = await buildImage(o);
     if (devEnv) log.debug(imageName);
     if (showMarkdown) return msg.sendMarkdown({
-        templateId: "102024160_1688641352",
+        templateId: "102024160_1694231940",
         params: {
             at_user: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)`,
             ...analyze,
-            gacha_img_size: "img #1700px #980px",
-            gacha_img_url: `https://ip.arona.schale.top/p/gacha/${imageName}`,
-            user_img_size: "img #-1px #1px",
-            user_img_url: "  ",
+            img_info: "\u200b](https://ip.arona.schale.top/turn/",
+            gacha_img: `img #1700px #980px](https://ip.arona.schale.top/p/gacha/${imageName}`,
+            user_img: "img #-1px #1px](  ",
         },
         keyboardId: "102024160_1692938526",
     }).catch(err => {
