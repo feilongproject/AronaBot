@@ -73,12 +73,12 @@ export async function commandSetting(msg: IMessageGUILD) {
     }
 
     return msg.sendMarkdown({
-        templateId: "102024160_1694231940",
+        templateId: "102024160_1694504312",
         params: {
             at_user: `<@${msg.author.id}> ${optStr}`,
-            today_gacha: `当前卡池选择: ${status.server == "jp" ? "日服" : "国际服"}卡池`,
-            total_gacha: `抽卡分析显示状态: ${status.analyzeHide == "true" ? "隐藏" : "显示"}`,
-            gacha_analyze: "注: 使用按钮可以快速设置",
+            today_gacha: `\r当前卡池选择: ${status.server == "jp" ? "日服" : "国际服"}卡池`,
+            total_gacha: `\r抽卡分析显示状态: ${status.analyzeHide == "true" ? "隐藏" : "显示"}`,
+            gacha_analyze: "\r注: 使用按钮可以快速设置",
             img_info: "\u200b](https://ip.arona.schale.top/turn/",
             gacha_img: "img #-1px #1px](  ",
             user_img: "img #-1px #1px](  ",

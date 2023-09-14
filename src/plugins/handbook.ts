@@ -10,7 +10,7 @@ import config from "../../config/config.json";
 var handBookInfo: HandbookInfo.Root = JSON.parse(fs.readFileSync(`${config.handbookRoot}/info.json`).toString());
 const noSetServerMessage = `\r(未指定/未设置服务器, 默认使用国际服)`;
 const getErrorMessage = `发送时出现了一些问题<@${adminId[0]}>\n这可能是因为腾讯获取图片出错导致, 请稍后重试\n`;
-const needUpdateMessage = `若数据未更新，请直接@bot管理`;
+const needUpdateMessage = `\r若数据未更新，请直接@bot管理\r`;
 const updateTimeMessage = `图片更新时间：`;
 
 
@@ -19,7 +19,7 @@ export async function totalAssault(msg: IMessageGUILD) {
     const lastestImage = await getLastestImage("totalAssault", server);
 
     if (showMarkdown) return msg.sendMarkdown({
-        templateId: "102024160_1694231940",
+        templateId: "102024160_1694504312",
         params: {
             at_user: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}总力战一图流)${message}`,
             today_gacha: needUpdateMessage,
@@ -49,7 +49,7 @@ export async function globalClairvoyance(msg: IMessageGUILD) {
     const lastestImage = await getLastestImage("globalClairvoyance");
 
     if (showMarkdown) return msg.sendMarkdown({
-        templateId: "102024160_1694231940",
+        templateId: "102024160_1694504312",
         params: {
             at_user: `<@${msg.author.id}> (千里眼)`,
             today_gacha: needUpdateMessage,
@@ -80,7 +80,7 @@ export async function activityStrategy(msg: IMessageGUILD) {
     const lastestImage = await getLastestImage("activityStrategy", server);
 
     if (showMarkdown) return msg.sendMarkdown({
-        templateId: "102024160_1694231940",
+        templateId: "102024160_1694504312",
         params: {
             at_user: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}总力战一图流)${message}`,
             today_gacha: needUpdateMessage,
