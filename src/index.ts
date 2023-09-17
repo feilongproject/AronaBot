@@ -12,7 +12,7 @@ init().then(() => {
         return import("./eventRec").then(e => e.eventRec(data));
     });
 
-    global.ws.on("GUILDS", async (data) => {
+    global.ws.on("GUILDS", async (data: IntentMessage.GUILD) => {
         data.eventRootType = "GUILDS";
         return import("./eventRec").then(e => e.eventRec(data));
     });

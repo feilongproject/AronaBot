@@ -77,7 +77,7 @@ export async function init() {
     log.info(`初始化: 正在创建频道树`);
     await loadGuildTree(true);
 
-    global.client.meApi.me().then(res => global.meId = res.data.id);
+    await global.client.meApi.me().then(res => global.meId = res.data.id);
 
     await reloadStudentInfo("local").then(d => {
         log.info(`学生数据加载完毕 ${d}`);

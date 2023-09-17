@@ -192,13 +192,16 @@ export async function avalonSystemWatcher(msg: IMessageGUILD) {
     if (!watchChannel) return;
 
     return msg.sendMsgEx({
-        content: `来源子频道: ${msg.channelName}` +
-            `\n来源子频道id: ${msg.channel_id}` +
+        content: `来源子频道: ${msg.channelName}(${msg.channel_id})` +
             `\n内容${msg._atta}: \n` +
             msg.content.replaceAll(".", ". "),
         imageUrl: msg.attachments ? "http://" + msg.attachments[0].url : undefined,
         channelId: watchChannel,
-    }).catch(err => sendToAdmin(JSON.stringify(err).replaceAll(".", "。")));
+    }).catch(err => sendToAdmin(
+        `avalonSystemWatcher 错误`
+        + `\n${msg.author.username}(${msg.author.id})`
+        + `\n来源子频道: ${msg.channelName}(${msg.channel_id})\n`
+        + JSON.stringify(err).replaceAll(".", "。")));
 }
 
 export async function addWatchList(msg: IMessageGUILD | IMessageDIRECT) {
