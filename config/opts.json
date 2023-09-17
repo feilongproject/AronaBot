@@ -191,8 +191,28 @@
             "mainCheck": {
                 "reg": "^/?check$",
                 "fnc": "mainCheck",
-                "type": ["DIRECT"],
+                "type": ["GUILD", "DIRECT"],
                 "describe": "手动检查一次推送"
+            }
+        },
+        "roleAssign": {
+            "createVirtualRole": {
+                "reg": "^/?创建虚拟身份组",
+                "fnc": "createVirtualRole",
+                "type": ["GUILD"],
+                "describe": "创建一个虚拟身份组"
+            },
+            "createRoleAssignMsg": {
+                "reg": "^/?创建身份组分配消息",
+                "fnc": "createRoleAssignMsg",
+                "type": ["GUILD"],
+                "describe": "创建一个身份组分配消息"
+            },
+            "deleteRoleAssign": {
+                "reg": "^/?删除虚拟身份组",
+                "fnc": "deleteRoleAssign",
+                "type": ["GUILD"],
+                "describe": "删除虚拟身份组及相关内容"
             }
         }
     },

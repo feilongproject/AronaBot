@@ -141,12 +141,12 @@ declare global {
             channel_id: string;
             emoji: {
                 id: string;
-                type: number;
+                type: 1 | 2;
             };
             guild_id: string;
             target: {
                 id: string;
-                type: number;
+                type: "ReactionTargetType_MSG" | "ReactionTargetType_FEED" | "ReactionTargetType_COMMNENT";
             },
             user_id: string;
         }

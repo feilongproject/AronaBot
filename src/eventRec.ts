@@ -79,9 +79,34 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
         }
 
         case "GUILD_MESSAGE_REACTIONS": {
-            const msg = event.msg as any as IntentMessage.GUILD_MESSAGE_REACTIONS__body;
-            if (!(msg.user_id == adminId[0] && msg.emoji.id == "10060" && msg.emoji.type == 2)) return;
-            return client.messageApi.deleteMessage(msg.channel_id, msg.target.id).catch(err => {
+            const msg = (event as IntentMessage.GUILD_MESSAGE_REACTIONS).msg;
+            if (global.devEnv && !adminId.includes(msg.user_id)) return;
+            await import("./plugins/roleAssign").then(module => module.roleAssign(event as IntentMessage.GUILD_MESSAGE_REACTIONS)).catch(err => {
+                log.error(err);
+                return sendToAdmin(
+                    `roleAssign 失败` +
+                    `\n用户: ${msg.user_id}` +
+                    `\n频道: ${saveGuildsTree[msg.guild_id].name}(${msg.guild_id})` +
+                    `\n子频道: ${saveGuildsTree[msg.guild_id]?.channels[msg.channel_id]?.name}(${msg.channel_id})` +
+                    `\n目标消息: ${msg.target.id} -> ${msg.target.type}` +
+                    `\n表情: ${msg.emoji.type == 2 ? emojiMap[msg.emoji.id] : `<emoji:${msg.emoji.id}>`}(${msg.emoji.id}) -> ${msg.emoji.type}`
+                );
+            }).catch(() => { });
+
+            await pushToDB("GUILD_MESSAGE_REACTIONS", {
+                cid: msg.channel_id,
+                emojiId: msg.emoji.id,
+                emojiType: msg.emoji.type,
+                gid: msg.guild_id,
+                targetId: msg.target.id,
+                targetType: msg.target.type,
+                aid: msg.user_id,
+            }).catch(err => {
+                log.error(err);
+                return sendToAdmin(`error: pushToDB GUILD_MESSAGE_REACTIONS`);
+            }).catch(() => { });;
+
+            if (adminId.includes(msg.user_id) && msg.emoji.id == "10060" && msg.emoji.type == 2) return client.messageApi.deleteMessage(msg.channel_id, msg.target.id).catch(err => {
                 log.error(err);
             });
         }
@@ -90,4 +115,59 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             break;
 
     }
+}
+
+
+export const emojiMap: { [id: string]: string } = {
+    "9728": "☀",
+    "9749": "☕",
+    "9786": "☺",
+    "10024": "✨",
+    "10060": "❌",
+    "10068": "❔",
+    "127801": "🌹",
+    "127817": "🍉",
+    "127822": "🍎",
+    "127827": "🍓",
+    "127836": "🍜",
+    "127838": "🍞",
+    "127847": "🍧",
+    "127866": "🍺",
+    "127867": "🍻",
+    "127881": "🎉",
+    "128027": "🐛",
+    "128046": "🐮",
+    "128051": "🐳",
+    "128053": "🐵",
+    "128074": "👊",
+    "128076": "👌",
+    "128077": "👍",
+    "128079": "👏",
+    "128089": "👙",
+    "128102": "👦",
+    "128104": "👨",
+    "128147": "💓",
+    "128157": "💝",
+    "128164": "💤",
+    "128166": "💦",
+    "128168": "💨",
+    "128170": "💪",
+    "128235": "📫",
+    "128293": "🔥",
+    "128513": "😁",
+    "128514": "😂",
+    "128516": "😄",
+    "128522": "😊",
+    "128524": "😌",
+    "128527": "😏",
+    "128530": "😒",
+    "128531": "😓",
+    "128532": "😔",
+    "128536": "😘",
+    "128538": "😚",
+    "128540": "😜",
+    "128541": "😝",
+    "128557": "😭",
+    "128560": "😰",
+    "128563": "😳",
 }
