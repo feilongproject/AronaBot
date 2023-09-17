@@ -1,5 +1,5 @@
 import { loadGuildTree } from "./init";
-import { pushToDB } from "./libs/common";
+import { pushToDB, sendToAdmin } from "./libs/common";
 import { findOpts } from "./libs/findOpts";
 import { IMessageDIRECT, IMessageGUILD } from "./libs/IMessageEx";
 
