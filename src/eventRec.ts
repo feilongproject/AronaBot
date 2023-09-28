@@ -63,7 +63,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             import("./plugins/admin").then(module => module.updateEventId(event as IntentMessage.GUILD_MEMBERS)).catch(err => log.error(err));
             if (devEnv) return;
             const msg = (event as IntentMessage.GUILD_MEMBERS).msg;
-            return pushToDB("GUILD_MEMBERS", {
+            if (msg.user.id != "15874984758683127001") return pushToDB("GUILD_MEMBERS", {
                 type: event.eventType,
                 eId: event.eventId,
                 aId: msg.user.id,
@@ -76,6 +76,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
                 opUserId: msg.op_user_id || "",
                 roles: (msg.roles || []).join() || "",
             });
+            else return;
         }
 
         case "GUILD_MESSAGE_REACTIONS": {
@@ -83,6 +84,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             if (global.devEnv && !adminId.includes(msg.user_id)) return;
             await import("./plugins/roleAssign").then(module => module.roleAssign(event as IntentMessage.GUILD_MESSAGE_REACTIONS)).catch(err => {
                 log.error(err);
+                log.error(event);
                 return sendToAdmin(
                     `roleAssign 失败` +
                     `\n用户: ${msg.user_id}` +
