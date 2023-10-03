@@ -175,7 +175,7 @@ export async function findDirectAidToGid(aid: string, guildId: string): Promise<
     throw "not found guild and create guild";
 }
 
-interface StudentInfoNet {
+export interface StudentInfoNet {
     Id: number;
     Name: string;
     DevName: string;

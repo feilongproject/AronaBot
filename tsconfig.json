@@ -14,7 +14,7 @@
         "resolveJsonModule": true,
         "types": ["node"]
     },
-    "include": ["src/**/*", "test/**/*"],
+    "include": ["src/**/*"],
     "typeRoots": ["./src/types"],
     "ts-node": {
         "files": true

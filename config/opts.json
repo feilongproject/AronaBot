@@ -185,6 +185,13 @@
                 "channelAllows": ["all"],
                 "type": ["GUILD"],
                 "describe": "举报晒卡行为"
+            },
+            "accuseGachaUpdate": {
+                "reg": "^/?举报图库更新$",
+                "fnc": "accuseGachaUpdate",
+                "channelAllows": ["all"],
+                "type": ["GUILD", "DIRECT"],
+                "describe": "更新晒卡举报图中的图库"
             }
         },
         "biliDynamic": {

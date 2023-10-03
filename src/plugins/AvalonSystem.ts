@@ -2,7 +2,7 @@ import fs from "fs";
 import fetch from "node-fetch";
 import format from "date-format";
 import { PythonShell } from "python-shell";
-import { sendToAdmin } from "../libs/common";
+import { StudentInfoNet, sendToAdmin } from "../libs/common";
 import { IMessageGUILD, IMessageDIRECT } from "../libs/IMessageEx";
 import config from "../../config/config.json";
 
@@ -179,6 +179,50 @@ async function accuseGachaWapper(srcMsg: IMessageGUILD) {
         // log.debug(gachaInfo);
     }
     return total;
+}
+
+export async function accuseGachaUpdate(msg: IMessageGUILD | IMessageDIRECT) {
+    const _dbImageList = await fetch("https://ghproxy.com/https://raw.githubusercontent.com/lonqie/SchaleDB/main/data/cn/students.min.json")
+        .then(res => res.json())
+        .then((students: StudentInfoNet[]) => students.map(v => v.DevName));
+    const _extractImageList = await fetch("https://ghproxy.com/https://raw.githubusercontent.com/electricgoat/ba-data/jp/Excel/CharacterExcelTable.json")
+        .then(res => res.json())
+        .then(json => (json.DataList as any[])
+            .filter(v => (v.TacticEntityType == "Student" && v.ProductionStep == "Release" && v.IsPlayableCharacter))
+            .map(v => (v.DevName as string).replace(/_default$/, ""))
+        );
+    const studentList = [..._dbImageList, ..._extractImageList]
+        .map(v => v[0].toUpperCase() + v.substring(1))
+        .filter((item, index, arr) => arr.indexOf(item, 0) === index);
+
+    if (!fs.existsSync(config.images.accuseCharacters)) fs.mkdirSync(config.images.accuseCharacters);
+    // const localAllImages = fs.readdirSync(config.images.characters)
+    //     .filter(v => v.startsWith("Student_Portrait_"))
+    //     .map(v => v.replace(/Student_Portrait_(.*)\.png/, "$1"));
+    const localList = fs.readdirSync(config.images.accuseCharacters)
+        .filter(v => v.startsWith("Student_Portrait_"))
+        .map(v => v.replace(/Student_Portrait_(.*)\.png/, "$1"));
+
+    const notFoundStudent = studentList.filter(v => !fs.existsSync(`${config.images.characters}/Student_Portrait_${v}.png`));
+    if (notFoundStudent.length) return msg.sendMsgEx({ content: `全局图库中: ${notFoundStudent.map(v => "Student_Portrait_" + v)} 不存在` });
+
+    const notFoundRemote = localList.filter(v => !studentList.includes(v));
+    if (notFoundRemote.length) return msg.sendMsgEx({ content: `晒卡禁言图库中: ${notFoundRemote} 在远程不存在` });
+
+    const notFoundAccuseImage = studentList.filter(v => !fs.existsSync(`${config.images.accuseCharacters}/Student_Portrait_${v}.png`));
+    if (notFoundAccuseImage.length) {
+        await msg.sendMsgEx({ content: `晒卡禁言图库中: ${notFoundAccuseImage.map(v => "Student_Portrait_" + v)} 未找到，正在从全局图库中复制` });
+        for (const v of notFoundAccuseImage) {
+            try {
+                fs.copyFileSync(`${config.images.characters}/Student_Portrait_${v}.png`, `${config.images.accuseCharacters}/Student_Portrait_${v}.png`);
+            } catch (err) {
+                return msg.sendMsgEx({ content: `移动文件时出了一些问题\n${JSON.stringify(err).replaceAll(".", ",")}` });
+            }
+        }
+        await msg.sendMsgEx({ content: `所有文件全部移动成功` });
+    } else {
+        await msg.sendMsgEx({ content: `所有文件已存在` });
+    }
 }
 
 export async function avalonSystem(msg: IMessageGUILD) {
