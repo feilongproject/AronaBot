@@ -25,7 +25,7 @@ export async function callWithRetry<T extends (...args: A) => Promise<R>, R, A e
         if (err && ((err as any).code == 304027) && args && args[0] && args[0].msgId) { //message is expired
             retries--;
             args[0].msgId = await redis.get(`lastestMsgId`);
-        } else log.error(err);
+        } else log.error(JSON.stringify(err));
         if (typeof err == "object") errors.push(JSON.stringify(err));
         else errors.push(String(err));
         if (retries < config.retryTime - 1) {
@@ -86,7 +86,7 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
 
     const _studentInfo: StudentInfos = {};
     if (type == "net") {
-        const netStudents: StudentInfoNet[] = await fetch("https://ghproxy.com/https://raw.githubusercontent.com/lonqie/SchaleDB/main/data/cn/students.json").then(res => {
+        const netStudents: StudentInfoNet[] = await fetch("https://ghproxy.com/https://raw.githubusercontent.com/lonqie/SchaleDB/main/data/cn/students.min.json").then(res => {
             return res.json();
         }).catch(err => log.error(err));
         if (!netStudents) throw `can't fetch json:students`;
