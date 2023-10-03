@@ -82,7 +82,7 @@ export async function activityStrategy(msg: IMessageGUILD) {
     if (showMarkdown) return msg.sendMarkdown({
         templateId: "102024160_1694504312",
         params: {
-            at_user: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}总力战一图流)${message}`,
+            at_user: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}活动一图流)${message}`,
             today_gacha: needUpdateMessage,
             total_gacha: `攻略制作: 夜猫`,
             // gacha_analyze: ,
