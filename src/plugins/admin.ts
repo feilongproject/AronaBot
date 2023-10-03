@@ -153,6 +153,7 @@ export async function mute(msg: IMessageGUILD) {
         if (data.roles.includes("4")) return "无法禁言频道主";
         if (data.roles.includes("2")) return "无法禁言超级管理员";
         if (data.roles.includes("5")) return "无法禁言子频道管理员";
+        if (data.roles.includes("11146065")) return "无法禁言风纪委员会成员";
         return null;
     }).catch(err => {
         log.error(err);
@@ -172,7 +173,7 @@ export async function mute(msg: IMessageGUILD) {
         sendType: "DIRECT",
     }).then(() => muteTime
         ? redis.hSet(`mute:${muteMember!.id}`, new Date().getTime(), muteType)
-            .then(() => msg.sendMsgExRef({ content: `已对成员<@${muteMember!.id}>${timeExec[1]}禁言${timeConver(muteTime * 1000)}` }))
+            .then(() => msg.sendMsgExRef({ content: `已对成员<@${muteMember!.id}>${timeExec[1]}禁言${timeConver(muteTime * 1000)}\n注意：若管理随意使用则会采取一定措施` }))
         : msg.sendMsgExRef({ content: `已解除${timeExec[1]}禁言` })
     ).then(() => redis.hGetAll(`mute:${muteMember!.id}`)
     ).then(muteInfo => {
