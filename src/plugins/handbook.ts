@@ -106,7 +106,8 @@ export async function activityStrategy(msg: IMessageGUILD) {
     });
 }
 
-export async function activityStrategyPush(msg: IMessageDIRECT) {
+export async function activityStrategyPush(msg: IMessageGUILD | IMessageDIRECT) {
+    if (!adminId.includes(msg.author.id)) return;
     const reg = /攻略(发布|更新)\s*(cv(\d+))?\s*(\d+)?/.exec(msg.content)!;
     const cv = Number(reg[3]);
     const channelId = reg[4];
@@ -118,17 +119,14 @@ export async function activityStrategyPush(msg: IMessageDIRECT) {
     });
 
     const encode = cv.toString(2).replaceAll("0", "\u200c").replaceAll("1", "\u200d");
-    const isNew = await fetch(`https://api.sgroup.qq.com/channels/${channelId}/threads`, {
+    const isHas = await fetch(`https://api.sgroup.qq.com/channels/${channelId}/threads`, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
             "Authorization": `Bot ${config.initConfig.appID}.${config.initConfig.token}`
         },
-    }).then(res => res.json()).then(json => {
-        for (const thread of json.threads) if ((thread.thread_info.title as string).startsWith(encode)) return false;
-        return true;
-    }).catch(err => log.error(err));
-    if (!isNew) return msg.sendMsgEx({ content: `已查询到存在相同动态` });
+    }).then(res => res.json()).then(json => (json.threads as any[]).find(thread => (thread.thread_info.title as string).startsWith(encode))).catch(err => log.error(err));
+    if (isHas) return msg.sendMsgEx({ content: `已查询到存在相同动态` });
 
     return fetch(`https://www.bilibili.com/read/cv${cv}`, { headers: { "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36 Edg/112.0.1722.58" } }).then(res => res.text()).then(html => {
         const $ = cheerio.load(html);

@@ -129,7 +129,7 @@
             "activityStrategyPush": {
                 "reg": "攻略(发布|更新)\\s*(cv\\d+)?\\s*(\\d+)?",
                 "fnc": "activityStrategyPush",
-                "type": ["DIRECT"],
+                "type": ["GUILD", "DIRECT"],
                 "describe": "进行一个攻略的更新"
             },
             "studentEvaluation": {
