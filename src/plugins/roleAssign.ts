@@ -54,7 +54,8 @@ export async function roleAssign(event: IntentMessage.GUILD_MESSAGE_REACTIONS) {
 }
 
 export async function createVirtualRole(msg: IMessageGUILD) {
-    const match = /^\/?创建虚拟身份组\s+([A-Za-z0-9]+)\s+(.*?)\s*<emoji:(\d+)>\s*#?([0-9a-fA-F]{6})$/.exec(msg.content);
+    const match = /^\/?创建虚拟身份组\s*([A-Za-z0-9]+)\s+(.*?)\s*<emoji:(\d+)>\s*#?([0-9a-fA-F]{6})$/.exec(msg.content);
+    // log.debug(match);
     if (!match) return msg.sendMsgExRef({
         content:
             `创建虚拟身份组失败，请按照指定格式使用指令：`
@@ -73,7 +74,7 @@ export async function createVirtualRole(msg: IMessageGUILD) {
     await redis.hSet("roleAssign:desc", `${msg.guild_id}:${roleType}`, roleTypeDesc);
     await redis.hSet("roleAssign:color", `${msg.guild_id}:${roleType}`, roleTypeColor);
     // await redis.lPush(`roleAssign:${roleType}`, newRole.role_id);
-    return msg.sendMsgEx({
+    return msg.sendMsgExRef({
         content:
             `已设置虚拟身份组`
             + `\n${roleTypeDesc}(${roleType}) ${roleTypeColor}`
