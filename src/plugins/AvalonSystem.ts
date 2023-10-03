@@ -248,7 +248,7 @@ export async function avalonSystemWatcher(msg: IMessageGUILD) {
         + JSON.stringify(err).replaceAll(".", "。")));
 }
 
-export async function addWatchList(msg: IMessageGUILD | IMessageDIRECT) {
+export async function addWatchList(msg: IMessageGUILD) {
     if (unauthorized(msg)) return;
     const reg = /^watch\s*(\d*)$/.exec(msg.content)!;
     const watchUser = reg[1];
@@ -282,7 +282,7 @@ export async function addWatchList(msg: IMessageGUILD | IMessageDIRECT) {
     });
 }
 
-export async function unWatchList(msg: IMessageGUILD | IMessageGUILD) {
+export async function unWatchList(msg: IMessageGUILD) {
     if (unauthorized(msg)) return;
     const reg = /^unwatch\s*(\d*)$/.exec(msg.content)!;
     const watchUser = reg[1];

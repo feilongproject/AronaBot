@@ -169,14 +169,14 @@
                 "reg": "^watch\\s*(\\d*)$",
                 "fnc": "addWatchList",
                 "channelAllows": ["AvalonSystem"],
-                "type": ["GUILD", "DIRECT"],
+                "type": ["GUILD"],
                 "describe": "向阿瓦隆系统添加监控列表"
             },
             "unWatchList": {
                 "reg": "^unwatch\\s*(\\d*)$",
                 "fnc": "unWatchList",
                 "channelAllows": ["AvalonSystem"],
-                "type": ["GUILD", "DIRECT"],
+                "type": ["GUILD"],
                 "describe": "向阿瓦隆系统删除监控列表"
             },
             "accuseGacha": {
