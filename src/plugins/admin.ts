@@ -161,7 +161,14 @@ export async function mute(msg: IMessageGUILD) {
     });
     if (alart) return msg.sendMsgExRef({ content: alart });
 
-    return msg.sendMsgEx({//通知adminId
+    await sendToAdmin(`mute 触发` +
+        `\n子频道: ${msg.channelName}(${msg.channel_id})` +
+        `\n目标: ${muteMember.username}(${muteMember.id})` +
+        `\n使用人: ${msg.author.username}(${msg.author.id})`
+    );
+
+    const sendAccuseGachaInfoChannel = await redis.hGet("mute:sendAccuseGachaInfoChannel", msg.guild_id);
+    if (sendAccuseGachaInfoChannel) await msg.sendMsgEx({
         content: `管理执行${muteType}禁言权限` +
             `\n\n权限: ${JSON.stringify(msg?.member?.roles)}` +
             `\n管理: ${msg.author.username}(${msg.author.id})` +
@@ -169,11 +176,11 @@ export async function mute(msg: IMessageGUILD) {
             `\n\n频道: ${msg.guildName}(${msg.guild_id})` +
             `\n子频道: ${msg.channelName}(${msg.channel_id})` +
             `\n时间: ${timeConver(muteTime * 1000)}`,
-        guildId: await global.redis.hGet(`directUid->Gid`, adminId[0]),
-        sendType: "DIRECT",
-    }).then(() => muteTime
-        ? redis.hSet(`mute:${muteMember!.id}`, new Date().getTime(), muteType)
-            .then(() => msg.sendMsgExRef({ content: `已对成员<@${muteMember!.id}>${timeExec[1]}禁言${timeConver(muteTime * 1000)}\n注意：若管理随意使用则会采取一定措施` }))
+        channelId: sendAccuseGachaInfoChannel,
+    });
+
+    return (muteTime ? redis.hSet(`mute:${muteMember!.id}`, new Date().getTime(), muteType)
+        .then(() => msg.sendMsgExRef({ content: `已对成员<@${muteMember!.id}>${timeExec[1]}禁言${timeConver(muteTime * 1000)}\n注意：若管理随意使用则会采取一定措施` }))
         : msg.sendMsgExRef({ content: `已解除${timeExec[1]}禁言` })
     ).then(() => redis.hGetAll(`mute:${muteMember!.id}`)
     ).then(muteInfo => {
