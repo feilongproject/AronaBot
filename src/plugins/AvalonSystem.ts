@@ -182,6 +182,7 @@ async function accuseGachaWapper(srcMsg: IMessageGUILD) {
 }
 
 export async function accuseGachaUpdate(msg: IMessageGUILD | IMessageDIRECT) {
+    if (unauthorized(msg)) return;
     const _dbImageList = await fetch("https://ghproxy.com/https://raw.githubusercontent.com/lonqie/SchaleDB/main/data/cn/students.min.json")
         .then(res => res.json())
         .then((students: StudentInfoNet[]) => students.map(v => v.DevName));
@@ -226,6 +227,7 @@ export async function accuseGachaUpdate(msg: IMessageGUILD | IMessageDIRECT) {
 }
 
 export async function avalonSystem(msg: IMessageGUILD) {
+    await redis.hSet("nameLink", msg.author.username, msg.author.id);
     return avalonSystemWatcher(msg).then(() => {
         if (msg.channel_id == "43227251") return meituChannel(msg);
     });
@@ -237,8 +239,9 @@ export async function avalonSystemWatcher(msg: IMessageGUILD) {
 
     return msg.sendMsgEx({
         content: `来源子频道: ${msg.channelName}(${msg.channel_id})` +
-            `\n内容${msg._atta}: \n` +
-            msg.content.replaceAll(".", ". "),
+            `\n名称: ${msg.author.username}(${msg.member.nick})` +
+            `\n内容 ${msg._atta} : \n` +
+            msg.content.replaceAll(".", ","),
         imageUrl: msg.attachments ? "http://" + msg.attachments[0].url : undefined,
         channelId: watchChannel,
     }).catch(err => sendToAdmin(
@@ -250,7 +253,7 @@ export async function avalonSystemWatcher(msg: IMessageGUILD) {
 
 export async function addWatchList(msg: IMessageGUILD) {
     if (unauthorized(msg)) return;
-    const reg = /^watch\s*(\d*)$/.exec(msg.content)!;
+    const reg = /^阿瓦隆添加\s*(\d*)$/.exec(msg.content)!;
     const watchUser = reg[1];
     const watchChannel = await redis.hGet(`AvalonSystem`, `watchChannel:${watchUser}`);
 
@@ -284,7 +287,7 @@ export async function addWatchList(msg: IMessageGUILD) {
 
 export async function unWatchList(msg: IMessageGUILD) {
     if (unauthorized(msg)) return;
-    const reg = /^unwatch\s*(\d*)$/.exec(msg.content)!;
+    const reg = /^阿瓦隆删除\s*(\d*)$/.exec(msg.content)!;
     const watchUser = reg[1];
     const watchChannel = await redis.hGet(`AvalonSystem`, `watchChannel:${watchUser}`);
 
@@ -307,6 +310,26 @@ export async function unWatchList(msg: IMessageGUILD) {
         });
     });
 
+}
+
+export async function searchMembers(msg: IMessageGUILD | IMessageDIRECT) {
+    const match = /^\/?阿瓦隆搜索(\d*)\s+(.*)/.exec(msg.content);
+    if (!match || !match[2]) return msg.sendMsgEx({ content: `未找到搜索内容，请在命令与搜索中间加入空格` });
+    const searchStr = match[2];
+    const max = Number(match[1]) || 10;
+    const ret: string[] = [];
+    let now = 0;
+
+    for await (const it of redis.hScanIterator("nameLink", { MATCH: `*${searchStr}*` })) {
+        if (now >= max) break;
+        const watchChannel = await redis.hGet(`AvalonSystem`, `watchChannel:${it.value}`);
+        ret.push(`${it.field}(${it.value})${watchChannel ? ` 已存在于 ${watchChannel}` : ""}`);
+        now++;
+    }
+
+    return msg.sendMsgExRef({
+        content: ret.length ? `阿瓦隆搜索结果：\n` + ret.join("\n") : "未搜索到任何结果",
+    });
 }
 
 // export async function listWatchList(msg:IMessageGUILD|IMessageDIRECT) {

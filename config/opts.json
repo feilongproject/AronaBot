@@ -166,14 +166,14 @@
         },
         "AvalonSystem": {
             "addWatchList": {
-                "reg": "^watch\\s*(\\d*)$",
+                "reg": "^阿瓦隆添加\\s*(\\d*)$",
                 "fnc": "addWatchList",
                 "channelAllows": ["AvalonSystem"],
                 "type": ["GUILD"],
                 "describe": "向阿瓦隆系统添加监控列表"
             },
             "unWatchList": {
-                "reg": "^unwatch\\s*(\\d*)$",
+                "reg": "^阿瓦隆删除\\s*(\\d*)$",
                 "fnc": "unWatchList",
                 "channelAllows": ["AvalonSystem"],
                 "type": ["GUILD"],
@@ -192,6 +192,13 @@
                 "channelAllows": ["all"],
                 "type": ["GUILD", "DIRECT"],
                 "describe": "更新晒卡举报图中的图库"
+            },
+            "searchMembers": {
+                "reg": "^/?阿瓦隆搜索",
+                "fnc": "searchMembers",
+                "channelAllows": ["all"],
+                "type": ["GUILD", "DIRECT"],
+                "describe": "在阿瓦隆记录里通过名字搜索id"
             }
         },
         "biliDynamic": {
