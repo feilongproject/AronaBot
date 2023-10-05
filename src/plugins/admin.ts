@@ -171,7 +171,7 @@ export async function mute(msg: IMessageGUILD) {
     if (sendAccuseGachaInfoChannel) await msg.sendMsgEx({
         content: `管理执行${muteType}禁言权限` +
             `\n\n权限: ${JSON.stringify(msg?.member?.roles)}` +
-            `\n管理: ${msg.author.username}(${msg.author.id})` +
+            `\n管理: <@${msg.author.id}>(${msg.author.id})` +
             `\n目标: ${muteMember.username}(${muteMember.id})` +
             `\n\n频道: ${msg.guildName}(${msg.guild_id})` +
             `\n子频道: ${msg.channelName}(${msg.channel_id})` +
