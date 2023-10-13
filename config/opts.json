@@ -106,31 +106,38 @@
         },
         "handbook": {
             "totalAssault": {
-                "reg": "^/?总力战一图流\\s*((国际|日|jp|g)服?)?$",
-                "fnc": "totalAssault",
+                "reg": "^/?总力战一图流",
+                "fnc": "handbookMain",
                 "channelAllows": ["all"],
-                "type": ["GUILD"],
+                "type": ["GUILD", "DIRECT"],
                 "describe": "总力战一图流"
             },
             "globalClairvoyance": {
                 "reg": "^/?千里眼$",
-                "fnc": "globalClairvoyance",
+                "fnc": "handbookMain",
                 "channelAllows": ["all"],
-                "type": ["GUILD"],
+                "type": ["GUILD", "DIRECT"],
                 "describe": "获取国际服千里眼"
             },
             "activityStrategy": {
-                "reg": "^/?活动攻略\\s*((国际|日|jp|g)服?)?$",
-                "fnc": "activityStrategy",
+                "reg": "^/?活动攻略",
+                "fnc": "handbookMain",
+                "channelAllows": ["all"],
+                "type": ["GUILD", "DIRECT"],
+                "describe": "获取当前活动攻略一图流"
+            },
+            "handbookUpdate": {
+                "reg": "^/?hbupdate",
+                "fnc": "handbookUpdate",
                 "channelAllows": ["all"],
                 "type": ["GUILD"],
-                "describe": "获取当前活动攻略一图流"
+                "describe": "更新攻略中的图片"
             },
             "activityStrategyPush": {
                 "reg": "攻略(发布|更新)\\s*(cv\\d+)?\\s*(\\d+)?",
                 "fnc": "activityStrategyPush",
                 "type": ["GUILD", "DIRECT"],
-                "describe": "进行一个攻略的更新"
+                "describe": "进行一个活动攻略的更新"
             },
             "studentEvaluation": {
                 "reg": "^/?(角评|角色评价)(.*)$",
@@ -138,12 +145,6 @@
                 "channelAllows": ["all"],
                 "type": ["GUILD"],
                 "describe": "获取指定学生的评价"
-            },
-            "flushHandBookInfo": {
-                "reg": "^(刷新攻略|攻略刷新)$",
-                "fnc": "flushHandBookInfo",
-                "type": ["DIRECT"],
-                "describe": "刷新本地攻略缓存"
             }
         },
         "commandSetting": {

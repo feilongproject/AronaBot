@@ -20,3 +20,4 @@ data/extract/*
 test/
 nodemon.test.json
 data/accuseCharacters/*
+data/images/*

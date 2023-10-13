@@ -1,0 +1,26 @@
+{
+    "names": {
+        "totalAssault": {
+            "reg": "^/?总力战一图流",
+            "typeReg": "(总力战?(一图流?)?)|(totalAssault)",
+            "desc": "总力战一图流",
+            "has": ["jp", "global"]
+        },
+        "activityStrategy": {
+            "reg": "^/?活动攻略",
+            "typeReg": "(活动(攻略)?)|(activity(Strategy)?)",
+            "desc": "活动攻略",
+            "has": ["jp", "global"]
+        },
+        "globalClairvoyance": {
+            "reg": "^/?千里眼",
+            "typeReg": "(千里眼?)|(global(Clairvoyance)?)",
+            "desc": "千里眼",
+            "has": ["all"]
+        }
+    },
+    "types": {
+        "global": "(国际|g)服?",
+        "jp": "(日|jp)服?"
+    }
+}

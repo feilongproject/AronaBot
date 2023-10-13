@@ -137,7 +137,7 @@ async function checkUser(biliUserId: string, cookies: string): Promise<BiliDynam
             "User-Agent": "Mozilla/5.0",// userAgent,
             "Cookie": "SESSDATA=feilongproject.com;", //cookies, //`SESSDATA=feilongproject.com;${cookies}`,
         }
-    }).then(res => res.json()).then((json: BiliDynamic.Root) => {
+    }).then(res => res.json()).then((json: BiliDynamic.List) => {
         //log.debug(json);
         if (!json.code) return json.data.items;
         throw json;
@@ -204,9 +204,9 @@ interface DynamicPush {
     }
 }
 
-namespace BiliDynamic {
+export namespace BiliDynamic {
 
-    export interface Root {
+    export interface List {
         code: number;
         message: string;
         ttl: number;
@@ -216,6 +216,15 @@ namespace BiliDynamic {
             offset: string;
             update_baseline: string;
             update_num: number;
+        };
+    }
+
+    export interface Info {
+        code: number;
+        message: string;
+        ttl: number;
+        data: {
+            item: Item;
         };
     }
 
@@ -349,7 +358,15 @@ namespace BiliDynamic {
     }
 
     export interface ModuleDynamicMajor {
-        archive: {
+        article?: {
+            covers: string[];
+            desc: string;
+            id: number;
+            jump_url: string;
+            label: string;
+            title: string;
+        };
+        archive?: {
             aid: number,
             badge: {
                 bg_color: string,
@@ -369,7 +386,7 @@ namespace BiliDynamic {
             title: string,
             type: number,
         };
-        live: {
+        live?: {
             badge: {
                 bg_color: string;
                 color: string;
@@ -384,10 +401,20 @@ namespace BiliDynamic {
             reserve_type: number;
             title: string;
         };
-        live_rcmd: {
+        live_rcmd?: {
             content: string;//被转义的json
         };
-        type: string;
+        draw?: {
+            id: number;
+            items: {
+                height: number;
+                size: number;
+                src: string;
+                tags: any[];
+                width: number;
+            }[];
+        };
+        type: DynamicTypeEnum;
     }
 
     export interface LiveRcmd {
@@ -444,5 +471,23 @@ namespace BiliDynamic {
         major: ModuleDynamicMajor | null;
         origMajor: ModuleDynamicMajor | null;
         origMsgId: string | null;
+    }
+
+    export enum DynamicTypeEnum {
+        MAJOR_TYPE_NONE = "MAJOR_TYPE_NONE",
+        MAJOR_TYPE_ARCHIVE = "MAJOR_TYPE_ARCHIVE",
+        MAJOR_TYPE_PGC = "MAJOR_TYPE_PGC",
+        MAJOR_TYPE_COURSES = "MAJOR_TYPE_COURSES",
+        MAJOR_TYPE_DRAW = "MAJOR_TYPE_DRAW",
+        MAJOR_TYPE_ARTICLE = "MAJOR_TYPE_ARTICLE",
+        MAJOR_TYPE_MUSIC = "MAJOR_TYPE_MUSIC",
+        MAJOR_TYPE_COMMON = "MAJOR_TYPE_COMMON",
+        MAJOR_TYPE_LIVE = "MAJOR_TYPE_LIVE",
+        MAJOR_TYPE_MEDIALIST = "MAJOR_TYPE_MEDIALIST",
+        MAJOR_TYPE_APPLET = "MAJOR_TYPE_APPLET",
+        MAJOR_TYPE_SUBSCRIPTION = "MAJOR_TYPE_SUBSCRIPTION",
+        MAJOR_TYPE_LIVE_RCMD = "MAJOR_TYPE_LIVE_RCMD",
+        MAJOR_TYPE_UGC_SEASON = "MAJOR_TYPE_UGC_SEASON",
+        MAJOR_TYPE_SUBSCRIPTION_NEW = "MAJOR_TYPE_SUBSCRIPTION_NEW",
     }
 }

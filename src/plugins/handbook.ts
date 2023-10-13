@@ -1,108 +1,195 @@
 import fs from "fs";
-import path from "path";
+import RE2 from "re2";
 import fetch from "node-fetch";
+import format from "date-format";
 import * as cheerio from "cheerio";
 import imageSize from "image-size";
 import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 import { findStudentInfo, settingUserConfig } from "../libs/common";
 import config from "../../config/config.json";
+import { BiliDynamic } from "./biliDynamic";
 
-var handBookInfo: HandbookInfo.Root = JSON.parse(fs.readFileSync(`${config.handbookRoot}/info.json`).toString());
 const noSetServerMessage = `\r(未指定/未设置服务器, 默认使用国际服)`;
 const getErrorMessage = `发送时出现了一些问题<@${adminId[0]}>\n这可能是因为腾讯获取图片出错导致, 请稍后重试\n`;
 const needUpdateMessage = `\r若数据未更新，请直接@bot管理\r`;
 const updateTimeMessage = `图片更新时间：`;
 
+const serverMap = { jp: "日服", global: "国际服", all: "" };
 
-export async function totalAssault(msg: IMessageGUILD) {
-    const { server, message } = await getServer(msg.content, msg.author.id);
-    const lastestImage = await getLastestImage("totalAssault", server);
+
+export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT) {
+    const hbMatched = await matchHandbook(msg.content.replaceAll(RegExp(`<@!?${meId}>`, "g"), "").trim(), msg.author.id);
+    // log.debug(msg.content, hbMatched);
+    if (!hbMatched) return msg.sendMsgEx({ content: `未找到对应攻略数据` });
+    const lastestImage = await getLastestImage(hbMatched.name, hbMatched.type);
+    const filePath = `${config.handbookRoot}/${hbMatched.name}/${hbMatched.type}.png`;
 
     if (showMarkdown) return msg.sendMarkdown({
-        templateId: "102024160_1694504312",
+        templateId: "102024160_1694664174",
         params: {
-            at_user: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}总力战一图流)${message}`,
-            today_gacha: needUpdateMessage,
-            total_gacha: `攻略制作: 夜猫`,
-            // gacha_analyze: lastestImage.info + "\u200b",
-            img_info: "\u200b](https://ip.arona.schale.top/turn/",
-            gacha_img: `img #${lastestImage.width}px #${lastestImage.height}px](${lastestImage.url}`,
-            gacha_stats: "\r" + lastestImage.updateTime,
-            user_img: "img #-1px #1px](  ",
+            at_user: `<@${msg.author.id}> (${serverMap[hbMatched.type]}${hbMatched.desc})${hbMatched.notChange ? noSetServerMessage : ""}`,
+            desc1: needUpdateMessage,
+            desc2: `攻略制作: 夜猫\r`,
+            ...(lastestImage.info ? { desc3: lastestImage.info + "\r" } : {}),
+            link1: `${lastestImage.infoUrl ? "🔗详情点我" : "\u200b"}](${lastestImage.infoUrl || "https://ip.arona.schale.top/turn/"}`,
+            img1: `img #${lastestImage.width}px #${lastestImage.height}px](${lastestImage.url}`,
+            img1_status: lastestImage.updateTime,
+            img2: "img #-1px #1px](  ",
         },
         keyboardId: "102024160_1694010888",
     });
 
     return msg.sendMsgEx({
-        content: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}总力战一图流)${message}` +
+        content: `<@${msg.author.id}>(${serverMap[hbMatched.type]}${hbMatched.desc})${hbMatched.notChange ? noSetServerMessage : ""}` +
             `\n${needUpdateMessage}` +
             `\n攻略制作: 夜猫` +
-            `\n${lastestImage.info}`,
+            `\n${lastestImage.info}` +
+            `图片更新时间: ${lastestImage.updateTime}`,
         imageUrl: lastestImage.url,
     }).catch(err => {
         log.error(err);
         return msg.sendMsgEx({ content: getErrorMessage + JSON.stringify(err) });
     });
+
 }
 
-export async function globalClairvoyance(msg: IMessageGUILD) {
-    const lastestImage = await getLastestImage("globalClairvoyance");
-
-    if (showMarkdown) return msg.sendMarkdown({
-        templateId: "102024160_1694504312",
-        params: {
-            at_user: `<@${msg.author.id}> (千里眼)`,
-            today_gacha: needUpdateMessage,
-            total_gacha: `攻略制作: 夜猫`,
-            // gacha_analyze: lastestImage.info + "\u200b",
-            img_info: "\u200b](https://ip.arona.schale.top/turn/",
-            gacha_img: `img #${lastestImage.width}px #${lastestImage.height}px](${lastestImage.url}`,
-            gacha_stats: "\r" + lastestImage.updateTime,
-            user_img: "img #-1px #1px](  ",
-        },
-        keyboardId: "102024160_1694010888",
-    });
-
-    return msg.sendMsgEx({
-        content: `<@${msg.author.id}> (千里眼)` +
-            `\n${needUpdateMessage}` +
-            `\n攻略制作: 夜猫` +
-            `\n${lastestImage.info}`,
-        imageUrl: lastestImage.url,
-    }).catch(err => {
-        log.error(err);
-        return msg.sendMsgEx({ content: getErrorMessage + JSON.stringify(err) });
-    });
+async function matchHandbook(content: string, aid: string): Promise<{ name: string; type: "global" | "jp" | "all"; desc: string; notChange: boolean; } | undefined> {
+    const { names, types } = (await import("../../data/handbookMatches.json")).default as any as HandbookMatches;
+    const hbName = (Object.entries(names).find(([k, v]) => RegExp(v.reg).test(content)));
+    if (!hbName || !hbName[0]) return undefined;
+    var hbType: "global" | "jp" | "all" = hbName[1]?.has?.includes("all") ? "all" : ((Object.entries(types).find(([k, v]) => RegExp(v).test(content)) || [])[0]) as any;
+    if (hbType != "all" && !hbType) {
+        hbType = (await settingUserConfig(aid, "GET", ["server"])).server as "global" | "jp";
+    }
+    return { name: hbName[0], type: hbType || "global", ...hbName[1], notChange: !hbType };
 }
 
-export async function activityStrategy(msg: IMessageGUILD) {
-    const { server, message } = await getServer(msg.content, msg.author.id);
-    const lastestImage = await getLastestImage("activityStrategy", server);
+async function getLastestImage(name: string, type = "all"): Promise<HandbookInfo.Data> {
+    const updateTime = await redis.hGet("handbook:cache", `${name}:${type}`);
+    const imageInfo = await redis.hGet("handbook:info", `${name}:${type}`);
+    const infoUrl = await redis.hGet("handbook:infoUrl", `${name}:${type}`);
+    const size = imageSize(`${config.handbookRoot}/${name}/${type}.png`);
+    return {
+        height: size.height || 400,
+        width: size.width || 400,
+        info: imageInfo,
+        infoUrl: infoUrl || "",
+        updateTime: updateTimeMessage + updateTime,
+        url: await redis.hGet(`handbook`, `baseUrl`) + `/${name}/${type}.png!HandbookImageCompress?expired=${updateTime}`,
+    };
+}
 
-    if (showMarkdown) return msg.sendMarkdown({
-        templateId: "102024160_1694504312",
-        params: {
-            at_user: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}活动一图流)${message}`,
-            today_gacha: needUpdateMessage,
-            total_gacha: `攻略制作: 夜猫`,
-            // gacha_analyze: ,
-            img_info: `🔗详情点我](${lastestImage.infoUrl}`,
-            gacha_img: `img #${lastestImage.width}px #${lastestImage.height}px](${lastestImage.url}`,
-            gacha_stats: "\r" + lastestImage.updateTime,
-            user_img: "img #-1px #1px](  ",
-        },
-        keyboardId: "102024160_1694010888",
+export async function handbookUpdate(msg: IMessageGUILD) {
+    if (!adminId.includes(msg.author.id)) return;
+    const matched = new RE2("^/?hbupdate(?P<imageId>\\d+)?\\s+(?P<name>\\S+)\\s+(?P<type>\\w+)\\s+(?P<url>https?://\\S+)\\s?(?P<desc>.+)?").exec(msg.content);
+    // log.debug(matched?.groups);
+    if (!matched || !matched.groups) return msg.sendMsgExRef({
+        content: `命令错误，命令格式：` +
+            `/hbupdate[imageId] (name) (type) (url) [desc]`,
     });
 
+    const { imageId, name, type, url, desc } = matched.groups;
+
+    // 图片 name 开始
+    var imageName = "";
+    const matchNames = ((await import("../../data/handbookMatches.json")).default as any as HandbookMatches).names;
+    for (const _key in matchNames) {
+        if (RegExp(matchNames[_key].typeReg).test(name)) { imageName = _key; break; }
+    }
+    if (!imageName) return msg.sendMsgEx({ content: `${name} 未找到` });
+    // 图片 name 结束
+
+    // 图片 type 开始
+    if (!Object.hasOwnProperty.call(serverMap, type)) return msg.sendMsgEx({ content: `未找到类型 ${type} ，允许类型： ${Object.keys(serverMap)}` });
+    if (!matchNames[imageName] || !matchNames[imageName]?.has?.includes(type as any)) return msg.sendMsgEx({ content: `${imageName} 中未找到类型 ${type} ，仅支持 ${matchNames[imageName].has}` });
+    const imageType = type;
+    // 图片 type 结束
+
+    // 图片 desc turnUrl 开始
+    var imageDesc = "";
+    var imageTurnUrl = "";
+    if (/(arona\.schale\.top\/turn)|(t\.bilibili\.com\/(\d+))/.test(desc)) {
+        try {
+            await fetch(/(https?:\/\/\S+)\s*/.exec(desc)![1]).then(res => {
+                const matchDynamicId = /https:\/\/t.bilibili.com\/(\d+)/.exec(res.url);
+                // log.debug(matchDynamicId);
+                if (matchDynamicId) return fetch(`https://api.bilibili.com/x/polymer/web-dynamic/v1/detail?id=${matchDynamicId[1]}`, {
+                    headers: {
+                        "User-Agent": "Mozilla/5.0",// userAgent,
+                        "Cookie": "SESSDATA=feilongproject.com;", //cookies, //`SESSDATA=feilongproject.com;${cookies}`,
+                    }
+                });
+                else throw `未知的url: ${res.url}`;
+            }).then(res => res.json()).then((data: BiliDynamic.Info) => {
+                if (data.data.item.modules.module_dynamic.major.type == BiliDynamic.DynamicTypeEnum.MAJOR_TYPE_ARTICLE) {
+                    const article = data.data.item.modules.module_dynamic.major.article!;
+                    const cvId = /cv(\d+)/.exec(article.jump_url)![1];
+                    imageTurnUrl = `https://cdn.arona.schale.top/turn/cv${cvId}`;
+                    imageDesc = article.title.replaceAll(/((蔚|碧)蓝档案)/g, "").replace(/^\//, "").trim();
+                } else throw `未知的动态类型: ${data.data.item.modules.module_dynamic.major.type}`;
+            });
+        } catch (err) {
+            log.error(err);
+            return msg.sendMsgEx({ content: `解析desc时出现错误\n` + JSON.stringify(err).replaceAll(".", ",") });
+        }
+    } else if (/cv(\d+)/.test(desc)) {
+        imageTurnUrl = `https://cdn.arona.schale.top/turn/cv${/cv(\d+)/.exec(desc)![1]}`;
+    } else imageDesc = desc;
+    // 图片 desc turnUrl 结束
+
+    // 图片 URL 开始
+    var imageUrl = "";
+    if (/arona\.schale\.top\/turn/.test(url)) {
+        try {
+            imageUrl = await fetch(url).then(res => {
+                // log.debug(res.url);
+                const matchDynamic = /https:\/\/t.bilibili.com\/(\d+)/.exec(res.url);
+                if (matchDynamic) return fetch(`https://api.bilibili.com/x/polymer/web-dynamic/v1/detail?id=${matchDynamic[1]}`, {
+                    headers: {
+                        "User-Agent": "Mozilla/5.0",// userAgent,
+                        "Cookie": "SESSDATA=feilongproject.com;", //cookies, //`SESSDATA=feilongproject.com;${cookies}`,
+                    }
+                });
+                else throw `未知的url: ${res.url}`;
+            }).then(res => res.json()).then((data: BiliDynamic.Info) => {
+                const draw = data.data.item.modules.module_dynamic.major.draw;
+                // log.debug(draw);
+                if (!draw) throw `未找到指定动态中的图片`;
+                if (Number(imageId) <= 0 || Number(imageId) > draw.items.length) throw `查询图片 id:${imageId} 超出范围，范围: 1 - ${draw.items.length}`;
+                return draw.items[Number(imageId) - 1 || 0].src;
+            });
+        } catch (err) {
+            log.error(err);
+            return msg.sendMsgEx({ content: `查找图片时出现错误\n` + JSON.stringify(err).replaceAll(".", ",") });
+        }
+    } else if (/https:\/\/.+hdslb\.com\/.+\.(png|jpg|jpeg)/.test(url)) imageUrl = /(https:\/\/.+\.(png|jpg|jpeg))/.exec(url)![1];
+    if (!imageUrl) return msg.sendMsgExRef({ content: "图片未找到" });
+    // 图片 URL 结束
+
+    // 发送总结信息
+    await msg.sendMsgEx({
+        content: (`已判断完毕，正在下载`
+            + `\nname: ${imageName}`
+            + `\ntype: ${imageType}`
+            + `\ndesc: ${imageDesc || "空"}`
+            + `\nimageTurnUrl: ${imageTurnUrl}`).replaceAll(".", ",")
+    });
+
+    await redis.hSet("handbook:cache", `${imageName}:${imageType}`, format.asString(new Date()));
+    await redis.hSet("handbook:info", `${imageName}:${imageType}`, imageDesc || "");
+    await redis.hSet("handbook:infoUrl", `${imageName}:${imageType}`, imageTurnUrl || "");
+    await fetch(imageUrl).then(res => res.buffer()).then(buff => fs.writeFileSync(`${config.handbookRoot}/${imageName}/${imageType}.png`, buff));
+
+    await fetch((await getLastestImage(imageName, imageType)).url, {
+        headers: { "user-agent": "QQShareProxy" },
+        timeout: 60 * 1000,
+    }).then(res => res.buffer()).then(buff => msg.sendMsgEx({
+        content: `${imageName} ${imageType} ${imageDesc.replaceAll(".", ",")}\nsize: ${(buff.length / 1024).toFixed(2)}K`,
+    })).catch(err => log.error(err));
+
     return msg.sendMsgEx({
-        content: `<@${msg.author.id}> (${server == "jp" ? "日服" : "国际服"}活动一图流)${message}` +
-            `\n${needUpdateMessage}` +
-            `\n攻略制作: 夜猫` +
-            `\n${lastestImage.info}`,
-        imageUrl: lastestImage.url,
-    }).catch(err => {
-        log.error(err);
-        return msg.sendMsgEx({ content: getErrorMessage + JSON.stringify(err) });
+        content: `图片已缓存`,
+        imageUrl: imageUrl + "@1048w_!web-dynamic.jpg",
     });
 }
 
@@ -139,11 +226,11 @@ export async function activityStrategyPush(msg: IMessageGUILD | IMessageDIRECT) 
         );
     }).then(async data => {
         const content =
-            `<h1>该贴由BA彩奈bot自动爬取b站专栏并发送</h1>` +
-            `<h1>作者: ${data.readInfo.author.name}</h1>` +
-            `<h1>来源: <a href="https://www.bilibili.com/read/cv${cv}">https://www.bilibili.com/read/cv${cv}</a></h1>` +
-            `<h1>\u200b</h1>` +
-            (data.readInfo.content as string).replaceAll(`<img data-src="`, `<img src="`);
+            `<h1>该贴由BA彩奈bot自动爬取b站专栏并发送</h1>`
+            + `<h1>作者: ${data.readInfo.author.name}</h1>`
+        // + `<h1>来源: <a href="https://www.bilibili.com/read/cv${cv}">https://www.bilibili.com/read/cv${cv}</a></h1>`
+        // + `<h1>\u200b</h1>`
+        // + (data.readInfo.content as string).replaceAll(`<img data-src="`, `<img src="`);
         const title: string = data.readInfo.title;
         return { title, content };
     }).then(postInfo => fetch(`https://api.sgroup.qq.com/channels/${channelId}/threads`, {
@@ -152,13 +239,14 @@ export async function activityStrategyPush(msg: IMessageGUILD | IMessageDIRECT) 
             "Content-Type": "application/json",
             "Authorization": `Bot ${config.initConfig.appID}.${config.initConfig.token}`
         },
-        body: JSON.stringify({ title: encode + postInfo.title, content: postInfo.content, format: 2 }),
+        body: JSON.stringify({ title: postInfo.title, content: postInfo.content, format: 2 }),
     })).then(res => res.text())
         .then(text => msg.sendMsgEx({ content: `已发布\n${text}` }))
         .catch(err => msg.sendMsgEx({ content: `获取出错\n${err}` }));
 }
 
 export async function studentEvaluation(msg: IMessageGUILD) {
+    if (1) return;
     const reg = /\/?(角评|角色评价)(.*)/.exec(msg.content)!;
     reg[2] = reg[2].trim();
     if (!reg[2]) {
@@ -180,7 +268,7 @@ export async function studentEvaluation(msg: IMessageGUILD) {
     if (!studentInfo) return msg.sendMsgExRef({ content: `未找到学生『${reg[2]}』数据` });
 
     const map = JSON.parse(fs.readFileSync(`${_path}/data/AronaBotImages/handbook/studentEvaluation/_map.json`).toString());
-    const studentPathName = studentInfo.pathName;
+    const studentPathName = studentInfo.devName;// 用 devName 还是 pathName？
     const imageLocalInfo: { info: string; path: string; } | undefined = map[studentPathName];
 
     if (!imageLocalInfo) return msg.sendMsgExRef({ content: `已找到学生『${reg[2]}』数据, 但未找到角评5.0, 等待后续录入<@${adminId[0]}>` });
@@ -196,65 +284,6 @@ export async function studentEvaluation(msg: IMessageGUILD) {
     });
 }
 
-async function getServer(content: string, aid: string) {
-    var hasServer: { server: "jp" | "global"; message: string; } = { server: "global", message: undefined } as any;
-    const cmdServer = /(日|jp)/.test(content) ? "jp" : (/(国际|g)/.test(content) ? "global" : undefined);
-    if (cmdServer) hasServer = { server: cmdServer, message: "" };
-    const settingServer = (await settingUserConfig(aid, "GET", ["server"])).server as "jp" | "global" | undefined;
-    if (settingServer && !cmdServer) hasServer = { server: settingServer, message: "" };
-    if (hasServer.message == undefined) hasServer.message = noSetServerMessage;
-    return hasServer;
-}
-
-async function getLastestImage(appname: string, type = "all"): Promise<HandbookInfo.Data> {
-    const lastestData = handBookInfo[appname][type];
-    const size = imageSize(`${config.handbookRoot}/${appname}/${type}.png`);
-    return {
-        ...size as any,
-        ...lastestData,
-        totalInfo: updateTimeMessage + lastestData.updateTime + "\r" + lastestData.info,
-        info: lastestData.info,
-        updateTime: updateTimeMessage + lastestData.updateTime,
-        url: await redis.hGet(`cache:handbook`, `baseUrl`) + `/${appname}/${type}.png!HandbookImageCompress?expired=${lastestData.updateTime}`,
-    };
-}
-
-export async function flushHandBookInfo(msg: IMessageDIRECT) {
-    if (!adminId.includes(msg.author.id)) return;
-    handBookInfo = JSON.parse(fs.readFileSync(`${config.handbookRoot}/info.json`).toString());
-    const preheatList: (HandbookInfo.Data & { field: string; isNew: boolean; })[] = [];
-
-    for (const appname in handBookInfo) {
-        for (const type in handBookInfo[appname]) {
-            const data = await getLastestImage(appname, type);
-            const _updateTime = await redis.hGet(`cache:handbook`, `${appname}:${type}`);
-            preheatList.push({
-                ...data,
-                field: `${appname}:${type}`,
-                isNew: _updateTime != data.updateTime,
-            });
-        }
-    }
-
-    for (let i = 0; i < preheatList.length; i++) {
-        const data = preheatList[i];
-        const p = path.parse(new URL(data.url).pathname);
-
-        await fetch(data.url, {
-            headers: { "user-agent": "QQShareProxy" },
-            timeout: 60 * 1000,
-        }).then(res => res.buffer()).then(buff => msg.sendMsgEx({
-            content: `${i + 1}/${preheatList.length}  ----  ${data.updateTime}` +
-                `\n${p.dir}/${p.name}` +
-                `\nsize: ${(buff.length / 1024).toFixed(2)}K ---- ${data.width}x${data.height}` +
-                `\nisNew: ${data.isNew}`,
-        })).then(() => redis.hSet(`cache:handbook`, data.field, data.updateTime)).catch(err => {
-            log.error(err);
-            return msg.sendMsgEx({ content: JSON.stringify(err).replaceAll(".", "。") });
-        }).catch(err => log.error(err));
-    }
-}
-
 
 namespace HandbookInfo {
     export interface Root {
@@ -267,9 +296,18 @@ namespace HandbookInfo {
         height: number;
         width: number;
         url: string;
-        totalInfo: string;
         info?: string;
         infoUrl?: string;
         updateTime: string;
     }
+}
+
+interface HandbookMatches {
+    names: Record<string, {
+        reg: string;
+        typeReg: string;
+        has: ["jp" | "global" | "all"];
+        desc: string;
+    }>;
+    types: Record<string, string>;
 }
