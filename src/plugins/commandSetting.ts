@@ -73,15 +73,15 @@ export async function commandSetting(msg: IMessageGUILD) {
     }
 
     return msg.sendMarkdown({
-        templateId: "102024160_1694504312",
+        templateId: "102024160_1694664174",
         params: {
             at_user: `<@${msg.author.id}> ${optStr}`,
-            today_gacha: `\r当前卡池选择: ${status.server == "jp" ? "日服" : "国际服"}卡池`,
-            total_gacha: `\r抽卡分析显示状态: ${status.analyzeHide == "true" ? "隐藏" : "显示"}`,
-            gacha_analyze: "\r注: 使用按钮可以快速设置",
-            img_info: "\u200b](https://ip.arona.schale.top/turn/",
-            gacha_img: "img #-1px #1px](  ",
-            user_img: "img #-1px #1px](  ",
+            desc1: `\r当前卡池选择: ${status.server == "jp" ? "日服" : "国际服"}卡池`,
+            desc2: `\r抽卡分析显示状态: ${status.analyzeHide == "true" ? "隐藏" : "显示"}`,
+            desc3: "\r注: 使用按钮可以快速设置",
+            link1: "\u200b](https://ip.arona.schale.top/turn/",
+            img1: "img #-1px #1px](  ",
+            img2: "img #-1px #1px](  ",
         },
         keyboardId: "102024160_1692938526",
     });
