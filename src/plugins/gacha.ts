@@ -209,17 +209,21 @@ async function gachaReload(type: "net" | "local") {
                 if (d.releaseStatus[nameToId[key]] && !d.limitedType) _gachaPoolInfo[key].common[d.star].push(Number(id));
         }// common
 
-        const common = await fetch("https://ghproxy.com/https://raw.githubusercontent.com/lonqie/SchaleDB/main/data/common.json").then(res => res.json()).catch(err => log.error(err));
-        if (!common) throw `can't fetch json:common`;
+        const schaleDBConfig: SchaleDB.Root = await fetch("https://ghproxy.com/https://raw.githubusercontent.com/lonqie/SchaleDB/main/data/config.min.json").then(res => res.json()).catch(err => log.error(err));
+        if (!schaleDBConfig) throw `can't fetch json:common`;
 
         const nowTime = new Date().getTime() / 1000;
-        for (key in nameToId) for (const _nowPick of common.regions[nameToId[key]].current_gacha as GachaPoolInfoPickup[])
-            if (_nowPick.start < nowTime && nowTime < _nowPick.end) {
-                for (const pick of _nowPick.characters)
-                    if (studentInfo[pick].star == 3) _gachaPoolInfo[key].pickup.characters.push(pick);
-                _gachaPoolInfo[key].pickup.start = _nowPick.start;
-                _gachaPoolInfo[key].pickup.end = _nowPick.end;
-            }
+        for (key in nameToId) {
+            const regions = schaleDBConfig.Regions.find(v => v.Name.toLowerCase() == key);
+            if (!regions) throw `not found regions: ${key}`;
+            for (const _nowPick of regions.CurrentGacha)
+                if (_nowPick.start < nowTime && nowTime < _nowPick.end) {
+                    for (const pick of _nowPick.characters)
+                        if (studentInfo[pick].star == 3) _gachaPoolInfo[key].pickup.characters.push(pick);
+                    _gachaPoolInfo[key].pickup.start = _nowPick.start;
+                    _gachaPoolInfo[key].pickup.end = _nowPick.end;
+                }
+        }
 
         gachaPoolInfo.global = _gachaPoolInfo.global;
         gachaPoolInfo.jp = _gachaPoolInfo.jp;
@@ -260,3 +264,123 @@ interface GachaPool {
     custom?: string;
 }
 
+namespace SchaleDB {
+    export interface Root {
+        links: Link[];
+        build: number;
+        Regions: Region[];
+        Changelog: Changelog[];
+        TypeEffectiveness: TypeEffectiveness;
+        GachaGroups: GachaGroup[];
+    }
+
+    interface Link {
+        section: string;
+        content: Content[];
+    }
+
+    interface Content {
+        title: string;
+        description: string;
+        url: string;
+        author: string;
+    }
+
+    export interface Region {
+        Name: string;
+        StudentMaxLevel: number;
+        WeaponMaxLevel: number;
+        BondMaxLevel: number;
+        EquipmentMaxLevel: number[];
+        CampaignMax: number;
+        CampaignExtra: boolean;
+        Events: number[];
+        Event701Max: number[];
+        ChaserMax: number;
+        BloodMax: number;
+        FindGiftMax: number;
+        SchoolDungeonMax: number;
+        FurnitureSetMax: number;
+        FurnitureTemplateMax: number;
+        CurrentGacha: CurrentGacha[];
+        CurrentEvents: any[];
+        CurrentRaid: CurrentRaid[];
+    }
+
+    export interface CurrentGacha {
+        characters: number[];
+        start: number;
+        end: number;
+    }
+
+    export interface CurrentRaid {
+        type: string;
+        raid: number;
+        terrain?: string;
+        start: number;
+        end: number;
+    }
+
+    interface Changelog {
+        date: string;
+        contents: string[];
+    }
+
+    interface TypeEffectiveness {
+        Normal: Normal;
+        Explosion: Explosion;
+        Pierce: Pierce;
+        Mystic: Mystic;
+        Sonic: Sonic;
+    }
+
+    interface Normal {
+        LightArmor: number;
+        HeavyArmor: number;
+        Unarmed: number;
+        Structure: number;
+        ElasticArmor: number;
+        Normal: number;
+    }
+
+    interface Explosion {
+        LightArmor: number;
+        HeavyArmor: number;
+        Unarmed: number;
+        Structure: number;
+        ElasticArmor: number;
+        Normal: number;
+    }
+
+    interface Pierce {
+        LightArmor: number;
+        HeavyArmor: number;
+        Unarmed: number;
+        Structure: number;
+        ElasticArmor: number;
+        Normal: number;
+    }
+
+    interface Mystic {
+        LightArmor: number;
+        HeavyArmor: number;
+        Unarmed: number;
+        Structure: number;
+        ElasticArmor: number;
+        Normal: number;
+    }
+
+    interface Sonic {
+        LightArmor: number;
+        HeavyArmor: number;
+        Unarmed: number;
+        Structure: number;
+        ElasticArmor: number;
+        Normal: number;
+    }
+
+    export interface GachaGroup {
+        Id: number;
+        ItemList: number[][];
+    }
+}
