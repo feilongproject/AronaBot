@@ -11,12 +11,19 @@ export async function todayTarot(msg: IMessageGUILD) {
         await redis.expireAt(`Tarot:${nowDay}`, nextDay);
     }
 
-    const has = await redis.hGet(`Tarot:${nowDay}`, msg.author.id) || random();
-    await redis.hSet(`Tarot:${nowDay}`, msg.author.id, has);
-    const [num, type] = has.split(":");
+    const has = await redis.hGet(`Tarot:${nowDay}`, msg.author.id);
+    const notHas = random();
+    await redis.hSet(`Tarot:${nowDay}`, msg.author.id, has || notHas);
+    const [num, type] = (has || notHas).split(":");
     const desc: Tarot = JSON.parse(fs.readFileSync(`${config.images.Tarot}/Tarot.json`).toString())[Number(num)];
 
-    return msg.sendMsgEx({
+    if (has) return msg.sendMsgEx({
+        content: `『<@${msg.author.id}>』老师今天已经抽过了哦！这是今天的结果：`
+            + `\n${desc.name}(${type == "d" ? "逆位" : "正位"})`
+            + `\n${type == "d" ? desc.downDesc : desc.upDesc}`
+            + `\n\n为防止占用服务器带宽，图片仅在当天第一次时显示`,
+    });
+    else return msg.sendMsgEx({
         content: `看看『<@${msg.author.id}>』老师今天抽到了什么`
             + `\n${desc.name}(${type == "d" ? "逆位" : "正位"})`
             + `\n${type == "d" ? desc.downDesc : desc.upDesc}`,
