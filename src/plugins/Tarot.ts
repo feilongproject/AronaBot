@@ -32,7 +32,7 @@ export async function todayTarot(msg: IMessageGUILD) {
 }
 
 function random(maxLen = 0) {
-    maxLen = maxLen || fs.readdirSync(config.images.Tarot).length - 2;
+    maxLen = maxLen || fs.readdirSync(config.images.Tarot).length - 3;
     const num = Math.round(Math.random() * maxLen);
     const type = (num % 2) == 1 ? "u" : "d";
     return `${Math.floor(num / 2)}:${type}`;
