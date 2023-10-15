@@ -126,6 +126,13 @@
                 "type": ["GUILD", "DIRECT"],
                 "describe": "获取当前活动攻略一图流"
             },
+            "studentEvaluation": {
+                "reg": "^/?(角评|角色评价)",
+                "fnc": "handbookMain",
+                "channelAllows": ["all"],
+                "type": ["GUILD", "DIRECT"],
+                "describe": "获取指定学生的评价"
+            },
             "handbookUpdate": {
                 "reg": "^/?hbupdate",
                 "fnc": "handbookUpdate",
@@ -138,13 +145,6 @@
                 "fnc": "activityStrategyPush",
                 "type": ["GUILD", "DIRECT"],
                 "describe": "进行一个活动攻略的更新"
-            },
-            "studentEvaluation": {
-                "reg": "^/?(角评|角色评价)(.*)$",
-                "fnc": "studentEvaluation",
-                "channelAllows": ["all"],
-                "type": ["GUILD"],
-                "describe": "获取指定学生的评价"
             }
         },
         "commandSetting": {

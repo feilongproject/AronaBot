@@ -7,14 +7,13 @@ import imageSize from "image-size";
 import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 import { findStudentInfo, settingUserConfig } from "../libs/common";
 import config from "../../config/config.json";
-import { BiliDynamic } from "./biliDynamic";
 
 const noSetServerMessage = `\r(未指定/未设置服务器, 默认使用国际服)`;
 const getErrorMessage = `发送时出现了一些问题<@${adminId[0]}>\n这可能是因为腾讯获取图片出错导致, 请稍后重试\n`;
 const needUpdateMessage = `\r若数据未更新，请直接@bot管理\r`;
 const updateTimeMessage = `图片更新时间：`;
 
-const serverMap = { jp: "日服", global: "国际服", all: "" };
+const serverMap: Record<string, string> = { jp: "日服", global: "国际服", all: "" };
 
 
 export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT) {
@@ -27,7 +26,7 @@ export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT) {
     if (showMarkdown) return msg.sendMarkdown({
         templateId: "102024160_1694664174",
         params: {
-            at_user: `<@${msg.author.id}> (${serverMap[hbMatched.type]}${hbMatched.desc})${hbMatched.notChange ? noSetServerMessage : ""}`,
+            at_user: `<@${msg.author.id}> == ${serverMap[hbMatched.type] || hbMatched.nameDesc || hbMatched.type}${hbMatched.desc} == ${hbMatched.notChange ? noSetServerMessage : ""}`,
             desc1: needUpdateMessage,
             desc2: `攻略制作: 夜猫\r`,
             ...(lastestImage.info ? { desc3: lastestImage.info + "\r" } : {}),
@@ -53,15 +52,21 @@ export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT) {
 
 }
 
-async function matchHandbook(content: string, aid: string): Promise<{ name: string; type: "global" | "jp" | "all"; desc: string; notChange: boolean; } | undefined> {
-    const { names, types } = (await import("../../data/handbookMatches.json")).default as any as HandbookMatches;
-    const hbName = (Object.entries(names).find(([k, v]) => RegExp(v.reg).test(content)));
+async function matchHandbook(content: string, aid: string): Promise<{ name: string; nameDesc?: string; type: string; desc: string; notChange: boolean; } | undefined> {
+    const handbookMatches = await import("../../data/handbookMatches");
+    // const { names, types } = .handbookMatches as any as HandbookMatches;
+    var nameDesc = "";
+    const hbName = (Object.entries(handbookMatches.match.names).find(([k, v]) => RegExp(v.reg).test(content)));
     if (!hbName || !hbName[0]) return undefined;
-    var hbType: "global" | "jp" | "all" = hbName[1]?.has?.includes("all") ? "all" : ((Object.entries(types).find(([k, v]) => RegExp(v).test(content)) || [])[0]) as any;
-    if (hbType != "all" && !hbType) {
-        hbType = (await settingUserConfig(aid, "GET", ["server"])).server as "global" | "jp";
+    var hbType: string = hbName[1]?.has?.includes("all") ? "all" : ((Object.entries(handbookMatches.match.types).find(([k, v]) => RegExp(v).test(content)) || [])[0]) as any;
+    if (handbookMatches.adapter[hbName[0]]) {
+        const _ = handbookMatches.adapter[hbName[0]](content, "GET");
+        hbType = _.id;
+        if (_.desc) nameDesc = _.desc;
+    } else if (hbType != "all" && !hbType) {
+        hbType = (await settingUserConfig(aid, "GET", ["server"])).server;
     }
-    return { name: hbName[0], type: hbType || "global", ...hbName[1], notChange: !hbType };
+    return { name: hbName[0], nameDesc, type: hbType || "global", ...hbName[1], notChange: !hbType };
 }
 
 async function getLastestImage(name: string, type = "all"): Promise<HandbookInfo.Data> {
@@ -81,7 +86,7 @@ async function getLastestImage(name: string, type = "all"): Promise<HandbookInfo
 
 export async function handbookUpdate(msg: IMessageGUILD) {
     if (!adminId.includes(msg.author.id)) return;
-    const matched = new RE2("^/?hbupdate(?P<imageId>\\d+)?\\s+(?P<name>\\S+)\\s+(?P<type>\\w+)\\s+(?P<url>https?://\\S+)\\s?(?P<desc>.+)?").exec(msg.content);
+    const matched = new RE2("^/?hbupdate(?P<imageId>\\d+)?\\s+(?P<name>\\S+)\\s+(?P<type>\\S+)\\s+(?P<url>https?://\\S+)\\s?(?P<desc>.+)?").exec(msg.content);
     // log.debug(matched?.groups);
     if (!matched || !matched.groups) return msg.sendMsgExRef({
         content: `命令错误，命令格式：` +
@@ -92,7 +97,7 @@ export async function handbookUpdate(msg: IMessageGUILD) {
 
     // 图片 name 开始
     var imageName = "";
-    const matchNames = ((await import("../../data/handbookMatches.json")).default as any as HandbookMatches).names;
+    const matchNames = ((await import("../../data/handbookMatches")).match as any as HandbookMatches).names;
     for (const _key in matchNames) {
         if (RegExp(matchNames[_key].typeReg).test(name)) { imageName = _key; break; }
     }
@@ -100,9 +105,19 @@ export async function handbookUpdate(msg: IMessageGUILD) {
     // 图片 name 结束
 
     // 图片 type 开始
-    if (!Object.hasOwnProperty.call(serverMap, type)) return msg.sendMsgEx({ content: `未找到类型 ${type} ，允许类型： ${Object.keys(serverMap)}` });
-    if (!matchNames[imageName] || !matchNames[imageName]?.has?.includes(type as any)) return msg.sendMsgEx({ content: `${imageName} 中未找到类型 ${type} ，仅支持 ${matchNames[imageName].has}` });
-    const imageType = type;
+    var imageType = type;
+    const handbookMatches = await import("../../data/handbookMatches");
+    if (handbookMatches.adapter[imageName]) {
+        try {
+            imageType = handbookMatches.adapter[imageName](type).id;
+        } catch (err) {
+            log.error(err);
+            return msg.sendMsgEx({ content: `判断图片type时出现错误\n` + JSON.stringify(err).replaceAll(".", ",") });
+        }
+    } else if (!Object.hasOwnProperty.call(serverMap, type))
+        return msg.sendMsgEx({ content: `未找到类型 ${type} ，允许类型： ${Object.keys(serverMap)}` });
+    else if (!matchNames[imageName] || !matchNames[imageName]?.has?.includes(type as any))
+        return msg.sendMsgEx({ content: `${imageName} 中未找到类型 ${type} ，仅支持 ${matchNames[imageName].has}` });
     // 图片 type 结束
 
     // 图片 desc turnUrl 开始
@@ -121,7 +136,7 @@ export async function handbookUpdate(msg: IMessageGUILD) {
                 });
                 else throw `未知的url: ${res.url}`;
             }).then(res => res.json()).then((data: BiliDynamic.Info) => {
-                if (data.data.item.modules.module_dynamic.major.type == BiliDynamic.DynamicTypeEnum.MAJOR_TYPE_ARTICLE) {
+                if (data.data.item.modules.module_dynamic.major.type == BiliDynamic.MajorTypeEnum.MAJOR_TYPE_ARTICLE) {
                     const article = data.data.item.modules.module_dynamic.major.article!;
                     const cvId = /cv(\d+)/.exec(article.jump_url)![1];
                     imageTurnUrl = `https://cdn.arona.schale.top/turn/cv${cvId}`;
@@ -134,12 +149,12 @@ export async function handbookUpdate(msg: IMessageGUILD) {
         }
     } else if (/cv(\d+)/.test(desc)) {
         imageTurnUrl = `https://cdn.arona.schale.top/turn/cv${/cv(\d+)/.exec(desc)![1]}`;
-    } else imageDesc = desc;
+    } else imageDesc = desc || "";
     // 图片 desc turnUrl 结束
 
     // 图片 URL 开始
     var imageUrl = "";
-    if (/arona\.schale\.top\/turn/.test(url)) {
+    if (/(arona\.schale\.top\/turn)|(t\.bilibili\.com\/(\d+))/.test(url)) {
         try {
             imageUrl = await fetch(url).then(res => {
                 // log.debug(res.url);
@@ -180,16 +195,18 @@ export async function handbookUpdate(msg: IMessageGUILD) {
     await redis.hSet("handbook:infoUrl", `${imageName}:${imageType}`, imageTurnUrl || "");
     await fetch(imageUrl).then(res => res.buffer()).then(buff => fs.writeFileSync(`${config.handbookRoot}/${imageName}/${imageType}.png`, buff));
 
-    await fetch((await getLastestImage(imageName, imageType)).url, {
+    const lastestImage = await getLastestImage(imageName, imageType);
+    if (devEnv) log.debug(lastestImage);
+    await fetch(lastestImage.url, {
         headers: { "user-agent": "QQShareProxy" },
         timeout: 60 * 1000,
     }).then(res => res.buffer()).then(buff => msg.sendMsgEx({
-        content: `${imageName} ${imageType} ${imageDesc.replaceAll(".", ",")}\nsize: ${(buff.length / 1024).toFixed(2)}K`,
+        content: `${imageName} ${imageType} ${(imageDesc || "").replaceAll(".", ",")}\nsize: ${(buff.length / 1024).toFixed(2)}K`,
     })).catch(err => log.error(err));
 
     return msg.sendMsgEx({
         content: `图片已缓存`,
-        imageUrl: imageUrl + "@1048w_!web-dynamic.jpg",
+        imageUrl: lastestImage.url,//imageUrl + "@1048w_!web-dynamic.jpg",
     });
 }
 
@@ -243,45 +260,6 @@ export async function activityStrategyPush(msg: IMessageGUILD | IMessageDIRECT) 
     })).then(res => res.text())
         .then(text => msg.sendMsgEx({ content: `已发布\n${text}` }))
         .catch(err => msg.sendMsgEx({ content: `获取出错\n${err}` }));
-}
-
-export async function studentEvaluation(msg: IMessageGUILD) {
-    if (1) return;
-    const reg = /\/?(角评|角色评价)(.*)/.exec(msg.content)!;
-    reg[2] = reg[2].trim();
-    if (!reg[2]) {
-        const lastestImage = await getLastestImage("studentEvaluation");
-        return msg.sendMsgEx({
-            content: `<@${msg.author.id}> (角评2.0)` +
-                `\n未指定角色, 默认发送角评2.0` +
-                `\n${needUpdateMessage}` +
-                `\n攻略制作: 夜猫` +
-                `\n${lastestImage.info}`,
-            imageUrl: lastestImage.url,
-        }).catch(err => {
-            log.error(err);
-            return msg.sendMsgEx({ content: getErrorMessage + JSON.stringify(err) });
-        });
-    }
-
-    const studentInfo = reg[2] ? findStudentInfo(reg[2]) : null;
-    if (!studentInfo) return msg.sendMsgExRef({ content: `未找到学生『${reg[2]}』数据` });
-
-    const map = JSON.parse(fs.readFileSync(`${_path}/data/AronaBotImages/handbook/studentEvaluation/_map.json`).toString());
-    const studentPathName = studentInfo.devName;// 用 devName 还是 pathName？
-    const imageLocalInfo: { info: string; path: string; } | undefined = map[studentPathName];
-
-    if (!imageLocalInfo) return msg.sendMsgExRef({ content: `已找到学生『${reg[2]}』数据, 但未找到角评5.0, 等待后续录入<@${adminId[0]}>` });
-    else return msg.sendMsgEx({
-        content: `<@${msg.author.id}> (角评5.0)` +
-            `\n${needUpdateMessage}` +
-            `\n攻略制作: 夜猫` +
-            `\n${imageLocalInfo.info}`,
-        imagePath: `${_path}/data/AronaBotImages/handbook/studentEvaluation/${imageLocalInfo.path}`,
-    }).catch(err => {
-        log.error(err);
-        return msg.sendMsgExRef({ content: getErrorMessage + JSON.stringify(err) });
-    });
 }
 
 
