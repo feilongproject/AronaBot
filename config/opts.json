@@ -232,6 +232,15 @@
                 "channelAllows": ["all"],
                 "describe": "删除虚拟身份组及相关内容"
             }
+        },
+        "Tarot": {
+            "todayTarot": {
+                "reg": "^/?塔罗牌$",
+                "fnc": "todayTarot",
+                "type": ["GUILD"],
+                "channelAllows": ["all"],
+                "describe": "抽取今日塔罗牌"
+            }
         }
     },
     "channelAllows": {
