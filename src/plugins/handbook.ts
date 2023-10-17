@@ -26,7 +26,7 @@ export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT) {
     if (showMarkdown) return msg.sendMarkdown({
         templateId: "102024160_1694664174",
         params: {
-            at_user: `<@${msg.author.id}> == ${serverMap[hbMatched.type] || hbMatched.nameDesc || hbMatched.type}${hbMatched.desc} == ${hbMatched.notChange ? noSetServerMessage : ""}`,
+            at_user: `<@${msg.author.id}> \u200b \u200b == ${serverMap[hbMatched.type] ?? hbMatched.nameDesc ?? hbMatched.type}${hbMatched.desc} == ${hbMatched.notChange ? noSetServerMessage : ""}`,
             desc1: needUpdateMessage,
             desc2: `攻略制作: 夜猫\r`,
             ...(lastestImage.info ? { desc3: lastestImage.info + "\r" } : {}),
