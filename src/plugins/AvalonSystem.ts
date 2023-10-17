@@ -3,7 +3,7 @@ import fetch from "node-fetch";
 import format from "date-format";
 import { PythonShell } from "python-shell";
 import { StudentInfoNet, sendToAdmin } from "../libs/common";
-import { IMessageGUILD, IMessageDIRECT } from "../libs/IMessageEx";
+import { IMessageGUILD, IMessageDIRECT, MessageType } from "../libs/IMessageEx";
 import config from "../../config/config.json";
 
 var isChecking = false;
@@ -338,7 +338,7 @@ export async function searchMembers(msg: IMessageGUILD | IMessageDIRECT) {
 // }
 
 function unauthorized(msg: IMessageGUILD | IMessageDIRECT) {
-    return !((msg.messageType == "DIRECT" && adminId.includes(msg.author.id)) || msg.channel_id == "519695851");
+    return !((msg.messageType == MessageType.DIRECT && adminId.includes(msg.author.id)) || msg.channel_id == "519695851");
 }
 
 export async function meituChannel(msg: IMessageGUILD) {
@@ -350,14 +350,11 @@ export async function meituChannel(msg: IMessageGUILD) {
 
     const sendToChannel = await redis.hGet("mute:sendChannel", msg.guild_id);
 
-    return msg.sendMsgEx({
-        content: `发现无图文字` +
-            `\n用户: ${msg.author.username}(${msg.author.id})` +
-            `\n内容: ${msg.content}` +
-            `\n原因: 无图文字`,
-        guildId: await global.redis.hGet(`directUid->Gid`, adminId[0]),
-        sendType: "DIRECT",
-    }).then(() => client.muteApi.muteMember(msg.guild_id, msg.author.id, { seconds: String(1 * 60 * 60) })
+    return sendToAdmin(`发现无图文字` +
+        `\n用户: ${msg.author.username}(${msg.author.id})` +
+        `\n内容: ${msg.content}` +
+        `\n原因: 无图文字`
+    ).then(() => client.muteApi.muteMember(msg.guild_id, msg.author.id, { seconds: String(1 * 60 * 60) })
     ).then(() => client.messageApi.deleteMessage(msg.channel_id, msg.id)
     ).then(() => sendToChannel ? msg.sendMsgEx({
         content: `<@${msg.author.id}>(id: ${msg.author.id})` +
@@ -365,7 +362,7 @@ export async function meituChannel(msg: IMessageGUILD) {
             `\n原因: 无配图文字` +
             `\n注意: 该消息由bot自动发送，如有异议联系<@${adminId[0]}>`,
         channelId: sendToChannel,
-        sendType: "GUILD",
+        sendType: MessageType.GUILD,
     }) : undefined
     ).catch(err => {
         log.error(err);

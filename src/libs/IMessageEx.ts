@@ -21,9 +21,9 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
     message_reference?: MessageReference;
 
     _atta: string;
-    messageType: "DIRECT" | "GUILD";
+    messageType: MessageType;
 
-    constructor(msg: IntentMessage.MessageCommon, messageType: "DIRECT" | "GUILD") {
+    constructor(msg: IntentMessage.MessageCommon, messageType: MessageType) {
         this.id = msg.id;
         this.channel_id = msg.channel_id;
         this.guild_id = msg.guild_id;
@@ -105,7 +105,7 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
         const attachments: string[] = [];
         if (this.attachments)
             for (const path of this.attachments) attachments.push(path.url);
-        return pushToDB(this.messageType == "DIRECT" ? "directMessage" : "guildMessage", Object.assign({
+        return pushToDB(this.messageType == MessageType.DIRECT ? "directMessage" : "guildMessage", Object.assign({
             mid: this.id,
             aid: this.author.id,
             aAvatar: this.author.avatar,
@@ -123,7 +123,7 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
     async sendToAdmin(content: string) {
         return this.sendMsgEx({
             content,
-            sendType: "DIRECT",
+            sendType: MessageType.DIRECT,
             guildId: await redis.hGet(`directUid->Gid`, adminId[0]),
         });
     }
@@ -156,7 +156,7 @@ export class IMessageGUILD extends IMessageCommon implements IntentMessage.GUILD
     channelName: string;
 
     constructor(msg: IntentMessage.GUILD_MESSAGES__body, register = true) {
-        super(msg, "GUILD");
+        super(msg, MessageType.GUILD);
         this.mentions = msg.mentions;
         this.guildName = saveGuildsTree[this.guild_id]?.name;
         this.channelName = saveGuildsTree[this.guild_id]?.channels[this.channel_id]?.name;
@@ -181,7 +181,7 @@ export class IMessageDIRECT extends IMessageCommon implements IntentMessage.DIRE
     direct_message: true;
     src_guild_id: string;
     constructor(msg: IntentMessage.DIRECT_MESSAGE__body, register = true) {
-        super(msg, "DIRECT");
+        super(msg, MessageType.DIRECT);
         this.direct_message = msg.direct_message;
         this.src_guild_id = msg.src_guild_id;
 
@@ -198,7 +198,7 @@ interface SendMsgOption {
     imagePath?: string;
     imageUrl?: string;
     content?: string;
-    sendType: "DIRECT" | "GUILD";
+    sendType: MessageType;
     msgId?: string;
     eventId?: string;
     guildId?: string;
@@ -212,4 +212,11 @@ namespace SendMsgOption {
         params: { [key: string]: string };
         keyboardId?: string;
     }
+}
+
+export enum MessageType {
+    DIRECT = "DIRECT",
+    GUILD = "GUILD",
+    GROUP = "GROUP",
+    FRIEND = "FRIEND",
 }

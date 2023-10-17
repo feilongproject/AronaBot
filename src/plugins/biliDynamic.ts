@@ -39,7 +39,7 @@ export async function mainCheck() {
                     if (item.type == "DYNAMIC_TYPE_FORWARD") continue;
                     await msg.sendMsgEx({
                         channelId: cId,
-                        sendType: "GUILD",
+                        sendType: MessageType.GUILD,
                         imageFile: picInfo,
                         content: `https://cdn.arona.schale.top/turn/b/${item.id_str}`,
                     }).catch(err => {
@@ -47,7 +47,7 @@ export async function mainCheck() {
                     });
                 } else await msg.sendMsgEx({
                     channelId: cId,
-                    sendType: "GUILD",
+                    sendType: MessageType.GUILD,
                     imageFile: picInfo,
                     content: `${devEnv ? "dev " : ""}${bUser.bName} 更新了一条动态\nhttps://cdn.arona.schale.top/turn/b/${item.id_str}`,
                 }).catch(err => {

@@ -1,4 +1,4 @@
-import { IMessageGUILD, IMessageDIRECT } from "./IMessageEx";
+import { IMessageGUILD, IMessageDIRECT, MessageType } from "./IMessageEx";
 
 export async function findOpts(msg: IMessageGUILD | IMessageDIRECT): Promise<{ path: string; fnc: string; data?: string } | string | null> {
     if (!msg.content) return null;
@@ -33,7 +33,7 @@ export async function findOpts(msg: IMessageGUILD | IMessageDIRECT): Promise<{ p
             const channelAllow = () => {
                 for (const allowChannelKey of allowChannels) for (const channel of channelAllows[allowChannelKey]) if (channel.id == msg.channel_id) return true;
             }
-            if (devEnv || msg.guild_id == "5237615478283154023" || msg.messageType == "DIRECT" || allowChannels[0] == "all" || channelAllow()) {
+            if (devEnv || msg.guild_id == "5237615478283154023" || msg.messageType == MessageType.DIRECT || allowChannels[0] == "all" || channelAllow()) {
                 return { path: keyFather, ...opt };
             }
         }
