@@ -11,7 +11,7 @@ import config from "../../config/config.json";
 const noSetServerMessage = `\r(未指定/未设置服务器, 默认使用国际服)`;
 const getErrorMessage = `发送时出现了一些问题<@${adminId[0]}>\n这可能是因为腾讯获取图片出错导致, 请稍后重试\n`;
 const needUpdateMessage = `\r若数据未更新，请直接@bot管理\r`;
-const updateTimeMessage = `图片更新时间：`;
+const updateTimeMessage = `\r图片更新时间：`;
 
 const serverMap: Record<string, string> = { jp: "日服", global: "国际服", all: "" };
 
