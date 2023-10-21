@@ -29,6 +29,7 @@
     "dependencies": {
         "adm-zip": "^0.5.10",
         "base64-js": "^1.5.1",
+        "canvas": "^2.11.2",
         "cheerio": "^1.0.0-rc.12",
         "chokidar": "^3.5.3",
         "date-format": "^4.0.14",

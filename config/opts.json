@@ -241,6 +241,15 @@
                 "channelAllows": ["all"],
                 "describe": "抽取今日塔罗牌"
             }
+        },
+        "logo": {
+            "baLogo": {
+                "reg": "^/?ba-?(L|l|)ogo",
+                "fnc": "baLogo",
+                "type": ["GUILD"],
+                "channelAllows": ["all"],
+                "describe": "生成ba特色的logo"
+            }
         }
     },
     "channelAllows": {
