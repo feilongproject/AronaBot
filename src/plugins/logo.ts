@@ -1,22 +1,51 @@
-import { createCanvas, Canvas, registerFont, DOMMatrix, loadImage, } from "canvas";
-import { readFileSync, } from "fs";
-import config from "../../config/config.json";
-import { IMessageGUILD } from "../libs/IMessageEx";
 import RE2 from "re2";
+import { readFileSync, } from "fs";
+import { contentCensor as AipContentCensorClient } from "baidu-aip-sdk";
+import { createCanvas, Canvas, registerFont, DOMMatrix, loadImage, } from "canvas";
+import { sendToAdmin } from "../libs/common";
+import { IMessageGUILD } from "../libs/IMessageEx";
+import config from "../../config/config.json";
 
 
 registerFont(`${config.fontRoot}/GlowSansSC-Normal-Heavy.otf`, { family: "Glow Sans SC", weight: "Heavy" });
 registerFont(`${config.fontRoot}/RoGSanSrfStd-Bd.otf`, { family: "Ro GSan Serif Std" });
 
 export async function baLogo(msg: IMessageGUILD) {
-    const match = RE2("^/?(b|B)(a|A)-?(L|l|)(o|O)(g|G)(o|O)\\s+(?P<textL>\\S+)\\s+(?P<textR>\\S+)").match(msg.content);
+    const match = RE2("^/?[Bb][Aa][-_]?[Ll][Oo][Gg][Oo]\\s+(?P<textL>\\S+)\\s+(?P<textR>\\S+)").match(msg.content);
     if (!match) return msg.sendMsgExRef({
         content: `命令错误，命令格式：` +
             `/balogo 左文字 右文字`
     });
     const { textL, textR } = match.groups!;
 
-    log.debug(JSON.stringify(msg));
+    const client = new AipContentCensorClient(config.baiduCensoring.APP_ID, config.baiduCensoring.API_KEY, config.baiduCensoring.SECRET_KEY);
+    const result = await client.textCensorUserDefined(`${textL}\n${textR}\n${textL}${textR}`);
+    // log.debug(result);
+
+    if (!result.data && (!result.conclusion || !result.conclusionType)) return msg.sendMsgExRef({
+        content: `<@${msg.author.id}>敏感词检测失败:\n${JSON.stringify(result)}`
+    });
+    if (result.conclusionType != 1) return msg.sendMsgExRef({
+        content: `<@${adminId[0]}>检测词组违规:\n` + result.data!.map(v => v.msg).join(`\n`),
+    }).then(() => sendToAdmin(
+        `balogo检测到违禁词`
+        + `\n用户: ${msg.author.username} (${msg.author.id})`
+        + `\n子频道: ${msg.channelName} (${msg.channel_id})`
+        + `\n违规原因: ${result.conclusionType} ${result.conclusion}\n`
+        + result.data!.map((d, i) =>
+            `\nindex: ${i}\n`
+            + `type: ${d.type}-${d.subType}\n`
+            + `hits:\n`
+            + `${d.hits.map(hit =>
+                `->${hit.datasetName}: (${hit.words})\n`
+                + `->positions:\n`
+                + `${hit.wordHitPositions.map((pos, i) =>
+                    `-->${i}k: ${pos.keyword}\n`
+                    + `-->${i}l: ${pos.label}\n`
+                    + `-->${i}p: ${pos.positions.join("|")}`).join("\n")}`
+            ).join("\n")}`
+        ).join("\n")
+    ));
 
     return generate(textL, textR).then(buff => msg.sendMsgEx({
         content: `<@${msg.author.id}>`,

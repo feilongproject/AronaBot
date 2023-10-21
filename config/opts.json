@@ -244,7 +244,7 @@
         },
         "logo": {
             "baLogo": {
-                "reg": "^/?ba-?(L|l|)ogo",
+                "reg": "^/?[Bb][Aa][-_]?[Ll][Oo][Gg][Oo]",
                 "fnc": "baLogo",
                 "type": ["GUILD"],
                 "channelAllows": ["all"],
