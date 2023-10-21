@@ -22,6 +22,14 @@ async function execute(msg: IMessageDIRECT | IMessageGUILD) {
             type: String(Object.getPrototypeOf(msg).constructor.name),
             optFather: opt.path,
             optChild: opt.fnc,
+            gid: msg.guild_id,
+            cid: msg.channel_id,
+            cName: (msg as IMessageGUILD).channelName || "",
+            aid: msg.author.id,
+            aName: msg.author.username,
+            seq: msg.seq,
+            ts: msg.timestamp,
+            content: msg.content,
         });
     } catch (err) {
         log.error(err);
