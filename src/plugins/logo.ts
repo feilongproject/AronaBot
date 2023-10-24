@@ -13,8 +13,9 @@ registerFont(`${config.fontRoot}/RoGSanSrfStd-Bd.otf`, { family: "Ro GSan Serif 
 export async function baLogo(msg: IMessageGUILD) {
     const match = RE2("^/?[Bb][Aa][-_]?[Ll][Oo][Gg][Oo]\\s+(?P<textL>\\S+)\\s+(?P<textR>\\S+)").match(msg.content);
     if (!match) return msg.sendMsgExRef({
-        content: `命令错误，命令格式：` +
-            `/balogo 左文字 右文字`
+        content: `命令错误，命令格式：`
+            + `\n/balogo 左文字 右文字`
+            + `\n注意：命令与左文字、左文字与右文字中间必须存在空格，否则无法识别`
     });
     const { textL, textR } = match.groups!;
 
