@@ -187,7 +187,7 @@ export async function mute(msg: IMessageGUILD) {
             `\n管理: <@${msg.author.id}>(${msg.author.id})` +
             `\n目标: ${muteMember.username}(${muteMember.id})` +
             `\n\n频道: ${msg.guildName}(${msg.guild_id})` +
-            `\n子频道: ${msg.channelName}(${msg.channel_id})` +
+            `\n子频道: <#${msg.channel_id}>(${msg.channel_id})` +
             `\n时间: ${timeConver(muteTime * 1000)}`,
         channelId: sendAccuseGachaInfoChannel,
     });
