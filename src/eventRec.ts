@@ -114,9 +114,9 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             }).catch(err => {
                 log.error(err);
                 return sendToAdmin(`error: pushToDB GUILD_MESSAGE_REACTIONS`);
-            }).catch(() => { });;
+            }).catch(() => { });
 
-            if (adminId.includes(msg.user_id) && msg.emoji.id == "10060" && msg.emoji.type == 2) return client.messageApi.deleteMessage(msg.channel_id, msg.target.id).catch(err => {
+            if (adminId.includes(msg.user_id) && msg.emoji.id == "55" && msg.emoji.type == 1) return client.messageApi.deleteMessage(msg.channel_id, msg.target.id).catch(err => {
                 log.error(err);
             });
         }
