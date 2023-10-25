@@ -1,7 +1,7 @@
 import fetch from "node-fetch";
 import * as puppeteer from "puppeteer";
 import { readFileSync, writeFileSync } from "fs";
-import { IMessageGUILD } from "../libs/IMessageEx";
+import { IMessageGUILD, MessageType } from "../libs/IMessageEx";
 import { pushToDB, searchDB, sendToAdmin, sleep } from "../libs/common";
 
 

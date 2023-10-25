@@ -112,17 +112,17 @@ declare global {
         // } & IChannel;
 
         type GUILD_MESSAGES = EventRespose<GUILD_MESSAGES__body>;
-        type GUILD_MESSAGES__body = MessageCommon & {
+        type GUILD_MESSAGES__body = MessageChannelCommon & {
             mentions?: IUser[];
         }
 
         type DIRECT_MESSAGE = EventRespose<DIRECT_MESSAGE__body>;
-        type DIRECT_MESSAGE__body = MessageCommon & {
+        type DIRECT_MESSAGE__body = MessageChannelCommon & {
             direct_message: true;//不知道这个玩意干啥用
             src_guild_id: string;
         }
 
-        interface MessageCommon {
+        interface MessageChannelCommon {
             attachments?: { url: string; }[];
             author: IUser;//频道中貌似只有avatar,bot,id,username,私信貌似只有avatar,id,username
             channel_id: string;
@@ -150,6 +150,25 @@ declare global {
             },
             user_id: string;
         }
+
+        type GROUP_MESSAGE = EventRespose<GROUP_MESSAGE_body>;
+        type GROUP_MESSAGE_body = MessageChatCommon & {
+            group_id: string;
+        }
+
+        type C2C_MESSAGE = EventRespose<C2C_MESSAGE_body>;
+        type C2C_MESSAGE_body = MessageChatCommon & {
+            attachments: [];
+        }
+
+        interface MessageChatCommon {
+            id: string;
+            author: {
+                id: string;
+            };
+            content: string;
+            timestamp: string;
+        }
     }
 
     interface RetryResult<R> {
@@ -157,7 +176,7 @@ declare global {
         errors: any[];
     }
 
-    namespace BiliDynamic {
+    export namespace BiliDynamic {
 
         export interface List {
             code: number;
@@ -195,12 +214,12 @@ declare global {
             };
             id_str: string;
             modules: Modules;
-            type: Type;
+            type: DynamicTypeEnum;
             visible: boolean;
             orig?: Item;
         }
 
-        export const enum Type {
+        export const enum DynamicTypeEnum {
             DYNAMIC_TYPE_NONE = "DYNAMIC_TYPE_NONE",                 // 无效动态
             DYNAMIC_TYPE_FORWARD = "DYNAMIC_TYPE_FORWARD",              // 动态转发	
             DYNAMIC_TYPE_AV = "DYNAMIC_TYPE_AV",                   //投稿视频
@@ -367,7 +386,7 @@ declare global {
                     width: number;
                 }[];
             };
-            type: DynamicTypeEnum;
+            type: MajorTypeEnum;
         }
 
         export interface LiveRcmd {
@@ -414,7 +433,7 @@ declare global {
         }
 
         export interface DB {
-            type: Type;
+            type: DynamicTypeEnum;
             msgId: string;
             userId: string;
             userName: string;
@@ -426,7 +445,7 @@ declare global {
             origMsgId: string | null;
         }
 
-        export enum MajorTypeEnum {
+        export const enum MajorTypeEnum {
             MAJOR_TYPE_NONE = "MAJOR_TYPE_NONE",
             MAJOR_TYPE_ARCHIVE = "MAJOR_TYPE_ARCHIVE",
             MAJOR_TYPE_PGC = "MAJOR_TYPE_PGC",

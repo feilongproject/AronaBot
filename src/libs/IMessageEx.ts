@@ -6,7 +6,7 @@ import { callWithRetry, pushToDB } from "./common";
 import config from '../../config/config.json';
 
 
-export class IMessageCommon implements IntentMessage.MessageCommon {
+class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
     id: string;
     channel_id: string;
     guild_id: string;
@@ -23,7 +23,7 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
     _atta: string;
     messageType: MessageType;
 
-    constructor(msg: IntentMessage.MessageCommon, messageType: MessageType) {
+    constructor(msg: IntentMessage.MessageChannelCommon, messageType: MessageType) {
         this.id = msg.id;
         this.channel_id = msg.channel_id;
         this.guild_id = msg.guild_id;
@@ -40,12 +40,12 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
         this._atta = this.attachments ? `[图片${this.attachments.length + "张"}]` : "";
     }
 
-    async sendMsgExRef(option: Partial<SendMsgOption>) {
+    async sendMsgExRef(option: Partial<SendOption.Channel>) {
         option.ref = true;
         return this.sendMsgEx(option);
     }
 
-    async sendMsgEx(option: Partial<SendMsgOption>) {
+    async sendMsgEx(option: Partial<SendOption.Channel>) {
         global.botStatus.msgSendNum++;
         option.msgId = option.msgId || this.id || await redis.get("lastestMsgId") || undefined;
         option.guildId = option.guildId || this.guild_id;
@@ -54,10 +54,10 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
         return callWithRetry(this._sendMsgEx, [option]);
     }
 
-    private _sendMsgEx = async (option: Partial<SendMsgOption>) => {
-        if (option.imagePath || option.imageFile) return sendImage(option as any);
+    private _sendMsgEx = async (option: Partial<SendOption.Channel>) => {
+        if (option.imagePath || option.imageFile) return this.sendImage(option as any);
         const { ref, content, imageUrl } = option;
-        if (option.sendType == "GUILD") return global.client.messageApi.postMessage(option.channelId || "", {
+        if (option.sendType == MessageType.GUILD) return global.client.messageApi.postMessage(option.channelId || "", {
             msg_id: option.msgId,
             content: content,
             message_reference: (ref && option.msgId) ? { message_id: option.msgId, } : undefined,
@@ -70,11 +70,11 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
         }).then(res => res.data);
     }
 
-    async sendMarkdown(option: Partial<SendMsgOption> & SendMsgOption.Markdown) {
+    async sendMarkdown(option: Partial<SendOption.Channel> & SendOption.Markdown) {
         return callWithRetry(this._sendMarkdown, [option]);
     }
 
-    private _sendMarkdown = async (options: Partial<SendMsgOption> & SendMsgOption.Markdown) => {
+    private _sendMarkdown = async (options: Partial<SendOption.Channel> & SendOption.Markdown) => {
         const eventId = await redis.get(`lastestEventId:${options.guildId || this.guild_id}`);
         return fetch(`https://api.sgroup.qq.com/channels/${options.channelId || this.channel_id}/messages`, {
             method: "POST",
@@ -127,30 +127,30 @@ export class IMessageCommon implements IntentMessage.MessageCommon {
             guildId: await redis.hGet(`directUid->Gid`, adminId[0]),
         });
     }
+
+    private sendImage = async (option: SendOption.Channel): Promise<IMessage> => {
+        const { sendType, content, imagePath, imageFile, imageUrl, msgId, guildId, channelId } = option;
+        const pushUrl = (sendType == MessageType.DIRECT) ? `https://api.sgroup.qq.com/dms/${guildId}/messages` : `https://api.sgroup.qq.com/channels/${channelId}/messages`;
+        const formdata = new FormData();
+        if (msgId) formdata.append("msg_id", msgId);
+        if (content) formdata.append("content", content);
+        if (imageFile) formdata.append("file_image", imageFile, { filename: 'image.jpg' });
+        if (imagePath) formdata.append("file_image", fs.createReadStream(imagePath));
+        if (imageUrl) formdata.append("image", imageUrl);
+        return fetch(pushUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": formdata.getHeaders()["content-type"],
+                "Authorization": `Bot ${config.initConfig.appID}.${config.initConfig.token}`,
+            }, body: formdata
+        }).then(res => res.json()).then(body => {
+            if (body.code) throw body;
+            return body;
+        });
+    }
 }
 
-async function sendImage(option: SendMsgOption): Promise<IMessage> {
-    const { sendType, content, imagePath, imageFile, imageUrl, msgId, guildId, channelId } = option;
-    const pushUrl = (sendType == "DIRECT") ? `https://api.sgroup.qq.com/dms/${guildId}/messages` : `https://api.sgroup.qq.com/channels/${channelId}/messages`;
-    const formdata = new FormData();
-    if (msgId) formdata.append("msg_id", msgId);
-    if (content) formdata.append("content", content);
-    if (imageFile) formdata.append("file_image", imageFile, { filename: 'image.jpg' });
-    if (imagePath) formdata.append("file_image", fs.createReadStream(imagePath));
-    if (imageUrl) formdata.append("image", imageUrl);
-    return fetch(pushUrl, {
-        method: "POST",
-        headers: {
-            "Content-Type": formdata.getHeaders()["content-type"],
-            "Authorization": `Bot ${config.initConfig.appID}.${config.initConfig.token}`,
-        }, body: formdata
-    }).then(res => res.json()).then(body => {
-        if (body.code) throw body;
-        return body;
-    });
-}
-
-export class IMessageGUILD extends IMessageCommon implements IntentMessage.GUILD_MESSAGES__body {
+export class IMessageGUILD extends IMessageChannelCommon implements IntentMessage.GUILD_MESSAGES__body {
     mentions?: IUser[];
     guildName: string;
     channelName: string;
@@ -163,12 +163,10 @@ export class IMessageGUILD extends IMessageCommon implements IntentMessage.GUILD
 
         if (!register) return;
 
-        log.info(`频道{${this.guildName}}[${this.channelName}|${this.channel_id}](${this.author.username}|${this.author.id})${this._atta}: ${this.content}`);
+        log.info(`频公{${this.guildName}}[${this.channelName}|${this.channel_id}](${this.author.username}|${this.author.id})${this._atta}: ${this.content}`);
 
         const mention: string[] = [];
-        if (this.mentions)
-            for (const user of this.mentions)
-                mention.push(user.id);
+        if (this.mentions) for (const user of this.mentions) mention.push(user.id);
         this.pushToDB({
             mentions: mention.join(","),
             cName: this.channelName || "",
@@ -177,7 +175,7 @@ export class IMessageGUILD extends IMessageCommon implements IntentMessage.GUILD
     }
 }
 
-export class IMessageDIRECT extends IMessageCommon implements IntentMessage.DIRECT_MESSAGE__body {
+export class IMessageDIRECT extends IMessageChannelCommon implements IntentMessage.DIRECT_MESSAGE__body {
     direct_message: true;
     src_guild_id: string;
     constructor(msg: IntentMessage.DIRECT_MESSAGE__body, register = true) {
@@ -187,30 +185,74 @@ export class IMessageDIRECT extends IMessageCommon implements IntentMessage.DIRE
 
         if (!register) return;
 
-        log.info(`私信{${this.guild_id}}(${this.author.username}|${this.author.id})${this._atta}: ${this.content}`);
+        log.info(`频私{${this.guild_id}}(${this.author.username}|${this.author.id})${this._atta}: ${this.content}`);
         this.pushToDB({ srcGid: this.src_guild_id });
     }
 }
 
-interface SendMsgOption {
-    ref?: boolean;
-    imageFile?: Buffer;
-    imagePath?: string;
-    imageUrl?: string;
-    content?: string;
-    sendType: MessageType;
-    msgId?: string;
-    eventId?: string;
-    guildId?: string;
-    channelId: string;
-    markdown: SendMsgOption.Markdown;
+class IMessageChatCommon implements IntentMessage.MessageChatCommon {
+    id: string;
+    author: { id: string; };
+    content: string;
+    timestamp: string;
+
+    constructor(msg: IntentMessage.MessageChatCommon, meaasgeType: MessageType) {
+        this.id = msg.id;
+        this.author = msg.author;
+        this.content = msg.content;
+        this.timestamp = msg.timestamp;
+    }
 }
 
-namespace SendMsgOption {
+export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.GROUP_MESSAGE_body {
+    group_id: string;
+
+    constructor(msg: IntentMessage.GROUP_MESSAGE_body, register = true) {
+        super(msg, MessageType.GROUP);
+        this.group_id = msg.group_id;
+
+        if (!register) return;
+        log.info(`群聊`);
+    }
+
+}
+
+export class IMessageC2C extends IMessageChatCommon implements IntentMessage.C2C_MESSAGE_body {
+    attachments;
+
+    constructor(msg: IntentMessage.C2C_MESSAGE_body, register = true) {
+        super(msg, MessageType.FRIEND);
+        this.attachments = msg.attachments;
+
+        if (!register) return;
+        log.info(`私聊`);
+    }
+}
+
+
+namespace SendOption {
+    export interface Channel {
+        ref?: boolean;
+        imageFile?: Buffer;
+        imagePath?: string;
+        imageUrl?: string;
+        content?: string;
+        sendType: MessageType;
+        msgId?: string;
+        eventId?: string;
+        guildId?: string;
+        channelId: string;
+        markdown: Markdown;
+    }
+
     export interface Markdown {
         templateId: string;
         params: { [key: string]: string };
         keyboardId?: string;
+    }
+
+    export interface Chat {
+
     }
 }
 
