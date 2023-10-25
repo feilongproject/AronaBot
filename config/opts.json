@@ -238,7 +238,6 @@
                 "reg": "^/?塔罗牌$",
                 "fnc": "todayTarot",
                 "type": ["GUILD"],
-                "channelAllows": ["all"],
                 "describe": "抽取今日塔罗牌"
             }
         },
@@ -247,7 +246,6 @@
                 "reg": "^/?[Bb][Aa][-_]?[Ll][Oo][Gg][Oo]",
                 "fnc": "baLogo",
                 "type": ["GUILD"],
-                "channelAllows": ["all"],
                 "describe": "生成ba特色的logo"
             }
         }

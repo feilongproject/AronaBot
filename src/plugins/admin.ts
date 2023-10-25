@@ -2,6 +2,7 @@ import os from "os";
 import qr from "qr-image";
 import Excel from "exceljs";
 import xlsx from 'node-xlsx';
+import fetch from "node-fetch";
 import format from "date-format";
 import * as cheerio from "cheerio";
 import { IUser } from "qq-guild-bot";
@@ -31,13 +32,25 @@ export async function updateEventId(event?: IntentMessage.GUILD_MEMBERS) {
 }
 
 export async function updateGithubVersion(msg?: IMessageDIRECT) {
-    if (await redis.exists("push:ghUpdate")) return;
-    return fetch("https://p.prpr.cf/feilongproject/SchaleDB?host=github.com").then(res => res.text()).then(html => {
-        const text = cheerio.load(html)("#repo-content-pjax-container > div > div").text();
-        const regexp = /This branch is ((\d+) commits? ahead,? (of)?)?((\d+) commits? behind)?(up to date with)? lonqie(\/SchaleDB)?:main/;
-        const reg = regexp.exec(text);
-        if (!reg) throw "reg unmatched";
+    if (!devEnv && await redis.exists("push:ghUpdate")) return;
 
+    const queue: Promise<string>[] = [];
+    const regexp = /This branch is ((\d+) commits? ahead,? (of)?)?((\d+) commits? behind)?(up to date with)? lonqie(\/SchaleDB)?:main/;
+    for (const _ of Array.from({ length: 5 })) {
+        queue.push(fetch("https://p.prpr.cf/feilongproject/SchaleDB?host=github.com", { timeout: 10 * 1000 }).then(res => res.text()).catch(err => ""));
+        queue.push(fetch("https://github.com/feilongproject/SchaleDB", { timeout: 10 * 1000 }).then(res => res.text()).catch(err => ""));
+    }
+
+    return Promise.all(queue).then(htmls => {
+
+        const matches = htmls.map(html => {
+            const reg = regexp.exec(cheerio.load(html)("#repo-content-pjax-container > div > div").text());
+            return reg && reg[0] ? reg[0] : null;
+        });
+        const matched = matches.find(v => v);
+        if (!matched) throw "reg unmatched";
+
+        const reg = regexp.exec(matched)!;
         if (msg) return msg.sendMsgEx({ content: reg[0] });
 
         const behind = reg[5];
