@@ -32,7 +32,7 @@ export async function accuseGacha(msg: IMessageGUILD) {
         isChecking = true;
         await msg.sendMsgExRef({
             content: `正在检测中...` +
-                `\n注意: 该步骤会对服务器CPU与内存资源造成大量消耗, 若无意义使用(指对明显没有三星的图片使用)或恶意使用可能会导致无法使用bot任何功能, 具体规定请看<#7673195>子频道`,
+                `\n注意: 该步骤会对服务器CPU与内存资源造成大量消耗, 若无意义使用(指对明显没有三星的图片使用)或恶意使用, 可能会导致但不限于无法使用bot任何功能/被禁言等, 具体规定请看<#7673195>子频道`,
         });
         const gachaInfo = await accuseGachaWapper(srcMsg);
         isChecking = false;
