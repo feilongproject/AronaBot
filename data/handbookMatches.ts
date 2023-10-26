@@ -40,7 +40,7 @@ export const adapter: Record<string, (content: string, type?: "GET") => ReturnTy
 
 function studentEvaluation(content: string, type?: "GET"): { id: string; desc?: string; } {
     const studentName = content.replace(/\/?(角评|角色评价)/, "").trim();
-    if (!studentName) return { id: "all" };
+    if (!studentName || studentName == "all") return { id: "all" };
     const findedInfo = findStudentInfo(studentName);
     if (!findedInfo) throw `未找到学生『${studentName}』数据`;
     return { id: findedInfo.pathName, desc: findedInfo.name[0] };
