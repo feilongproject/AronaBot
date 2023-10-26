@@ -56,23 +56,23 @@ export async function gachaImage(msg: IMessageGUILD) {
             desc3: `\r${analyze?.gacha_analyze}`,
         } : {} as any),
         keyboardId: "102024160_1692938526",
-    }).catch(err => {
-        log.error(err);
-        return msg.sendMsgExRef({
-            content: `发送消息时出现了错误 <@${adminId[0]}>`
-                + `\nimageName: ${imageName?.replaceAll(".", "。")}`
-                + `\n${JSON.stringify(err).replaceAll(".", " .")}`,
-        });
-    });
+        // markdown 部分
 
-    return msg.sendMsgEx({
         content: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)` +
             `\n${analyze?.today_gacha}` +
             `\n${analyze?.total_gacha}` +
             `\n${analyze?.gacha_analyze}`,
         imageUrl: `https://ip.arona.schale.top/p/gacha/${imageName}`,
-    });
+        // fallback 部分
 
+    }).catch(err => {
+        log.error(err);
+        return msg.sendMsgExRef({
+            content: `发送消息时出现了错误 <@${adminId[0]}>`
+                + `\nimageName: ${imageName?.replaceAll(".", ",")}`
+                + `\n${JSON.stringify(err).replaceAll(".", ",")}`,
+        });
+    });
 }
 
 function cTime(server: "global" | "jp", times: 1 | 10, testStar?: 1 | 2 | 3): GachaPools {

@@ -25,7 +25,7 @@ export const match = {
             reg: "^/?(角评|角色评价)",
             typeReg: "(角评|角色评价)|student(Evaluation)?",
             desc: "角评",
-            has: [] as string[],
+            has: ["all"],
         },
     },
     types: {

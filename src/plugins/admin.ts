@@ -13,7 +13,7 @@ import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 
 export async function updateEventId(event?: IntentMessage.GUILD_MEMBERS) {
     const opUserId = "15874984758683127001";
-    // if (devEnv) log.debug(event);
+    if (devEnv) log.debug(event?.eventId);
     if (event?.msg.user.id == opUserId) {
         return await redis.setEx(`lastestEventId:${event.msg.guild_id}`, 60 * 4, event.eventId,);
     }
@@ -88,7 +88,7 @@ export async function help(msg: IMessageGUILD | IMessageDIRECT) {
             const opt = opts[optName];
             sendStr.push(
                 `╠ ${opt.fnc} [${opt.type}]`,
-                `- ┣ reg:  ${opt.reg}`,
+                // `- ┣ reg:  ${opt.reg}`,
                 `- ┗ desc: ${opt.describe}`,
             );
         }
@@ -136,11 +136,6 @@ export async function hotLoad(msg: IMessageDIRECT) {
     return msg.sendMsgEx({ content: `已${msg.content}` });
 }
 
-export async function controlMarkdown(msg: IMessageDIRECT) {
-    if (!adminId.includes(msg.author.id)) return;
-    showMarkdown = /关闭/.test(msg.content) ? false : true;
-    return msg.sendMsgEx({ content: `已${msg.content}` });
-}
 
 export async function mute(msg: IMessageGUILD) {
     const roles = msg?.member?.roles || [];

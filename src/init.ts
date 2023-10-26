@@ -20,7 +20,6 @@ export async function init() {
         imageRenderNum: 0,
     }
     global.hotLoadStatus = 0;
-    global.showMarkdown = true;
 
     if (process.argv.includes("--dev")) {
         global.devEnv = true;
@@ -87,12 +86,13 @@ export async function init() {
     if (devEnv) {
         await redis.setEx("devEnv", 10, "1");
         schedule.scheduleJob("*/10 * * * * ? ", () => redis.setEx("devEnv", 10, "1"));
+        // schedule.scheduleJob("0 */3 * * * ?", () => import("./plugins/admin").then(module => module.updateEventId()));
     } else {
         schedule.scheduleJob("0 * * * * ? ", () => redis.save().then(v => log.mark(`保存数据库:${v}`)));
         schedule.scheduleJob("0 */3 * * * ?", () => import("./plugins/admin").then(module => module.updateEventId()));
         schedule.scheduleJob("0 */5 * * * ? ", () => import("./plugins/biliDynamic").then(module => module.mainCheck()).catch(err => {
             log.error(err);
-            sendToAdmin(typeof err == "object" ? JSON.stringify(err) : String(err)).catch(() => { });
+            sendToAdmin((typeof err == "object" ? JSON.stringify(err) : String(err)).replaceAll(".", ",")).catch(() => { });
         }));
     }
 

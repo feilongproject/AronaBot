@@ -24,7 +24,7 @@ export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT) {
     const filePath = `${config.handbookRoot}/${hbMatched.name}/${hbMatched.type}.png`;
 
     const at_user = `<@${msg.author.id}> \u200b \u200b == ${serverMap[hbMatched.type] ?? hbMatched.nameDesc ?? hbMatched.type}${hbMatched.desc} == ${hbMatched.notChange ? noSetServerMessage : ""}`;
-    if (await redis.sIsMember(`config:mdAllowChannels`, msg.channel_id)) return msg.sendMarkdown({
+    return msg.sendMarkdown({
         templateId: "102024160_1694664174",
         params: {
             at_user,
@@ -37,19 +37,19 @@ export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT) {
             img2: "img #-1px #1px](  ",
         },
         keyboardId: "102024160_1694010888",
-    });
+        // markdown 部分
 
-    return msg.sendMsgEx({
-        content: at_user +
-            `\n${needUpdateMessage}` +
-            `\n攻略制作: 夜猫` +
-            `\n${lastestImage.info}` +
-            `${lastestImage.infoUrl ? `\n详情: ${lastestImage.infoUrl}\n` : ""}` +
-            lastestImage.updateTime,
+        content: at_user
+            + `\n${needUpdateMessage}`
+            + `\n攻略制作: 夜猫`
+            + `\n${lastestImage.info}`
+            + `${lastestImage.infoUrl ? `\n详情: ${lastestImage.infoUrl}\n` : ""}`
+            + lastestImage.updateTime,
         imageUrl: lastestImage.url,
+        // fallback 部分
     }).catch(err => {
         log.error(err);
-        return msg.sendMsgEx({ content: getErrorMessage + JSON.stringify(err) });
+        return msg.sendMsgEx({ content: getErrorMessage + JSON.stringify(err).replaceAll(".", ",") });
     });
 
 }

@@ -70,12 +70,15 @@ class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
         }).then(res => res.data);
     }
 
-    async sendMarkdown(option: Partial<SendOption.Channel> & SendOption.Markdown) {
-        return callWithRetry(this._sendMarkdown, [option]);
+    async sendMarkdown(options: Partial<SendOption.Channel> & SendOption.Markdown) {
+        global.botStatus.msgSendNum++;
+        options.eventId = await redis.get(`lastestEventId:${options.guildId || this.guild_id}`) || undefined;
+        if (devEnv) log.debug(options.eventId);
+        if (options.eventId) return callWithRetry(this._sendMarkdown, [options]).catch(err => this.sendMsgEx(options));
+        else return this.sendMsgEx(options);
     }
 
     private _sendMarkdown = async (options: Partial<SendOption.Channel> & SendOption.Markdown) => {
-        const eventId = await redis.get(`lastestEventId:${options.guildId || this.guild_id}`);
         return fetch(`https://api.sgroup.qq.com/channels/${options.channelId || this.channel_id}/messages`, {
             method: "POST",
             headers: {
@@ -83,7 +86,7 @@ class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
                 "Authorization": `Bot ${config.initConfig.appID}.${config.initConfig.token}`,
             },
             body: JSON.stringify({
-                event_id: eventId,
+                event_id: options.eventId,
                 markdown: {
                     custom_template_id: options.templateId,
                     params: Object.entries(options.params).map(([key, value]) => {
