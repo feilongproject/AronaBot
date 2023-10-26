@@ -10,8 +10,8 @@ import config from "../../config/config.json";
 
 const noSetServerMessage = `\r(未指定/未设置服务器, 默认使用国际服)`;
 const getErrorMessage = `发送时出现了一些问题<@${adminId[0]}>\n这可能是因为腾讯获取图片出错导致, 请稍后重试\n`;
-const needUpdateMessage = `\r若数据未更新，请直接@bot管理\r`;
-const updateTimeMessage = `\r图片更新时间：`;
+const needUpdateMessage = `若数据未更新，请直接@bot管理`;
+const updateTimeMessage = `图片更新时间：`;
 
 const serverMap: Record<string, string> = { jp: "日服", global: "国际服", all: "" };
 
@@ -23,27 +23,29 @@ export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT) {
     const lastestImage = await getLastestImage(hbMatched.name, hbMatched.type);
     const filePath = `${config.handbookRoot}/${hbMatched.name}/${hbMatched.type}.png`;
 
-    if (showMarkdown) return msg.sendMarkdown({
+    const at_user = `<@${msg.author.id}> \u200b \u200b == ${serverMap[hbMatched.type] ?? hbMatched.nameDesc ?? hbMatched.type}${hbMatched.desc} == ${hbMatched.notChange ? noSetServerMessage : ""}`;
+    if (await redis.sIsMember(`config:mdAllowChannels`, msg.channel_id)) return msg.sendMarkdown({
         templateId: "102024160_1694664174",
         params: {
-            at_user: `<@${msg.author.id}> \u200b \u200b == ${serverMap[hbMatched.type] ?? hbMatched.nameDesc ?? hbMatched.type}${hbMatched.desc} == ${hbMatched.notChange ? noSetServerMessage : ""}`,
-            desc1: needUpdateMessage,
+            at_user,
+            desc1: `\r${needUpdateMessage}\r`,
             desc2: `攻略制作: 夜猫\r`,
             ...(lastestImage.info ? { desc3: lastestImage.info + "\r" } : {}),
             link1: `${lastestImage.infoUrl ? "🔗详情点我" : "\u200b"}](${lastestImage.infoUrl || "https://ip.arona.schale.top/turn/"}`,
             img1: `img #${lastestImage.width}px #${lastestImage.height}px](${lastestImage.url}`,
-            img1_status: lastestImage.updateTime,
+            img1_status: `\r${lastestImage.updateTime}`,
             img2: "img #-1px #1px](  ",
         },
         keyboardId: "102024160_1694010888",
     });
 
     return msg.sendMsgEx({
-        content: `<@${msg.author.id}>(${serverMap[hbMatched.type]}${hbMatched.desc})${hbMatched.notChange ? noSetServerMessage : ""}` +
+        content: at_user +
             `\n${needUpdateMessage}` +
             `\n攻略制作: 夜猫` +
             `\n${lastestImage.info}` +
-            `图片更新时间: ${lastestImage.updateTime}`,
+            `${lastestImage.infoUrl ? `\n详情: ${lastestImage.infoUrl}\n` : ""}` +
+            lastestImage.updateTime,
         imageUrl: lastestImage.url,
     }).catch(err => {
         log.error(err);

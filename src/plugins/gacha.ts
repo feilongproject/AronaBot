@@ -43,7 +43,7 @@ export async function gachaImage(msg: IMessageGUILD) {
     const analyze = setting.analyzeHide == "true" ? null : await analyzeRandData(setting.server == "jp" ? "jp" : "global", msg.author.id, o);
     const imageName = await buildImage(o);
     if (devEnv) log.debug(imageName);
-    if (showMarkdown) return msg.sendMarkdown({
+    if (await redis.sIsMember(`config:mdAllowChannels`, msg.channel_id)) return msg.sendMarkdown({
         templateId: "102024160_1694664174",
         params: Object.assign({
             at_user: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)\r`,
