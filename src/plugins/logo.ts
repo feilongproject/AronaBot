@@ -11,7 +11,8 @@ registerFont(`${config.fontRoot}/GlowSansSC-Normal-Heavy.otf`, { family: "Glow S
 registerFont(`${config.fontRoot}/RoGSanSrfStd-Bd.otf`, { family: "Ro GSan Serif Std" });
 
 export async function baLogo(msg: IMessageGUILD) {
-    const match = RE2("^/?[Bb][Aa][-_]?[Ll][Oo][Gg][Oo]\\s+(?P<textL>\\S+)\\s+(?P<textR>\\S+)").match(msg.content);
+    // log.debug(msg.content);
+    const match = RE2("/?[Bb][Aa][-_]?[Ll][Oo][Gg][Oo]\\s+(?P<textL>\\S+)\\s+(?P<textR>\\S+)").match(msg.content);
     if (!match) return msg.sendMsgExRef({
         content: `命令错误，命令格式：`
             + `\n/balogo 左文字 右文字`
