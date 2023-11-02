@@ -84,5 +84,18 @@ export async function commandSetting(msg: IMessageGUILD) {
             img2: "img #-1px #1px](  ",
         },
         keyboardId: "102024160_1692938526",
+        // markdown 部分
+
+        content: `<@${msg.author.id}> ${optStr}`
+            + `\n当前卡池选择: ${status.server == "jp" ? "日服" : "国际服"}卡池`
+            + `\n抽卡分析显示状态: ${status.analyzeHide == "true" ? "隐藏" : "显示"}`
+            + `\n注: 以下子命令须在本命令后加空格使用`
+            + `\n-  清空今日抽卡数据`
+            + `\n-  清空全部抽卡数据`
+            + `\n-  更改抽卡分析显示`
+            + `\n-  更改服务器`
+            + `\n-  重置`,
+        // fallback 部分
+
     });
 }
