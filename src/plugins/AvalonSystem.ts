@@ -10,15 +10,14 @@ var isChecking = false;
 
 
 export async function accuseGacha(msg: IMessageGUILD) {
-
-    if (msg.channel_id == "1952333") return msg.sendMsgEx({ content: "要不先看看子频道名字?" });
+    if (await redis.sIsMember(`mute:doNotMute`, msg.channel_id)) return msg.sendMsgExRef({ content: "要不先看看子频道名字？" });
     if (!msg.message_reference) return msg.sendMsgExRef({ content: `未指定引用信息` });
     if (isChecking) return msg.sendMsgExRef({ content: `当前队列中存在正在检测的图片, 请稍候` });
 
     const srcMsg = await client.messageApi
         .message(msg.channel_id, msg.message_reference!.message_id)
         .then(data => new IMessageGUILD({ ...data.data.message, seq: 0, seq_in_channel: "" }, false));
-    if (!srcMsg.attachments) return "引用消息中不存在图片信息";
+    if (!srcMsg.attachments) return msg.sendMsgEx({ content: "引用消息中不存在图片信息" });
 
     await sendToAdmin(`accuseGacha触发` +
         `\n子频道: ${msg.channelName}(${msg.channel_id})` +
@@ -26,13 +25,15 @@ export async function accuseGacha(msg: IMessageGUILD) {
         `\n举报人: ${msg.author.username}(${msg.author.id})`
     );
     const sendAccuseGachaInfoChannel = await redis.hGet("mute:sendAccuseGachaInfoChannel", msg.guild_id);
-    if (!sendAccuseGachaInfoChannel) return msg.sendMsgExRef({ content: "未指定发送频道" });
+    if (!sendAccuseGachaInfoChannel) return msg.sendMsgExRef({ content: "未指定发送子频道" });
+    const ruleChannel = await redis.hGet("mute:ruleChannel", msg.guild_id);
+    if (!ruleChannel) return msg.sendMsgExRef({ content: `未指定频规子频道` });
 
     try {
         isChecking = true;
         await msg.sendMsgExRef({
             content: `正在检测中...` +
-                `\n注意: 该步骤会对服务器CPU与内存资源造成大量消耗, 若无意义使用(指对明显没有三星的图片使用)或恶意使用, 可能会导致但不限于无法使用bot任何功能/被禁言等, 具体规定请看<#7673195>子频道`,
+                `\n注意: 该步骤会对服务器CPU与内存资源造成大量消耗, 若无意义使用(指对明显没有三星的图片使用)或恶意使用, 可能会导致但不限于无法使用bot任何功能/被禁言等, 具体规定请看<#${ruleChannel}>子频道`,
         });
         const gachaInfo = await accuseGachaWapper(srcMsg);
         isChecking = false;
@@ -138,7 +139,7 @@ export async function accuseGacha(msg: IMessageGUILD) {
     } catch (err) {
         isChecking = false;
         log.error(err);
-        await msg.sendMsgExRef({ content: `检测过程中出现了一些问题 <@${adminId[0]}>\n${(typeof (err) == "object" ? JSON.stringify(err) : String(err)).replaceAll(".", "。")}` });
+        await msg.sendMsgExRef({ content: `检测过程中出现了一些问题 <@${adminId[0]}>\n${(typeof (err) == "object" ? JSON.stringify(err) : String(err)).replaceAll(".", "，")}` });
     }
 }
 
