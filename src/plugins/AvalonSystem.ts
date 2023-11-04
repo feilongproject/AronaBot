@@ -136,10 +136,11 @@ export async function accuseGacha(msg: IMessageGUILD) {
             channelId: await redis.hGet("mute:sendChannel", msg.guild_id),
         });// 发送小黑屋
 
-    } catch (err) {
+    } catch (err: any) {
         isChecking = false;
         log.error(err);
-        await msg.sendMsgExRef({ content: `检测过程中出现了一些问题 <@${adminId[0]}>\n${(typeof (err) == "object" ? JSON.stringify(err) : String(err)).replaceAll(".", "，")}` });
+        if (err?.code == 306004) return msg.sendMsgExRef({ content: `<@${adminId[0]}>没有权限删除！请检查禁言对象权限` });
+        return await msg.sendMsgExRef({ content: `检测过程中出现了一些问题 <@${adminId[0]}>\n${(typeof (err) == "object" ? JSON.stringify(err) : String(err)).replaceAll(".", ",")}` });
     }
 }
 
