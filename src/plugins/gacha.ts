@@ -209,7 +209,7 @@ async function gachaReload(type: "net" | "local") {
                 if (d.releaseStatus[nameToId[key]] && !d.limitedType) _gachaPoolInfo[key].common[d.star].push(Number(id));
         }// common
 
-        const schaleDBConfig: SchaleDB.Root = await fetch("https://ghproxy.com/https://raw.githubusercontent.com/lonqie/SchaleDB/main/data/config.min.json").then(res => res.json()).catch(err => log.error(err));
+        const schaleDBConfig: SchaleDB.Root = await fetch("https://raw.gh.schale.top/lonqie/SchaleDB/main/data/config.min.json").then(res => res.json()).catch(err => log.error(err));
         if (!schaleDBConfig) throw `can't fetch json:common`;
 
         const nowTime = new Date().getTime() / 1000;

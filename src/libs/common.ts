@@ -86,13 +86,13 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
 
     const _studentInfo: StudentInfos = {};
     if (type == "net") {
-        const netStudents: StudentInfoNet[] = await fetch("https://ghproxy.com/https://raw.githubusercontent.com/lonqie/SchaleDB/main/data/cn/students.min.json").then(res => {
+        const netStudents: StudentInfoNet[] = await fetch("https://raw.gh.schale.top/lonqie/SchaleDB/main/data/cn/students.min.json").then(res => {
             return res.json();
         }).catch(err => log.error(err));
         if (!netStudents) throw `can't fetch json:students`;
 
         const aliasStudentNameLocal: { [name: string]: string[] } = JSON.parse(fs.readFileSync(config.aliasStudentNameLocal, { encoding: "utf8" }));
-        const aliasStudentNameWeb: { [name: string]: string[] } = await fetch("https://ghproxy.com/https://raw.githubusercontent.com/lgc2333/bawiki-data/main/data/stu_alias.json").then(res => {
+        const aliasStudentNameWeb: { [name: string]: string[] } = await fetch("https://raw.gh.schale.top/lgc2333/bawiki-data/main/data/stu_alias.json").then(res => {
             return res.json();
         }).catch(err => log.error(err));
         if (!aliasStudentNameWeb) throw `can't fetch json:aliasStudentNameWeb`;
