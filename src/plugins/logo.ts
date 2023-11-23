@@ -4,7 +4,7 @@ import { contentCensor as AipContentCensorClient } from "baidu-aip-sdk";
 import { createCanvas, Canvas, registerFont, DOMMatrix, loadImage, } from "canvas";
 import { sendToAdmin } from "../libs/common";
 import { IMessageGUILD } from "../libs/IMessageEx";
-import config from "../../config/config.json";
+import config from "../../config/config";
 
 
 registerFont(`${config.fontRoot}/GlowSansSC-Normal-Heavy.otf`, { family: "Glow Sans SC", weight: "Heavy" });

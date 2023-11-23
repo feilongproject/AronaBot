@@ -1,6 +1,6 @@
 import fs from 'fs';
 import fetch from 'node-fetch';
-import config from '../../config/config.json';
+import config from '../../config/config';
 import { IMessageDIRECT } from './IMessageEx';
 
 

@@ -1,9 +1,9 @@
 import fs from "fs";
 import fetch from "node-fetch";
 import FormData from 'form-data';
-import { IMember, IMessage, IUser, MessageAttachment, MessageReference } from "qq-guild-bot";
+import { IMember, IMessage, IUser, MessageAttachment, MessageReference } from "qq-bot-sdk";
 import { callWithRetry, pushToDB } from "./common";
-import config from '../../config/config.json';
+import config from '../../config/config';
 
 
 class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {

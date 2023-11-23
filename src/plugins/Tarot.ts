@@ -1,6 +1,6 @@
 import fs from "fs";
 import { IMessageGUILD } from "../libs/IMessageEx";
-import config from "../../config/config.json";
+import config from "../../config/config";
 
 
 export async function todayTarot(msg: IMessageGUILD) {

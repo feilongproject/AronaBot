@@ -2,10 +2,10 @@ import chokidar from "chokidar";
 import { createPool } from 'mariadb';
 import { createClient } from 'redis';
 import schedule from "node-schedule";
-import { createOpenAPI, createWebsocket } from 'qq-guild-bot';
+import { createOpenAPI, createWebsocket } from 'qq-bot-sdk';
 import _log from './libs/logger';
 import { reloadStudentInfo, sendToAdmin } from './libs/common';
-import config from '../config/config.json';
+import config from '../config/config';
 
 export async function init() {
 

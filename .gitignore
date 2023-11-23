@@ -1,6 +1,6 @@
 node_modules
 dist
-config/config.json
+config/config.ts
 log
 generate
 ___*

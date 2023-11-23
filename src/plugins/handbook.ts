@@ -6,7 +6,7 @@ import * as cheerio from "cheerio";
 import imageSize from "image-size";
 import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 import { findStudentInfo, settingUserConfig } from "../libs/common";
-import config from "../../config/config.json";
+import config from "../../config/config";
 
 const noSetServerMessage = `\r(未指定/未设置服务器, 默认使用国际服)`;
 const getErrorMessage = `发送时出现了一些问题<@${adminId[0]}>\n这可能是因为腾讯获取图片出错导致, 请稍后重试\n`;

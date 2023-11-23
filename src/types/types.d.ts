@@ -2,7 +2,7 @@ import log4js from "log4js";
 import { Browser } from "puppeteer";
 import { PoolConnection } from "mariadb";
 import { RedisClientType } from "@redis/client";
-import { IChannel, IMember, IUser, createOpenAPI, createWebsocket } from "qq-guild-bot";
+import { IChannel, IMember, IUser, createOpenAPI, createWebsocket } from "qq-bot-sdk";
 
 
 declare global {

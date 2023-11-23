@@ -4,7 +4,7 @@ import fetch from "node-fetch";
 import format from "date-format";
 import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 import { reloadStudentInfo, settingUserConfig } from "../libs/common";
-import config from '../../config/config.json';
+import config from '../../config/config';
 
 const starString = ["☆☆☆", "★☆☆", "★★☆", "★★★"];
 const nameToId = { jp: 0, global: 1 };

@@ -1,5 +1,5 @@
 import { IMessageGUILD } from "../libs/IMessageEx";
-import config from '../../config/config.json';
+import config from '../../config/config';
 
 export async function sponsor(msg: IMessageGUILD) {
     return msg.sendMsgEx({

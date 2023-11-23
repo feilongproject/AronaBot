@@ -5,7 +5,7 @@ import xlsx from 'node-xlsx';
 import fetch from "node-fetch";
 import format from "date-format";
 import * as cheerio from "cheerio";
-import { IUser } from "qq-guild-bot";
+import { IUser } from "qq-bot-sdk";
 import child_process from "child_process";
 import { reloadStudentInfo, sendToAdmin } from "../libs/common";
 import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";

@@ -4,7 +4,7 @@ import format from "date-format";
 import { PythonShell } from "python-shell";
 import { StudentInfoNet, sendToAdmin } from "../libs/common";
 import { IMessageGUILD, IMessageDIRECT, MessageType } from "../libs/IMessageEx";
-import config from "../../config/config.json";
+import config from "../../config/config";
 
 var isChecking = false;
 

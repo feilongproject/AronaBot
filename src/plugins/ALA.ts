@@ -1,6 +1,6 @@
 import sharp from "sharp";
 import { IMessageGUILD } from "../libs/IMessageEx";
-import config from "../../config/config.json";
+import config from "../../config/config";
 
 const allowLen = 20;
 

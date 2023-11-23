@@ -1,8 +1,8 @@
+import { UpdateRoleRes } from "qq-bot-sdk";
 import { sendToAdmin } from "../libs/common";
-import config from "../../config/config.json";
-import { UpdateRoleRes } from "qq-guild-bot";
 import { IMessageGUILD } from "../libs/IMessageEx";
 import { emojiMap } from "../eventRec";
+import config from "../../config/config";
 
 
 export async function roleAssign(event: IntentMessage.GUILD_MESSAGE_REACTIONS) {
