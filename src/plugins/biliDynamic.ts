@@ -11,10 +11,11 @@ const userAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleW
 
 export async function mainCheck() {
 
-    const cookies = await getCookie().catch(err => {
-        sendToAdmin(typeof err == "object" ? JSON.stringify(err) : String(err)).catch(() => { });
-    });
-    if (!cookies) return;
+    // const cookies = await getCookie().catch(err => {
+    //     sendToAdmin(typeof err == "object" ? JSON.stringify(err) : String(err)).catch(() => { });
+    // });
+    // if (!cookies) return;
+    const cookies = "";
 
     const dynamicPush: DynamicPush = (await import(dynamicPushFilePath)).default;
 
