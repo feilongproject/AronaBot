@@ -265,6 +265,40 @@ export async function activityStrategyPush(msg: IMessageGUILD | IMessageDIRECT) 
         .catch(err => msg.sendMsgEx({ content: `获取出错\n${err}` }));
 }
 
+export async function searchHandbook(msg: IMessageGUILD) {
+    const matched = new RE2("^/?((查询|搜索)攻略|攻略(查询|搜索))\\s*(?P<searchKey>.+)$").exec(msg.content);
+    if (!matched?.groups) return msg.sendMsgExRef({
+        content: `请输入要查询的攻略！例：`
+            + `\n/查询攻略 1-1`,
+    });
+    const searchWords = matched.groups?.searchKey;
+    const resultData: DiyigemtAPI.Root = await fetch(`https://arona.diyigemt.com/api/v1/image?name=${searchWords}`).then(res => res.json());
+
+    const imageUrl = `https://arona.cdn.diyigemt.com/image${resultData.data[0].path}?hash=${resultData.data[0].hash}`;
+    if (resultData.data.length == 1) return msg.sendMarkdown({
+        templateId: "102024160_1694664174",
+        params: {
+            at_user: `<@${msg.author.id}>`,
+            desc2: `\r数据来源: diyigemt`,
+            link1: "\u200b](https://ip.arona.schale.top/turn/",
+            img1: `img](${imageUrl}`,
+            // img1_status: `\r${lastestImage.updateTime}`,
+            img2: "img #-1px #1px](  ",
+        },
+        // markdown 部分
+
+        content: `<@${msg.author.id}>`
+            + `\n数据来源: diyigemt`,
+        imageUrl,
+        // fallback 部分
+    });
+    else if (resultData.data.length > 1) return msg.sendMsgEx({
+        content: `<@${msg.author.id}> 模糊查询结果：\n` +
+            resultData.data.map((v, i) => `第${i + 1} 搜索结果: ${v.name}`).join("\n"),
+    });
+
+}
+
 
 namespace HandbookInfo {
     export interface Root {
@@ -291,4 +325,20 @@ interface HandbookMatches {
         desc: string;
     }>;
     types: Record<string, string>;
+}
+
+namespace DiyigemtAPI {
+    export interface Root {
+        status: 101 | 200;
+        data: ResultList[];
+        message: "name is empty" | "fuse search" | "wrong name";
+    }
+
+    interface ResultList {
+        id: number;
+        name: string;
+        path: string;
+        hash: string;
+        type: number;
+    }
 }
