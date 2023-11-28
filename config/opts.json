@@ -26,6 +26,7 @@
                 "reg": "^/?(状态|status)$",
                 "fnc": "status",
                 "type": ["GUILD", "DIRECT"],
+                "channelAllows": ["all"],
                 "describe": "查询bot与服务器状态"
             },
             "hotLoad": {
@@ -33,13 +34,6 @@
                 "fnc": "hotLoad",
                 "type": ["DIRECT"],
                 "describe": "开启或关闭热加载"
-            },
-            "mute": {
-                "reg": "(抽卡|晒卡)?禁言(\\d+)((分钟?|m)|(小?时|h)|(天|d))",
-                "fnc": "mute",
-                "channelAllows": ["all"],
-                "type": ["GUILD"],
-                "describe": "管理员对某人禁言"
             },
             "reloadStudentData": {
                 "reg": "^学生数据(网络|本地)重加载$",
@@ -52,6 +46,15 @@
                 "fnc": "dumpChatRecord",
                 "type": ["GUILD", "DIRECT"],
                 "describe": "dump发言记录"
+            }
+        },
+        "mute": {
+            "mute": {
+                "reg": "(抽卡|晒卡)?禁言(\\d+)((分钟?|m)|(小?时|h)|(天|d))",
+                "fnc": "mute",
+                "channelAllows": ["all"],
+                "type": ["GUILD"],
+                "describe": "管理员对某人禁言"
             }
         },
         "gacha": {

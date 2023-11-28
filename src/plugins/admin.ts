@@ -3,12 +3,10 @@ import qr from "qr-image";
 import Excel from "exceljs";
 import xlsx from 'node-xlsx';
 import fetch from "node-fetch";
-import format from "date-format";
 import * as cheerio from "cheerio";
-import { IUser } from "qq-bot-sdk";
 import child_process from "child_process";
-import { reloadStudentInfo, sendToAdmin } from "../libs/common";
 import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
+import { reloadStudentInfo, sendToAdmin, timeConver } from "../libs/common";
 
 
 export async function updateEventId(event?: IntentMessage.GUILD_MEMBERS) {
@@ -125,6 +123,7 @@ export async function status(msg: IMessageDIRECT) {
 
 export async function ping(msg: IMessageGUILD | IMessageDIRECT) {
     if (!adminId.includes(msg.author.id)) return;
+    // log.debug(msg);
     return msg.sendMsgEx({ content: await global.redis.ping() });
 }
 
@@ -134,84 +133,6 @@ export async function hotLoad(msg: IMessageDIRECT) {
     const times = /^\/?热(加载|更新)(-?\d+)$/.exec(msg.content)![2];
     hotLoadStatus = Number(times);
     return msg.sendMsgEx({ content: `已${msg.content}` });
-}
-
-
-export async function mute(msg: IMessageGUILD) {
-    const roles = msg?.member?.roles || [];
-    const allowRoles = ["11146065", "4", "2"];
-    if (!roles.filter(v => allowRoles.includes(v)).length) return;
-
-    const timeExec = /(抽卡|晒卡)?禁言(\d+)((分钟?|m)|(小?时|h)|(天|d))/.exec(msg.content);
-    if (!timeExec) return msg.sendMsgExRef({ content: `未指定禁言时间` });
-    timeExec[1] = timeExec[1] || "";
-    const muteTime = Number(timeExec[2]) * (timeExec[4] ? 60 : timeExec[5] ? 60 * 60 : 60 * 60 * 24);
-    const muteType = timeExec[1] ? "gacha" : "common";
-
-    var muteMember: IUser | null = null;
-    for (const mention of (msg.mentions || [])) if (!mention.bot) muteMember = mention;
-    if (!muteMember) return msg.sendMsgExRef({ content: `未指定禁言对象` });
-    if (msg.author.id == muteMember.id) return msg.sendMsgExRef({ content: "禁止禁言自己" });
-    if (muteTime && muteType == "gacha" && !msg.message_reference) return msg.sendMsgExRef({ content: `未找到需要撤回消息` });
-    if (muteTime > 60 * 60 * 24 * 30) return msg.sendMsgExRef({ content: `你要不看看你在干什么` });
-
-    const alart = await client.guildApi.guildMember(msg.guild_id, muteMember.id).then(res => {
-        const { data } = res;
-        if (!data || !data.roles) return null;
-        if (data.roles.includes("4")) return "无法禁言频道主";
-        if (data.roles.includes("2")) return "无法禁言超级管理员";
-        if (data.roles.includes("5")) return "无法禁言子频道管理员";
-        if (data.roles.includes("11146065")) return "无法禁言风纪委员会成员";
-        return null;
-    }).catch(err => {
-        log.error(err);
-        return `获取成员信息出错: ${JSON.stringify(err).replaceAll(".", "。")}`;
-    });
-    if (alart) return msg.sendMsgExRef({ content: alart });
-
-    await sendToAdmin(`mute 触发` +
-        `\n子频道: ${msg.channelName}(${msg.channel_id})` +
-        `\n目标: ${muteMember.username}(${muteMember.id})` +
-        `\n使用人: ${msg.author.username}(${msg.author.id})`
-    );
-
-    const sendAccuseGachaInfoChannel = await redis.hGet("mute:sendAccuseGachaInfoChannel", msg.guild_id);
-    if (sendAccuseGachaInfoChannel) await msg.sendMsgEx({
-        content: `管理执行${muteType}禁言权限` +
-            `\n\n权限: ${JSON.stringify(msg?.member?.roles)}` +
-            `\n管理: <@${msg.author.id}>(${msg.author.id})` +
-            `\n目标: ${muteMember.username}(${muteMember.id})` +
-            `\n\n频道: ${msg.guildName}(${msg.guild_id})` +
-            `\n子频道: <#${msg.channel_id}>(${msg.channel_id})` +
-            `\n时间: ${timeConver(muteTime * 1000)}`,
-        channelId: sendAccuseGachaInfoChannel,
-    });
-
-    return (muteTime ? redis.hSet(`mute:${muteMember!.id}`, new Date().getTime(), muteType)
-        .then(() => msg.sendMsgExRef({ content: `已对成员<@${muteMember!.id}>${timeExec[1]}禁言${timeConver(muteTime * 1000)}\n注意：若管理随意使用则会采取一定措施` }))
-        : msg.sendMsgExRef({ content: `已解除${timeExec[1]}禁言` })
-    ).then(() => redis.hGetAll(`mute:${muteMember!.id}`)
-    ).then(muteInfo => {
-        const sendStr = ["禁言记录"];
-        for (const _timestamp in muteInfo) sendStr.push(`时间: ${format.asString(new Date(Number(_timestamp)))} | 类型: ${muteInfo[_timestamp]}`);
-        return msg.sendMsgExRef({ content: sendStr.join("\n") });
-    }).then(() => client.muteApi.muteMember(msg.guild_id, muteMember!.id, { seconds: muteTime.toString() })
-    ).then(() => (muteType == "gacha" && muteTime)
-        ? client.messageApi.deleteMessage(msg.channel_id, msg.message_reference!.message_id).then(async () =>
-            msg.sendMsgEx({
-                content: `<@${muteMember!.id}>(id: ${muteMember!.id})` +
-                    `\n禁言${timeExec[2]}${timeExec[3]}` +
-                    `\n原因: 晒卡` +
-                    `\n子频道: <#${msg.channel_id}>(id: ${msg.channel_id})` +
-                    `\n处理人: <@${msg.author.id}>(id: ${msg.author.id})` +
-                    `\n注意: 该消息由bot自动发送，如有异议联系<@${msg.author.id}>或<@${adminId[0]}>`,
-                channelId: await redis.hGet("mute:sendChannel", msg.guild_id)
-            })
-        ) : undefined
-    ).catch(err => {
-        log.error(err);
-        msg.sendMsgExRef({ content: `禁言出现错误<@${adminId[0]}>\n` + JSON.stringify(err) });
-    });
 }
 
 export async function directToAdmin(msg: IMessageDIRECT) {
@@ -287,22 +208,4 @@ export async function dumpChatRecord(msg: IMessageDIRECT) {
     })).catch(err => {
         log.error(err);
     });
-}
-
-function timeConver(ms: number) {
-    ms = Number((ms / 1000).toFixed(0));
-
-    if (ms == 0) return "0分钟";
-    if (ms < 60) return "不足1分钟";
-
-    const s = ms % 60;
-    ms = (ms - s) / 60;
-
-    const m = ms % 60;
-    ms = (ms - m) / 60;
-
-    const h = ms % 24;
-    ms = (ms - h) / 24;
-
-    return `${ms ? `${ms}天 ` : ``}${h ? `${h}小时 ` : ``}${m ? `${m}分钟 ` : ``}`;
 }
