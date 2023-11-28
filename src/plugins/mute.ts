@@ -13,7 +13,7 @@ const execMap = [
         send: true,
     }, {
         t: "insulting",
-        reg: /(龙图)/,
+        reg: /(龙图|辱骂|侮辱)/,
         del: true,
         send: true,
     }
