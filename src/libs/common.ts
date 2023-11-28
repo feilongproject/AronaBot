@@ -86,14 +86,17 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
 
     const _studentInfo: StudentInfos = {};
     if (type == "net") {
-        const netStudents: StudentInfoNet[] = await fetch("https://raw.gh.schale.top/lonqie/SchaleDB/main/data/cn/students.min.json").then(res => {
+        const netStudents: StudentInfoNet[] | void = await fetch("https://raw.gh.schale.top/lonqie/SchaleDB/main/data/cn/students.min.json").then(res => {
             return res.json();
-        }).catch(err => log.error(err));
+        }).then((json: StudentInfoNet[]) => json.map(v => ({ ...v, Name: fixName(v.Name) }))).catch(err => log.error(err));
         if (!netStudents) throw `can't fetch json:students`;
 
-        const aliasStudentNameLocal: { [name: string]: string[] } = JSON.parse(fs.readFileSync(config.aliasStudentNameLocal, { encoding: "utf8" }));
-        const aliasStudentNameWeb: { [name: string]: string[] } = await fetch("https://raw.gh.schale.top/lgc2333/bawiki-data/main/data/stu_alias.json").then(res => {
+        const aliasStudentNameLocal: Record<string, string[]> = JSON.parse(fs.readFileSync(config.aliasStudentNameLocal, { encoding: "utf8" }));
+        const aliasStudentNameWeb: Record<string, string[]> | void = await fetch("https://raw.gh.schale.top/lgc2333/bawiki-data/main/data/stu_alias.json").then(res => {
             return res.json();
+        }).then((json: Record<string, string[]>) => {
+            for (const names in json) json[names] = json[names].map(v => fixName(v));
+            return json;
         }).catch(err => log.error(err));
         if (!aliasStudentNameWeb) throw `can't fetch json:aliasStudentNameWeb`;
 
@@ -109,12 +112,10 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
                 limitedType: d.IsLimited,
             };
 
-            if (aliasStudentNameWeb[d.Name])
-                for (const _nameWeb of aliasStudentNameWeb[d.Name])
-                    if (!_nameWeb.includes("老婆"))//去除私货
-                        _studentInfo[d.Id].name.push(_nameWeb);
-            if (aliasStudentNameLocal[d.Name])//增加本地别名
-                _studentInfo[d.Id].name.push(...aliasStudentNameLocal[d.Name])
+            const asnw = aliasStudentNameWeb[d.Name];
+            if (asnw) for (const _nameWeb of asnw)
+                if (!_nameWeb.includes("老婆")) _studentInfo[d.Id].name.push(_nameWeb);//去除私货
+            if (aliasStudentNameLocal[d.Name]) _studentInfo[d.Id].name.push(...aliasStudentNameLocal[d.Name]);//增加本地别名
 
             if (!fs.existsSync(`${config.images.characters}/Student_Portrait_${devName}.png`))
                 throw `not found png file in local: Student_Portrait_${devName}`;
