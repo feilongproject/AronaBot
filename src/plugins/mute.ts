@@ -21,8 +21,7 @@ const execMap = [
 
 export async function mute(msg: IMessageGUILD) {
     const roles = msg?.member?.roles || [];
-    const allowRoles = [...await redis.sMembers(`allowRoles:mute:${msg.guildName}`), "4", "2",];
-    // const allowRoles = ["11146065",  "15467609"];// TODO: 更好的判断
+    const allowRoles = [...await redis.sMembers(`allowRoles:mute:${msg.guild_id}`), "4", "2",];
     if (!roles.filter(v => allowRoles.includes(v)).length) return;
 
     const timeMatch = new RE2("(?P<muteTime>\\d+)((?P<m>分钟?|m)|(?P<h>小?时|h)|(?P<d>天|d))").match(msg.content)?.groups;
