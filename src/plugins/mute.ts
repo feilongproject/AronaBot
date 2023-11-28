@@ -93,8 +93,8 @@ export async function mute(msg: IMessageGUILD) {
         await client.messageApi.deleteMessage(msg.channel_id, msg.message_reference!.message_id);
         await msg.sendMsgEx({
             content: `<@${muteMember!.id}>(id: ${muteMember!.id})` +
-                `\n禁言${timeMatch.timeMatch}${timeMatch.m || timeMatch.h || timeMatch.d}` +
-                `\n原因: 晒卡` +
+                `\n禁言${timeMatch.muteTime}${timeMatch.m || timeMatch.h || timeMatch.d}` +
+                `\n原因: ${await redis.hGet("muteType", cmdMatch.t) || cmdMatch.t}` +
                 `\n子频道: <#${msg.channel_id}>(id: ${msg.channel_id})` +
                 `\n处理人: <@${msg.author.id}>(id: ${msg.author.id})` +
                 `\n注意: 该消息由bot自动发送，如有异议联系<@${msg.author.id}>或<@${adminId[0]}>`,
