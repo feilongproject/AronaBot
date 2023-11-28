@@ -59,7 +59,7 @@ export function writeFileSyncEx(filePath: string, data: string | Buffer, options
     }
 }
 
-export async function pushToDB(table: string, data: { [key: string]: any; }) {
+export async function pushToDB(table: string, data: Record<string, any>) {
     if (devEnv) return;
 
     const keys: string[] = [];
@@ -131,12 +131,12 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
     return "ok";
 }
 
-export async function settingUserConfig(aid: string, types: "GET", data: string[]): Promise<{ [key: string]: string; }>
-export async function settingUserConfig(aid: string, types: "SET", data: { [key: string]: string; }): Promise<{ [key: string]: string; }>
-export async function settingUserConfig(aid: string, types: "GET" | "SET", data: string[] | { [key: string]: string; }): Promise<{ [key: string]: string; }> {
+export async function settingUserConfig(aid: string, types: "GET", data: string[]): Promise<Record<string, string>>
+export async function settingUserConfig(aid: string, types: "SET", data: Record<string, string>): Promise<Record<string, string>>
+export async function settingUserConfig(aid: string, types: "GET" | "SET", data: string[] | Record<string, string>): Promise<Record<string, string>> {
     if (types == "GET" || Array.isArray(data))
         return redis.hmGet(`setting:${aid}`, data as string[]).then(hmData => {
-            const _ret: { [key: string]: string; } = {};
+            const _ret: Record<string, string> = {};
             for (const [index, _hmData] of hmData.entries()) _ret[(data as string[])[index]] = _hmData;
             return _ret;
         });
@@ -150,7 +150,7 @@ export async function settingUserConfig(aid: string, types: "GET" | "SET", data:
 }
 
 export function findStudentInfo(name: string) {
-    for (const id in studentInfo) if (studentInfo[id].name.includes(name)) return studentInfo[id];
+    for (const id in studentInfo) if (studentInfo[id].name.includes(fixName(name))) return studentInfo[id];
     return null;
 }
 
@@ -173,6 +173,26 @@ export async function findDirectAidToGid(aid: string, guildId: string): Promise<
         return createGid;
     }
     throw "not found guild and create guild";
+}
+
+const fixName = (name: string) => name.replace("（", "(").replace("）", ")").toLowerCase();
+
+export function timeConver(ms: number) {
+    ms = Number((ms / 1000).toFixed(0));
+
+    if (ms == 0) return "0分钟";
+    if (ms < 60) return "不足1分钟";
+
+    const s = ms % 60;
+    ms = (ms - s) / 60;
+
+    const m = ms % 60;
+    ms = (ms - m) / 60;
+
+    const h = ms % 24;
+    ms = (ms - h) / 24;
+
+    return `${ms ? `${ms}天 ` : ``}${h ? `${h}小时 ` : ``}${m ? `${m}分钟 ` : ``}`;
 }
 
 export interface StudentInfoNet {

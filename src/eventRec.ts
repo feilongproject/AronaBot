@@ -128,7 +128,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
 }
 
 
-export const emojiMap: { [id: string]: string } = {
+export const emojiMap: Record<string, string> = {
     "9728": "☀",
     "9749": "☕",
     "9786": "☺",

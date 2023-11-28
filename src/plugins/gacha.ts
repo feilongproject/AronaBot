@@ -175,7 +175,7 @@ function analyzeLocalDate() {
     for (key in nameToId) {
         sendStr.push("==================", `${key}服`);
 
-        const common = gachaPoolInfo[key].common as { [star: number]: number[] };
+        const common = gachaPoolInfo[key].common as Record<number, number[]>;
         for (const star in common) {
             const _all: string[] = [];
             for (const _ of common[star]) _all.push(studentInfo[_].name[0]);

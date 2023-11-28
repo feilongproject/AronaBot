@@ -23,7 +23,7 @@ declare global {
         imageRenderNum: number;
     }
     var hotLoadStatus: number;
-    var saveGuildsTree: { [guildId: string]: SaveGuild };
+    var saveGuildsTree: Record<string, SaveGuild>;
     var studentInfo: StudentInfos;
 
     interface StudentInfos {
@@ -43,7 +43,7 @@ declare global {
     interface SaveGuild {
         name: string;
         id: string;
-        channels: { [channelId: string]: SaveChannel };
+        channels: Record<string, SaveChannel>;
     }
     interface SaveChannel {
         name: string;

@@ -24,8 +24,8 @@ export async function accuseGacha(msg: IMessageGUILD) {
         `\n目标: ${srcMsg.author.username}(${srcMsg.author.id})` +
         `\n举报人: ${msg.author.username}(${msg.author.id})`
     );
-    const sendAccuseGachaInfoChannel = await redis.hGet("mute:sendAccuseGachaInfoChannel", msg.guild_id);
-    if (!sendAccuseGachaInfoChannel) return msg.sendMsgExRef({ content: "未指定发送子频道" });
+    const muteLogChannel = await redis.hGet("mute:logChannel", msg.guild_id);
+    if (!muteLogChannel) return msg.sendMsgExRef({ content: "未指定发送子频道" });
     const ruleChannel = await redis.hGet("mute:ruleChannel", msg.guild_id);
     if (!ruleChannel) return msg.sendMsgExRef({ content: `未指定频规子频道` });
 
@@ -45,7 +45,7 @@ export async function accuseGacha(msg: IMessageGUILD) {
                         `\n举报人: ${msg.author.username}(${msg.author.id})` +
                         `\n第${i + 1}张图未匹配到角色特征`,
                     imageUrl: "http://" + attachment.url,
-                    channelId: sendAccuseGachaInfoChannel,
+                    channelId: muteLogChannel,
                 });
             }// 发送原图
             return msg.sendMsgExRef({ content: `opencv 未匹配到角色特征 <@${adminId[0]}>` });
@@ -65,7 +65,7 @@ export async function accuseGacha(msg: IMessageGUILD) {
                         ).join("\n"),
 
                     imagePath: gacha.pointsFileName,
-                    channelId: sendAccuseGachaInfoChannel,
+                    channelId: muteLogChannel,
                 });
             }// 发送点集图
             return msg.sendMsgExRef({ content: `未找到三星 <@${adminId[0]}>` });
@@ -89,7 +89,7 @@ export async function accuseGacha(msg: IMessageGUILD) {
                         `${vv.studentInfo.star}${vv.nameCn}(${vv.nameDev}) ${vv.possible.join('->')}  ` + vv.center.map(point => `(${point.map(p => p.toFixed()).join(",")})`).join("---")
                     ).join("\n"),
                 imagePath: gacha.pointsFileName,
-                channelId: sendAccuseGachaInfoChannel,
+                channelId: muteLogChannel,
             });
             const studentInfo3star = gacha.gachaInfo.main.filter(vv => vv.studentInfo.star == 3);
             // log.debug(studentInfo3star.map(v => v.name[0]));
@@ -140,7 +140,7 @@ export async function accuseGacha(msg: IMessageGUILD) {
         isChecking = false;
         log.error(err);
         if (err?.code == 306004) return msg.sendMsgExRef({ content: `<@${adminId[0]}>没有权限删除！请检查禁言对象权限` });
-        return await msg.sendMsgExRef({ content: `检测过程中出现了一些问题 <@${adminId[0]}>\n${(typeof (err) == "object" ? JSON.stringify(err) : String(err)).replaceAll(".", ",")}` });
+        return msg.sendMsgExRef({ content: `检测过程中出现了一些问题 <@${adminId[0]}>\n${(typeof (err) == "object" ? JSON.stringify(err) : String(err)).replaceAll(".", ",")}` });
     }
 }
 

@@ -104,7 +104,7 @@ class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
         });
     }
 
-    async pushToDB(another: { [key: string]: string }) {
+    async pushToDB(another: Record<string, string>) {
         const attachments: string[] = [];
         if (this.attachments)
             for (const path of this.attachments) attachments.push(path.url);
@@ -250,7 +250,7 @@ namespace SendOption {
 
     export interface Markdown {
         templateId: string;
-        params: { [key: string]: string };
+        params: Record<string, string>;
         keyboardId?: string;
     }
 

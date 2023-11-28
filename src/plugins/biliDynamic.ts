@@ -42,7 +42,7 @@ export async function mainCheck() {
                         channelId: cId,
                         sendType: MessageType.GUILD,
                         imageFile: picInfo,
-                        content: `https://cdn.arona.schale.top/turn/b/${item.id_str}`,
+                        content: `https://t.bilibili.com/${item.id_str}`,
                     }).catch(err => {
                         log.error(err);
                     });
@@ -50,7 +50,7 @@ export async function mainCheck() {
                     channelId: cId,
                     sendType: MessageType.GUILD,
                     imageFile: picInfo,
-                    content: `${devEnv ? "dev " : ""}${bUser.bName} 更新了一条动态\nhttps://cdn.arona.schale.top/turn/b/${item.id_str}`,
+                    content: `${devEnv ? "dev " : ""}${bUser.bName} 更新了一条动态\nhttps://t.bilibili.com/${item.id_str}`,
                 }).catch(err => {
                     log.error(err);
                     return sendToAdmin(`${bUser.bName} ${item.id_str} 发送失败`);

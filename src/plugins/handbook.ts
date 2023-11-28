@@ -17,9 +17,10 @@ const serverMap: Record<string, string> = { jp: "日服", global: "国际服", a
 
 
 export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT) {
-    const hbMatched = await matchHandbook(msg.content.replaceAll(RegExp(`<@!?${meId}>`, "g"), "").trim(), msg.author.id);
+    const hbMatched = await matchHandbook(msg.content.replaceAll(RegExp(`<@!?${meId}>`, "g"), "").trim(), msg.author.id).catch(err => JSON.stringify(err));
     // log.debug(msg.content, hbMatched);
     if (!hbMatched) return msg.sendMsgEx({ content: `未找到对应攻略数据` });
+    if (typeof hbMatched == "string") return msg.sendMsgEx({ content: hbMatched });
     const lastestImage = await getLastestImage(hbMatched.name, hbMatched.type);
     const filePath = `${config.handbookRoot}/${hbMatched.name}/${hbMatched.type}.png`;
 
@@ -141,7 +142,7 @@ export async function handbookUpdate(msg: IMessageGUILD) {
                 if (data.data.item.modules.module_dynamic.major.type == BiliDynamic.MajorTypeEnum.MAJOR_TYPE_ARTICLE) {
                     const article = data.data.item.modules.module_dynamic.major.article!;
                     const cvId = /cv(\d+)/.exec(article.jump_url)![1];
-                    imageTurnUrl = `https://cdn.arona.schale.top/turn/cv${cvId}`;
+                    imageTurnUrl = `https://bilibili.com/read/cv${cvId}`;
                     imageDesc = article.title.replaceAll(/((蔚|碧)蓝档案)/g, "").replace(/^\//, "").trim();
                 } else throw `未知的动态类型: ${data.data.item.modules.module_dynamic.major.type}`;
             });
@@ -150,7 +151,7 @@ export async function handbookUpdate(msg: IMessageGUILD) {
             return msg.sendMsgEx({ content: `解析desc时出现错误\n` + JSON.stringify(err).replaceAll(".", ",") });
         }
     } else if (/cv(\d+)/.test(desc)) {
-        imageTurnUrl = `https://cdn.arona.schale.top/turn/cv${/cv(\d+)/.exec(desc)![1]}`;
+        imageTurnUrl = `https://bilibili.com/read/cv${/cv(\d+)/.exec(desc)![1]}`;
     } else imageDesc = desc || "";
     // 图片 desc turnUrl 结束
 
