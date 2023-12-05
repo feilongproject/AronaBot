@@ -65,6 +65,7 @@ type PluginFnc = (msg: IMessageDIRECT | IMessageGUILD | IMessageGROUP, data?: st
 
 export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
     switch (event.eventRootType) {
+        case AvailableIntentsEventsEnum.GUILD_MESSAGES:
         case AvailableIntentsEventsEnum.PUBLIC_GUILD_MESSAGES: {
             const data = event.msg as any as IntentMessage.GUILD_MESSAGES__body;
             // if (devEnv) log.debug(data);
