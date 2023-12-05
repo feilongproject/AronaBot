@@ -1,4 +1,3 @@
-#!/usr/bin/sh
+#!/usr/bin/bash
 cd /root/RemoteDir/qbot/AronaBot
-mkdir /tmp/randPic
-/root/.nvm/versions/node/v18.16.1/bin/node node_modules/ts-node/dist/bin.js /root/RemoteDir/qbot/AronaBot/src/index.ts> "log/$(date +%F--%H:%M:%S).log" 2>&1 & 
+/root/.nvm/versions/node/v18.16.1/bin/node node_modules/ts-node/dist/bin.js src/index.ts $1 > "log/$1_$(date +%F--%H:%M:%S).log" 2>&1 & 

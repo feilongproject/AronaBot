@@ -4,7 +4,8 @@
     "description": "",
     "main": "dist/index.js",
     "scripts": {
-        "dev": "clear && nodemon",
+        "dev:AronaBot": "clear && nodemon AronaBot",
+        "dev:PlanaBot": "clear && nodemon PlanaBot",
         "start": "ts-node src/index.ts",
         "test": "clear && nodemon --config nodemon.test.json "
     },
