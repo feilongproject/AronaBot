@@ -6,17 +6,9 @@ import RE2 from "re2";
 
 
 const execMap = [
-    {
-        t: "gacha",
-        reg: /(抽卡|晒卡)/,
-        del: true,
-        send: true,
-    }, {
-        t: "insulting",
-        reg: /(龙图|辱骂|侮辱)/,
-        del: true,
-        send: true,
-    }
+    { t: "gacha", reg: /(抽卡|晒卡)/, del: true, send: true, },
+    { t: "insulting", reg: /(龙图|辱骂|侮辱|攻击性?)/, del: true, send: true, },
+    { t: "arguability", reg: /(有?争议性的?)/, del: true, send: true, },
 ];
 
 export async function mute(msg: IMessageGUILD) {
@@ -59,10 +51,11 @@ export async function mute(msg: IMessageGUILD) {
 
     const muteLogChannel = await redis.hGet("mute:logChannel", msg.guild_id);
     if (muteLogChannel) await msg.sendMsgEx({
-        content: `管理执行${await redis.hGet("muteType", cmdMatch.t) || cmdMatch.t}禁言权限` +
+        content: `管理执行禁言权限` +
             `\n\n权限: ${JSON.stringify(msg?.member?.roles)}` +
             `\n管理: <@${msg.author.id}>(${msg.author.id})` +
             `\n目标: ${muteMember.username}(${muteMember.id})` +
+            `\n原因: ${await redis.hGet("muteType", cmdMatch.t) || cmdMatch.t}` +
             `\n\n频道: ${msg.guildName}(${msg.guild_id})` +
             `\n子频道: <#${msg.channel_id}>(${msg.channel_id})` +
             `\n时间: ${timeConver(muteTime * 1000)}`,
@@ -72,7 +65,7 @@ export async function mute(msg: IMessageGUILD) {
     if (muteTime) {
         await redis.hSet(`mute:${muteMember!.id}`, new Date().getTime(), cmdMatch.t);
         await msg.sendMsgExRef({
-            content: `已对成员<@${muteMember!.id}>${await redis.hGet("muteType", cmdMatch.t) || cmdMatch.t}禁言${timeConver(muteTime * 1000)}`
+            content: `已对成员<@${muteMember!.id}>的「${await redis.hGet("muteType", cmdMatch.t) || cmdMatch.t}」行为采取禁言${timeConver(muteTime * 1000)}`
                 + `\n注意：若管理随意使用则会采取一定措施`,
         });
     } else msg.sendMsgExRef({ content: `已解除${await redis.hGet("muteType", cmdMatch.t) || cmdMatch.t}禁言` });
