@@ -29,6 +29,7 @@ declare module 'baidu-aip-sdk' {
 
         interface Hit {
             wordHitPositions: WordHitPosition[];
+            modelHitPositions: number[][];
             datasetName: string;
             words: string[];
         }

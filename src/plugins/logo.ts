@@ -36,15 +36,18 @@ export async function baLogo(msg: IMessageGUILD) {
         + `\n违规原因: ${result.conclusionType} ${result.conclusion}\n`
         + result.data!.map((d, i) =>
             `\nindex: ${i}\n`
-            + `type: ${d.type}-${d.subType}\n`
+            + `type: ${d.type}-${d.subType} ${d.msg}\n`
             + `hits:\n`
             + `${d.hits.map(hit =>
                 `->${hit.datasetName}: (${hit.words})\n`
-                + `->positions:\n`
+                + `->wordHitPositions:\n`
                 + `${hit.wordHitPositions.map((pos, i) =>
                     `-->${i}k: ${pos.keyword}\n`
                     + `-->${i}l: ${pos.label}\n`
                     + `-->${i}p: ${pos.positions.join("|")}`).join("\n")}`
+                + `modelHitPositions:\n`
+                + `${hit.modelHitPositions.map((pos, i) =>
+                    `-->${i}: ${pos}\n`).join("\n")}`
             ).join("\n")}`
         ).join("\n")
     ));
