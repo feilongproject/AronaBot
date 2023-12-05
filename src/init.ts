@@ -27,7 +27,10 @@ export async function init() {
     } else global.devEnv = false;
 
     global.botType = Object.keys(config.bots).find(v => process.argv.includes(v)) as BotTypes;
-    if (!botType) return log.error(`未知配置！`);
+    if (!botType) {
+        log.error(`未知配置! 请选择正确的botType`);
+        process.exit();
+    }
     global.allowMarkdown = config.bots[botType].allowMarkdown;
 
     log.info(`初始化: 正在创建插件热加载监听`);
