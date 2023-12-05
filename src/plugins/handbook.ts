@@ -10,7 +10,7 @@ import config from "../../config/config";
 
 const noSetServerMessage = `\r(未指定/未设置服务器, 默认使用国际服)`;
 const getErrorMessage = `发送时出现了一些问题<@${adminId[0]}>\n这可能是因为腾讯获取图片出错导致, 请稍后重试\n`;
-const needUpdateMessage = `若数据未更新，请直接@bot管理`;
+const needUpdateMessage = `若数据未更新，请直接@bot管理, 或使用「查询攻略」功能`;
 const updateTimeMessage = `图片更新时间：`;
 
 const serverMap: Record<string, string> = { jp: "日服", global: "国际服", all: "" };
@@ -63,7 +63,7 @@ async function matchHandbook(content: string, aid: string): Promise<{ name: stri
     if (!hbName || !hbName[0]) return undefined;
     var hbType: string = hbName[1]?.has?.includes("all") ? "all" : ((Object.entries(handbookMatches.match.types).find(([k, v]) => RegExp(v).test(content)) || [])[0]) as any;
     if (handbookMatches.adapter[hbName[0]]) {
-        const _ = handbookMatches.adapter[hbName[0]](content, "GET");
+        const _ = await handbookMatches.adapter[hbName[0]](content, "GET");
         hbType = _.id;
         if (_.desc) nameDesc = _.desc;
     } else if (hbType != "all" && !hbType) {
@@ -112,7 +112,7 @@ export async function handbookUpdate(msg: IMessageGUILD) {
     const handbookMatches = await import("../../data/handbookMatches");
     if (handbookMatches.adapter[imageName]) {
         try {
-            imageType = handbookMatches.adapter[imageName](type).id;
+            imageType = (await handbookMatches.adapter[imageName](type)).id;
         } catch (err) {
             log.error(err);
             return msg.sendMsgEx({ content: `判断图片type时出现错误\n` + JSON.stringify(err).replaceAll(".", ",") });
