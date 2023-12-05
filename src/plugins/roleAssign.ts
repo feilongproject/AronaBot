@@ -160,7 +160,7 @@ async function createRole(guildId: string, data: { name: string; color?: number;
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bot ${config.initConfig.appID}.${config.initConfig.token}`,
+            "Authorization": `Bot ${config.bots[botType].appID}.${config.bots[botType].token}`,
         },
         body: JSON.stringify(data),
     }).then(res => res.json());
