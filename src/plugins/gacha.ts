@@ -2,7 +2,7 @@ import fs from "fs";
 import sharp from "sharp";
 import fetch from "node-fetch";
 import format from "date-format";
-import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
+import { IMessageDIRECT, IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 import { reloadStudentInfo, settingUserConfig } from "../libs/common";
 import config from '../../config/config';
 
@@ -26,23 +26,27 @@ gachaReload("local").then(d => {
 });
 
 
-export async function gachaString(msg: IMessageGUILD) {
+export async function gachaString(msg: IMessageGUILD | IMessageGROUP) {
     const setting = await settingUserConfig(msg.author.id, "GET", ["server"]);
     const o = cTime(setting.server == "jp" ? "jp" : "global", /十/.test(msg.content) ? 10 : 1);
     var sendStr: string[] = [
-        `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)`,
-        /十/.test(msg.content) ? `————————十连结果————————` : `————————单抽结果————————`
+        `${msg instanceof IMessageGROUP ? `` : `<@${msg.author.id}>`} (${setting.server == "jp" ? "日服" : "国际服"}卡池)`,
+        /十/.test(msg.content) ? `————————十连结果————————` : `————————单抽结果————————`,
     ];
     for (const value of o) sendStr.push(`(${starString[value.star]})(${value.pathName})${value.name}`);
     return msg.sendMsgExRef({ content: sendStr.join(`\n`), });
 }
 
-export async function gachaImage(msg: IMessageGUILD) {
+export async function gachaImage(msg: IMessageGUILD | IMessageGROUP) {
     const setting = await settingUserConfig(msg.author.id, "GET", ["server", "analyzeHide"]);
     const o = cTime(setting.server == "jp" ? "jp" : "global", 10, adminId.includes(msg.author.id) ? Number(msg.content.match(/\d$/)) as 1 | 2 | 3 : undefined);
     const analyze = setting.analyzeHide == "true" ? null : await analyzeRandData(setting.server == "jp" ? "jp" : "global", msg.author.id, o);
     const imageName = await buildImage(o);
     if (devEnv) log.debug(imageName);
+
+    const sendContent = (msg instanceof IMessageGROUP ? "" : `<@${msg.author.id}> `) + `(${setting.server == "jp" ? "日服" : "国际服"}卡池)` +
+        (analyze ? "\n" + [analyze.today_gacha, analyze.total_gacha, analyze.gacha_analyze].join("\n") : "");
+
     return msg.sendMarkdown({
         templateId: "102024160_1694664174",
         params: Object.assign({
@@ -58,10 +62,7 @@ export async function gachaImage(msg: IMessageGUILD) {
         keyboardId: "102024160_1692938526",
         // markdown 部分
 
-        content: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)` +
-            `\n${analyze?.today_gacha}` +
-            `\n${analyze?.total_gacha}` +
-            `\n${analyze?.gacha_analyze}`,
+        content: sendContent,
         imageUrl: `https://ip.arona.schale.top/p/gacha/${imageName}`,
         // fallback 部分
 

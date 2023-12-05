@@ -25,9 +25,13 @@ export async function callWithRetry<T extends (...args: A) => Promise<R>, R, A e
         if (err && ((err as any).code == 304027) && args && args[0] && args[0].msgId) { //message is expired
             retries--;
             args[0].msgId = await redis.get(`lastestMsgId`);
-        } else log.error(JSON.stringify(err));
+        } else log.error(err);
         if (typeof err == "object") errors.push(JSON.stringify(err));
         else errors.push(String(err));
+        if (err && (err as any).code == 304003 || ((err as any)?.msg as string | null)?.includes("url not allowed")) {
+            log.error(`url 不被允许:\n`, JSON.stringify(args[0]));
+            throw { errors: errors };
+        }
         if (retries < config.retryTime - 1) {
             await sleep(300);
             return await callWithRetry(functionCall, args, ++retries, errors);
@@ -114,8 +118,8 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
 
             const asnw = aliasStudentNameWeb[d.Name];
             if (asnw) for (const _nameWeb of asnw)
-                if (!_nameWeb.includes("老婆")) _studentInfo[d.Id].name.push(_nameWeb);//去除私货
-            if (aliasStudentNameLocal[d.Name]) _studentInfo[d.Id].name.push(...aliasStudentNameLocal[d.Name]);//增加本地别名
+                if (!_nameWeb.includes("老婆")) _studentInfo[d.Id].name.push(_nameWeb); // 去除私货
+            if (aliasStudentNameLocal[d.Name]) _studentInfo[d.Id].name.push(...aliasStudentNameLocal[d.Name]); // 增加本地别名
 
             if (!fs.existsSync(`${config.images.characters}/Student_Portrait_${devName}.png`))
                 throw `not found png file in local: Student_Portrait_${devName}`;

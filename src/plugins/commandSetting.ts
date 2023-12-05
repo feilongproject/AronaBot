@@ -1,8 +1,8 @@
 import { settingUserConfig } from "../libs/common";
-import { IMessageGUILD } from "../libs/IMessageEx";
+import { IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 
 
-export async function commandSetting(msg: IMessageGUILD) {
+export async function commandSetting(msg: IMessageGUILD | IMessageGROUP) {
 
     var optStr: string = "";
     var expCmd: string | null = null;
@@ -86,7 +86,7 @@ export async function commandSetting(msg: IMessageGUILD) {
         keyboardId: "102024160_1692938526",
         // markdown 部分
 
-        content: `<@${msg.author.id}> ${optStr}`
+        content: (msg instanceof IMessageGROUP ? "" : `<@${msg.author.id}> `) + `${optStr}`
             + `\n当前卡池选择: ${status.server == "jp" ? "日服" : "国际服"}卡池`
             + `\n抽卡分析显示状态: ${status.analyzeHide == "true" ? "隐藏" : "显示"}`
             + `\n注: 以下子命令须在本命令后加空格使用`

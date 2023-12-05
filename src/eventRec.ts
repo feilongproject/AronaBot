@@ -1,9 +1,10 @@
+import { AvailableIntentsEventsEnum, IChannel, IGuild } from "qq-bot-sdk";
 import { loadGuildTree } from "./init";
-import { pushToDB, sendToAdmin } from "./libs/common";
 import { findOpts } from "./libs/findOpts";
-import { IMessageDIRECT, IMessageGUILD } from "./libs/IMessageEx";
+import { pushToDB, sendToAdmin } from "./libs/common";
+import { IMessageGROUP, IMessageDIRECT, IMessageGUILD } from "./libs/IMessageEx";
 
-async function execute(msg: IMessageDIRECT | IMessageGUILD) {
+async function executeChannel(msg: IMessageDIRECT | IMessageGUILD) {
     try {
         global.redis.set("lastestMsgId", msg.id, { EX: 4 * 60 });
         if (adminId.includes(msg.author.id) && !devEnv && (await redis.get("devEnv"))) return;
@@ -39,38 +40,78 @@ async function execute(msg: IMessageDIRECT | IMessageGUILD) {
     }
 }
 
-type PluginFnc = (msg: IMessageDIRECT | IMessageGUILD, data?: string | number) => Promise<any>
+async function executeChat(msg: IMessageGROUP) {
+    try {
+        const opt = await findOpts(msg);
+        if (!opt) return;
+
+        if (adminId.includes(msg.author.id) && !devEnv && (await redis.get("devEnv"))) return;
+        if (typeof opt == "string") return msg.sendMsgEx({ content: opt });
+        if (global.devEnv) log.debug(`${_path}/src/plugins/${opt.path}:${opt.fnc}`);
+
+        const plugin = await import(`./plugins/${opt.path}.ts`);
+        if (typeof plugin[opt.fnc] != "function") log.error(`not found function ${opt.fnc}() at "${global._path}/src/plugins/${opt.path}.ts"`);
+        else await (plugin[opt.fnc] as PluginFnc)(msg).catch(err => log.error(err));
+
+    } catch (err) {
+        log.error(err);
+    }
+
+}
+
+type PluginFnc = (msg: IMessageDIRECT | IMessageGUILD | IMessageGROUP, data?: string | number) => Promise<any>
 
 
 
 export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
     switch (event.eventRootType) {
-        case "GUILD_MESSAGES": {
-            if (!['AT_MESSAGE_CREATE', 'MESSAGE_CREATE'].includes(event.eventType)) return;
+        case AvailableIntentsEventsEnum.PUBLIC_GUILD_MESSAGES: {
             const data = event.msg as any as IntentMessage.GUILD_MESSAGES__body;
+            // if (devEnv) log.debug(data);
+            if (!['AT_MESSAGE_CREATE', 'MESSAGE_CREATE'].includes(event.eventType)) return;
             if (global.devEnv && !adminId.includes(data.author.id)) return;
             const msg = new IMessageGUILD(data);
             msg.content = msg.content.replaceAll("@BA彩奈", "<@!5671091699016759820>");
-            return execute(msg).then(() => import("./plugins/AvalonSystem").then(e => e.avalonSystem(msg)));
+            if (botType == "AronaBot") import("./plugins/AvalonSystem").then(e => e.avalonSystem(msg)).catch(err => log.error(err));
+            return executeChannel(msg);
         }
 
-        case "DIRECT_MESSAGE": {
+        case AvailableIntentsEventsEnum.DIRECT_MESSAGE: {
             if (event.eventType != 'DIRECT_MESSAGE_CREATE') return;
             const data = event.msg as any as IntentMessage.DIRECT_MESSAGE__body;
             if (global.devEnv && !adminId.includes(data.author.id)) return;
             const msg = new IMessageDIRECT(data);
-            global.redis.hSet(`directUid->Gid`, msg.author.id, msg.guild_id);
-            return execute(msg).then(() => import("./plugins/admin").then(e => e.directToAdmin(msg)));
+            await global.redis.hSet(`directUid->Gid:${meId}`, msg.author.id, msg.guild_id);
+            return executeChannel(msg).then(() => import("./plugins/admin").then(e => e.directToAdmin(msg))).catch(err => log.error(err));
         }
-        case "GUILDS": {
-            log.mark(`重新加载频道树中`);
-            return loadGuildTree().then(() => {
-                log.mark(`频道树加载完毕`);
+
+        case AvailableIntentsEventsEnum.GROUP: {
+            if (event.eventType == IntentEventType.GROUP_AT_MESSAGE_CREATE) {
+                const data = event.msg as any as IntentMessage.GROUP_MESSAGE_body;
+                if (devEnv && !adminId.includes(data.author.id)) return;
+                if (devEnv) log.debug(data);
+                const msg = new IMessageGROUP(data);
+                return executeChat(msg);
+            } else if ([IntentEventType.GROUP_DEL_ROBOT, IntentEventType.GROUP_ADD_ROBOT].includes(event.eventType)) {
+                const data = event.msg as IntentMessage.GROUP_ROBOT;
+                log.info(`已被 ${data.op_member_openid} ${event.eventType} 群聊 ${data.group_openid}`);
+            }
+            return;
+        }
+        case AvailableIntentsEventsEnum.GUILDS: {
+            const data = ["GUILD_CREATE", "GUILD_UPDATE"].includes(event.eventType) ?
+                (event.msg as IGuild) :
+                (["CHANNEL_CREATE", "CHANNEL_UPDATE"].includes(event.eventType) ? (event.msg as IChannel) : null);
+            if (!data) return;
+            log.mark(`重新加载频道树中: ${event.eventType} ${data.name}(${data.id})`);
+            return loadGuildTree(data).then(() => {
+                log.mark(`频道树部分加载完毕`);
             }).catch(err => {
-                log.error(`频道树加载失败`, err);
+                log.error(`频道树部分加载失败`, err);
             });
         }
         case "GUILD_MEMBERS": {
+            if (botType != "AronaBot") return;
             import("./plugins/admin").then(module => module.updateEventId(event as IntentMessage.GUILD_MEMBERS)).catch(err => log.error(err));
             if (devEnv) return;
             const msg = (event as IntentMessage.GUILD_MEMBERS).msg;
@@ -91,6 +132,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
         }
 
         case "GUILD_MESSAGE_REACTIONS": {
+            if (botType != "AronaBot") return;
             const msg = (event as IntentMessage.GUILD_MESSAGE_REACTIONS).msg;
             if (global.devEnv && !adminId.includes(msg.user_id)) return;
             await import("./plugins/roleAssign").then(module => module.roleAssign(event as IntentMessage.GUILD_MESSAGE_REACTIONS)).catch(err => {

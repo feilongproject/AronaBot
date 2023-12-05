@@ -2,8 +2,8 @@ import log4js from "log4js";
 import { Browser } from "puppeteer";
 import { PoolConnection } from "mariadb";
 import { RedisClientType } from "@redis/client";
-import { IChannel, IMember, IUser, createOpenAPI, createWebsocket } from "qq-bot-sdk";
-
+import { IChannel, IMember, IUser, createOpenAPI, createWebsocket, IOpenAPI, AvailableIntentsEventsEnum } from "qq-bot-sdk";
+import config from "../../config/config";
 
 declare global {
 
@@ -11,7 +11,7 @@ declare global {
     var adminId: string[];
     var log: log4js.Logger;
     var _path: string;
-    var client: ReturnType<typeof createOpenAPI>;
+    var client: IOpenAPI;
     var ws: ReturnType<typeof createWebsocket>;
     var meId: string;
     var redis: RedisClientType;
@@ -25,6 +25,10 @@ declare global {
     var hotLoadStatus: number;
     var saveGuildsTree: Record<string, SaveGuild>;
     var studentInfo: StudentInfos;
+    var botType: BotTypes;
+    var allowMarkdown: boolean;
+
+    type BotTypes = keyof typeof config.bots;
 
     interface StudentInfos {
         [id: string]: StudentInfo;
@@ -61,12 +65,8 @@ declare global {
 
     namespace IntentMessage {
         interface EventRespose<T> {
-            eventRootType: "GUILD_MESSAGES" | "DIRECT_MESSAGE" | "GUILDS" | "GUILD_MEMBERS" | "FORUMS_EVENT" | "GUILD_MESSAGE_REACTIONS";
-            eventType: "MESSAGE_CREATE" | "MESSAGE_DELETE" |
-            "AT_MESSAGE_CREATE" | "PUBLIC_MESSAGE_DELETE" |
-            "DIRECT_MESSAGE_CREATE" | "DIRECT_MESSAGE_DELETE" |
-            "GUILD_MEMBER_ADD" | "GUILD_MEMBER_UPDATE" | "GUILD_MEMBER_REMOVE" |
-            "MESSAGE_REACTION_ADD" | "MESSAGE_REACTION_REMOVE";
+            eventRootType: AvailableIntentsEventsEnum;
+            eventType: IntentEventType;
             eventId: string;
             msg: T;
         }
@@ -153,20 +153,39 @@ declare global {
         type GROUP_MESSAGE = EventRespose<GROUP_MESSAGE_body>;
         type GROUP_MESSAGE_body = MessageChatCommon & {
             group_id: string;
+            group_openid: string;
         }
 
-        type C2C_MESSAGE = EventRespose<C2C_MESSAGE_body>;
-        type C2C_MESSAGE_body = MessageChatCommon & {
-            attachments: [];
-        }
+        // type C2C_MESSAGE = EventRespose<C2C_MESSAGE_body>;
+        // type C2C_MESSAGE_body = MessageChatCommon & {
+        //     attachments: [];
+        // }
+
+        type CHAT_MESSAGE = EventRespose<CHAT_MESSAGE_body>;
+        type CHAT_MESSAGE_body = MessageChatCommon;
 
         interface MessageChatCommon {
             id: string;
+            attachments: {
+                content_type: string;
+                filename: string;
+                height: number;
+                size: number;
+                url: string;
+                width: number;
+            }[];
             author: {
                 id: string;
+                member_openid: string;
             };
             content: string;
             timestamp: string;
+        }
+
+        interface GROUP_ROBOT {
+            group_openid: string;
+            op_member_openid: string;
+            timestamp: number;
         }
     }
 
@@ -175,7 +194,30 @@ declare global {
         errors: any[];
     }
 
-    export namespace BiliDynamic {
+    const enum IntentEventType {
+        MESSAGE_CREATE = "MESSAGE_CREATE",
+        MESSAGE_DELETE = "MESSAGE_DELETE",
+        AT_MESSAGE_CREATE = "AT_MESSAGE_CREATE",
+        PUBLIC_MESSAGE_DELETE = "PUBLIC_MESSAGE_DELETE",
+        DIRECT_MESSAGE_CREATE = "DIRECT_MESSAGE_CREATE",
+        DIRECT_MESSAGE_DELETE = "DIRECT_MESSAGE_DELETE",
+        GUILD_MEMBER_ADD = "GUILD_MEMBER_ADD",
+        GUILD_MEMBER_UPDATE = "GUILD_MEMBER_UPDATE",
+        GUILD_MEMBER_REMOVE = "GUILD_MEMBER_REMOVE",
+        MESSAGE_REACTION_ADD = "MESSAGE_REACTION_ADD",
+        MESSAGE_REACTION_REMOVE = "MESSAGE_REACTION_REMOVE",
+        GROUP_ADD_ROBOT = "GROUP_ADD_ROBOT",
+        GROUP_DEL_ROBOT = "GROUP_DEL_ROBOT",
+        GROUP_AT_MESSAGE_CREATE = "GROUP_AT_MESSAGE_CREATE",
+        GUILD_CREATE = "GUILD_CREATE",
+        GUILD_UPDATE = "GUILD_UPDATE",
+        GUILD_DELETE = "GUILD_DELETE",
+        CHANNEL_CREATE = "CHANNEL_CREATE",
+        CHANNEL_UPDATE = "CHANNEL_UPDATE",
+        CHANNEL_DELETE = "CHANNEL_DELETE",
+    }
+
+    namespace BiliDynamic {
 
         export interface List {
             code: number;

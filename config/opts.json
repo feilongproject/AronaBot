@@ -1,6 +1,15 @@
 {
     "desc": "命令总览json,按照顺序进行匹配",
     "command": {
+        "help": {
+            "help": {
+                "reg": "^/?(help|menu|帮助|菜单)",
+                "fnc": "help",
+                "type": ["GUILD", "GROUP"],
+                "channelAllows": ["all"],
+                "describe": "获取全局帮助"
+            }
+        },
         "admin": {
             "updateGithubVersion": {
                 "reg": "^/?update$",
@@ -8,26 +17,20 @@
                 "type": ["DIRECT"],
                 "describe": "检查SchaleDB镜像仓库是否更新"
             },
-            "help": {
-                "reg": "^/?help$",
-                "fnc": "help",
-                "type": ["GUILD", "DIRECT"],
-                "channelAllows": ["all"],
-                "describe": "获取帮助"
-            },
             "ping": {
                 "reg": "^/?ping$",
                 "fnc": "ping",
-                "type": ["GUILD", "DIRECT"],
+                "type": ["GUILD", "DIRECT", "GROUP"],
                 "channelAllows": ["all"],
-                "describe": "检测数据库是否正常"
+                "describe": "检测redis数据库是否正常"
             },
             "status": {
                 "reg": "^/?(状态|status)$",
                 "fnc": "status",
-                "type": ["GUILD", "DIRECT"],
+                "type": ["GUILD", "DIRECT", "GROUP"],
                 "channelAllows": ["all"],
-                "describe": "查询bot与服务器状态"
+                "describe": "查询bot与服务器状态",
+                "export": "/状态"
             },
             "hotLoad": {
                 "reg": "^/?热(加载|更新)(-?\\d+)$",
@@ -61,14 +64,16 @@
             "gachaString": {
                 "reg": "^/?(单抽出奇迹|十连大保底)",
                 "fnc": "gachaString",
-                "type": ["GUILD"],
-                "describe": "纯字符抽卡"
+                "type": ["GUILD", "GROUP"],
+                "describe": "以文本形式展示抽卡结果",
+                "export": "/单抽出奇迹 \n/十连大保底"
             },
             "gachaImage": {
                 "reg": "^/?十连保底图",
                 "fnc": "gachaImage",
-                "type": ["GUILD"],
-                "describe": "十连保底图"
+                "type": ["GUILD", "GROUP"],
+                "describe": "以图片形式展示抽卡结果",
+                "export": "/十连保底图"
             },
             "reloadGachaData": {
                 "reg": "^抽卡数据(网络|本地)重加载$",
@@ -81,8 +86,9 @@
             "generateALA": {
                 "reg": "^/?奥利奥",
                 "fnc": "generateALA",
-                "type": ["GUILD"],
-                "describe": "生成奥利奥"
+                "type": ["GUILD", "GROUP"],
+                "describe": "一起合成爱丽丝吧！",
+                "export": "/奥利奥 [合成配方]"
             }
         },
         "sign": {
@@ -90,7 +96,8 @@
                 "reg": "^/?签到$",
                 "fnc": "sign",
                 "type": ["GUILD"],
-                "describe": "进行一次签到"
+                "describe": "进行一次签到（现已暂停维护）",
+                "export": "/签到"
             }
         },
         "sponsor": {
@@ -106,29 +113,33 @@
                 "reg": "^/?总力战一图流",
                 "fnc": "handbookMain",
                 "channelAllows": ["all"],
-                "type": ["GUILD", "DIRECT"],
-                "describe": "总力战一图流"
+                "type": ["GUILD", "DIRECT", "GROUP"],
+                "describe": "总力战一图流",
+                "export": "/总力战一图流 [国际服|日服]"
             },
             "globalClairvoyance": {
                 "reg": "^/?千里眼$",
                 "fnc": "handbookMain",
                 "channelAllows": ["all"],
-                "type": ["GUILD", "DIRECT"],
-                "describe": "获取国际服千里眼"
+                "type": ["GUILD", "DIRECT", "GROUP"],
+                "describe": "获取国际服千里眼",
+                "export": "/千里眼"
             },
             "activityStrategy": {
                 "reg": "^/?活动攻略",
                 "fnc": "handbookMain",
                 "channelAllows": ["all"],
-                "type": ["GUILD", "DIRECT"],
-                "describe": "获取当前活动攻略一图流"
+                "type": ["GUILD", "DIRECT", "GROUP"],
+                "describe": "获取当前活动攻略一图流",
+                "export": "/活动攻略 [国际服|日服]"
             },
             "studentEvaluation": {
                 "reg": "^/?(角评|角色评价)",
                 "fnc": "handbookMain",
                 "channelAllows": ["all"],
-                "type": ["GUILD", "DIRECT"],
-                "describe": "获取指定学生的评价"
+                "type": ["GUILD", "DIRECT", "GROUP"],
+                "describe": "获取指定学生的评价",
+                "export": "/角评 [学生名称]"
             },
             "handbookUpdate": {
                 "reg": "^/?hbupdate",
@@ -144,11 +155,12 @@
                 "describe": "进行一个活动攻略的更新"
             },
             "searchHandbook": {
-                "reg": "^/?((查询|搜索)攻略|攻略(查询|搜索))",
+                "reg": "^/?(查询攻略|攻略查询)",
                 "fnc": "searchHandbook",
                 "channelAllows": ["all"],
-                "type": ["GUILD"],
-                "describe": "从diyigemt的API中查询攻略"
+                "type": ["GUILD", "GROUP"],
+                "describe": "从diyigemt的API中查询攻略",
+                "export": "/查询攻略 <攻略名称>"
             }
         },
         "commandSetting": {
@@ -156,8 +168,9 @@
                 "reg": "^/?命令设置",
                 "fnc": "commandSetting",
                 "channelAllows": ["all"],
-                "type": ["GUILD"],
-                "describe": "对使用中的命令进行设置"
+                "type": ["GUILD", "GROUP"],
+                "describe": "对使用中的命令进行设置",
+                "export": "/命令设置 [设置选项]"
             }
         },
         "serverStatus": {
@@ -165,8 +178,9 @@
                 "reg": "^/?服务器状态$",
                 "fnc": "baServerStatus",
                 "channelAllows": ["all"],
-                "type": ["GUILD"],
-                "describe": "查询ba服务器状态"
+                "type": ["GUILD", "GROUP"],
+                "describe": "查询ba服务器状态",
+                "export": "/服务器状态"
             }
         },
         "AvalonSystem": {
@@ -241,16 +255,18 @@
             "todayTarot": {
                 "reg": "^/?塔罗牌$",
                 "fnc": "todayTarot",
-                "type": ["GUILD"],
-                "describe": "抽取今日塔罗牌"
+                "type": ["GUILD", "GROUP"],
+                "describe": "抽取今日塔罗牌",
+                "export": "/塔罗牌"
             }
         },
         "logo": {
             "baLogo": {
                 "reg": "^/?[Bb][Aa][-_]?[Ll][Oo][Gg][Oo]",
                 "fnc": "baLogo",
-                "type": ["GUILD"],
-                "describe": "生成ba特色的logo"
+                "type": ["GUILD", "GROUP"],
+                "describe": "生成ba特色的logo",
+                "export": "/balogo <左文本> <右文本>"
             }
         }
     },

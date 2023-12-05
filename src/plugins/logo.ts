@@ -1,16 +1,17 @@
 import RE2 from "re2";
-import { readFileSync, } from "fs";
+import { btoa } from "js-base64";
+import { readFileSync, existsSync, writeFileSync } from "fs";
 import { contentCensor as AipContentCensorClient } from "baidu-aip-sdk";
 import { createCanvas, Canvas, registerFont, DOMMatrix, loadImage, } from "canvas";
 import { sendToAdmin } from "../libs/common";
-import { IMessageGUILD } from "../libs/IMessageEx";
+import { IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 import config from "../../config/config";
 
 
 registerFont(`${config.fontRoot}/GlowSansSC-Normal-Heavy.otf`, { family: "Glow Sans SC", weight: "Heavy" });
 registerFont(`${config.fontRoot}/RoGSanSrfStd-Bd.otf`, { family: "Ro GSan Serif Std" });
 
-export async function baLogo(msg: IMessageGUILD) {
+export async function baLogo(msg: IMessageGUILD | IMessageGROUP) {
     // log.debug(msg.content);
     const match = RE2("/?[Bb][Aa][-_]?[Ll][Oo][Gg][Oo]\\s+(?P<textL>\\S+)\\s+(?P<textR>\\S+)").match(msg.content);
     if (!match) return msg.sendMsgExRef({
@@ -25,14 +26,14 @@ export async function baLogo(msg: IMessageGUILD) {
     // log.debug(result);
 
     if (!result.data && (!result.conclusion || !result.conclusionType)) return msg.sendMsgExRef({
-        content: `<@${msg.author.id}>敏感词检测失败:\n${JSON.stringify(result)}`
+        content: (msg instanceof IMessageGROUP ? "" : `<@${msg.author.id}>`) + `敏感词检测失败:\n${JSON.stringify(result)}`
     });
     if (result.conclusionType != 1) return msg.sendMsgExRef({
-        content: `<@${adminId[0]}>检测词组违规:\n` + result.data!.map(v => v.msg).join(`\n`),
+        content: (msg instanceof IMessageGROUP ? "" : `<@${adminId[0]}>`) + `检测词组违规:\n` + result.data!.map(v => v.msg).join(`\n`),
     }).then(() => sendToAdmin(
-        `balogo检测到违禁词`
-        + `\n用户: ${msg.author.username} (${msg.author.id})`
-        + `\n子频道: ${msg.channelName} (${msg.channel_id})`
+        `balogo检测到违禁词\n`
+        + (msg instanceof IMessageGROUP ? `用户: ${msg.author.id}` : `用户: ${msg.author.username} (${msg.author.id})`) + "\n"
+        + (msg instanceof IMessageGROUP ? `群聊: ${msg.group_id}` : `子频道: ${msg.channelName} (${msg.channel_id})`)
         + `\n违规原因: ${result.conclusionType} ${result.conclusion}\n`
         + result.data!.map((d, i) =>
             `\nindex: ${i}\n`
@@ -52,10 +53,14 @@ export async function baLogo(msg: IMessageGUILD) {
         ).join("\n")
     ));
 
-    return generate(textL, textR).then(buff => msg.sendMsgEx({
-        content: `<@${msg.author.id}>`,
-        imageFile: buff,
-    }));
+    const fileName = `${btoa(textL)}-${btoa(textR)}.png`;
+    const saveFilePath = `${config.imagesOut}/${fileName}`;
+    if (!existsSync(saveFilePath)) writeFileSync(saveFilePath, await generate(textL, textR), { encoding: "binary" });
+
+    return msg.sendMsgEx({
+        content: msg instanceof IMessageGROUP ? "" : `<@${msg.author.id}>`,
+        imageUrl: `https://ip.arona.schale.top/p/gacha/${fileName}`,
+    });
 }
 
 async function generate(textL: string, textR: string, transparentBg = false) {

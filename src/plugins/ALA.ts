@@ -1,10 +1,10 @@
 import sharp from "sharp";
-import { IMessageGUILD } from "../libs/IMessageEx";
+import { IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 import config from "../../config/config";
 
 const allowLen = 20;
 
-export async function generateALA(msg: IMessageGUILD) {
+export async function generateALA(msg: IMessageGUILD | IMessageGROUP) {
 
     const alaQueue = buildALA(msg.content.replace(/\/?奥利奥/, "").replace(`<@!${meId}>`, "").trim());
     const authLen = Number(await redis.hGet(`pay:ALALimit`, msg.author.id)) || 0;
@@ -14,19 +14,25 @@ export async function generateALA(msg: IMessageGUILD) {
         if (alaQueue.length == 0) return msg.sendMsgExRef({ content: `未找到奥利奥，在本指令后输入"爱丽丝"三个字符中其中任意一个字符即可生成（可重复）` });
         if (alaQueue.length > 100) return msg.sendMsgExRef({ content: `奥利奥过长，内存不足!` });
 
-        return buildImage(alaQueue).then(outPath => {
-            if (outPath) return msg.sendMsgEx({ content: `<@${msg.author.id}>`, imagePath: outPath });
+        try {
+            const fileName = `ala-${new Date().getTime()}.png`;
+            const outFilePath = `${config.imagesOut}/${fileName}`;
+            const ret = await buildImage(outFilePath, alaQueue);
+            if (ret) return msg.sendMsgEx({
+                content: (msg instanceof IMessageGROUP ? "" : `<@${msg.author.id}>`),
+                imageUrl: `https://ip.arona.schale.top/p/gacha/${fileName}`,
+            });
             else return msg.sendMsgExRef({ content: `无法发送图片, 请联系管理员<@${adminId[0]}>处理` });
-        }).catch(err => {
-            return msg.sendMsgExRef({ content: `发送图片异常! <@${adminId[0]}>\n${err.errors.replaceAll(".", ". ")}` });
-        });
-
-    } else {
-        return msg.sendMsgExRef({
-            content: `奥利奥过长(${alaQueue.length}字符),最长可允许长度为${allowLen + authLen}字符` +
-                `\n含${allowLen}字符基础长度${authLen == 0 ? `(赞助可以获得更多长度)` : `+${authLen}字符赞助长度`}`
-        });
+        } catch (err) {
+            return msg.sendMsgExRef({ content: `发送图片异常! <@${adminId[0]}>\n${JSON.stringify(err).replaceAll(".", ",")}` })
+        }
     }
+
+    return msg.sendMsgExRef({
+        content: `奥利奥过长(${alaQueue.length}字符),最长可允许长度为${allowLen + authLen}字符` +
+            `\n含${allowLen}字符基础长度${authLen == 0 ? `(赞助可以获得更多长度)` : `+${authLen}字符赞助长度`}`
+    });
+
 }
 
 function buildALA(content: string) {
@@ -76,8 +82,7 @@ function buildALA(content: string) {
     return alaQueue;
 }
 
-async function buildImage(alaQueue: ("01" | "10" | "02" | "20" | "12" | "21")[]): Promise<string | null> {
-    var tmpOutPath = `${config.imagesOut}/${new Date().getTime()}.png`;
+async function buildImage(tmpOutPath: string, alaQueue: ("01" | "10" | "02" | "20" | "12" | "21")[]): Promise<sharp.OutputInfo | void> {
     var files: { input: string, top: number, left: number, }[] = [];
     for (const [iv, id] of alaQueue.entries()) {
         files.push({
@@ -97,10 +102,5 @@ async function buildImage(alaQueue: ("01" | "10" | "02" | "20" | "12" | "21")[])
     }).composite(files)
         .png({ compressionLevel: 6, quality: 5, })
         .toFile(tmpOutPath)
-        .then(() => {
-            return tmpOutPath;
-        }).catch(err => {
-            log.error(err);
-            return null;
-        });
+        .catch(err => log.error(err));
 }

@@ -1,7 +1,7 @@
 import fs from "fs";
 import fetch from "node-fetch";
 import FormData from 'form-data';
-import { IMember, IMessage, IUser, MessageAttachment, MessageReference } from "qq-bot-sdk";
+import { GMessageRec, IMember, IMessage, IUser, MessageAttachment, MessageReference } from "qq-bot-sdk";
 import { callWithRetry, pushToDB } from "./common";
 import config from '../../config/config';
 
@@ -71,10 +71,9 @@ class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
     }
 
     async sendMarkdown(options: Partial<SendOption.Channel> & SendOption.Markdown) {
-        global.botStatus.msgSendNum++;
         options.eventId = await redis.get(`lastestEventId:${options.guildId || this.guild_id}`) || undefined;
         if (devEnv) log.debug(options.eventId);
-        if (options.eventId) return callWithRetry(this._sendMarkdown, [options]).catch(err => this.sendMsgEx(options));
+        if (options.eventId && allowMarkdown) return callWithRetry(this._sendMarkdown, [options]).catch(err => this.sendMsgEx(options));
         else return this.sendMsgEx(options);
     }
 
@@ -83,7 +82,7 @@ class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bot ${config.initConfig.appID}.${config.initConfig.token}`,
+                "Authorization": `Bot ${config.bots[botType].appID}.${config.bots[botType].token}`,
             },
             body: JSON.stringify({
                 event_id: options.eventId,
@@ -127,7 +126,7 @@ class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
         return this.sendMsgEx({
             content,
             sendType: MessageType.DIRECT,
-            guildId: await redis.hGet(`directUid->Gid`, adminId[0]),
+            guildId: await redis.hGet(`directUid->Gid:${meId}`, adminId[0]),
         });
     }
 
@@ -144,7 +143,7 @@ class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
             method: "POST",
             headers: {
                 "Content-Type": formdata.getHeaders()["content-type"],
-                "Authorization": `Bot ${config.initConfig.appID}.${config.initConfig.token}`,
+                "Authorization": `Bot ${config.bots[botType].appID}.${config.bots[botType].token}`,
             }, body: formdata
         }).then(res => res.json()).then(body => {
             if (body.code) throw body;
@@ -195,42 +194,148 @@ export class IMessageDIRECT extends IMessageChannelCommon implements IntentMessa
 
 class IMessageChatCommon implements IntentMessage.MessageChatCommon {
     id: string;
-    author: { id: string; };
+    author: { id: string; member_openid: string; };
     content: string;
     timestamp: string;
+    messageType: MessageType;
+    attachments: { content_type: string; filename: string; height: number; size: number; url: string; width: number; }[];
 
     constructor(msg: IntentMessage.MessageChatCommon, meaasgeType: MessageType) {
         this.id = msg.id;
         this.author = msg.author;
         this.content = msg.content;
         this.timestamp = msg.timestamp;
+        this.messageType = meaasgeType;
+        this.attachments = msg.attachments;
     }
 }
 
 export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.GROUP_MESSAGE_body {
     group_id: string;
+    group_openid: string;
+    seq: number;
 
     constructor(msg: IntentMessage.GROUP_MESSAGE_body, register = true) {
         super(msg, MessageType.GROUP);
         this.group_id = msg.group_id;
+        this.group_openid = msg.group_openid;
+        this.seq = Number((Math.random() * 10000).toFixed());
 
         if (!register) return;
-        log.info(`群聊`);
+        log.info(`群聊[${this.group_id}](${this.author.id}): ${this.content}`);
     }
+
+    async sendMsgExRef(option: Partial<SendOption.Chat>) {
+        // option.ref = true;
+        return this.sendMsgEx(option);
+    }
+
+    async sendMsgEx(option: Partial<SendOption.Chat>) {
+        global.botStatus.msgSendNum++;
+        option.msgId = option.msgId || this.id || undefined;
+        option.groupId = option.groupId || this.group_id;
+        option.msgType = option.msgType || (option.ark ? 3 : 0);
+        // option.guildId = option.guildId || this.guild_id;
+        // option.channelId = option.channelId || this.channel_id;
+        // option.sendType = option.sendType || this.messageType;
+        const uT = new URL(option.imageUrl || option.fileUrl || "http://0").pathname.split(".").pop() || "";
+        const fileMap = [[], ["png", "jpg", "jpeg"], ["mp4"], ["slik"]];
+        option.fileType = fileMap.findIndex(v => v.find(i => uT.startsWith(i))) as any || undefined;
+        if ((option.fileType as number) == -1) option.fileType = undefined;
+        if (option.fileType || option.fileUrl) option.msgType = 7;
+        return callWithRetry(this._sendMsgEx, [option]) as any;
+    }
+
+    private _sendMsgEx = async (option: Partial<SendOption.Chat>) => {
+        // if (option.imagePath || option.imageFile) return this.sendImage(option as any);
+        const { content, groupId, msgType, msgId } = option;
+        if (!groupId) throw "not has groupId";
+        const fileInfo = msgType == 7 ? await this._sendFile(option) : null;
+        return client.groupApi.postMessage(groupId, {
+            content: content ? ("\n" + content) : "",
+            msg_type: msgType || 0,
+            msg_id: msgId,
+            media: (msgType == 7 && fileInfo) ? {
+                file_info: fileInfo,
+            } : undefined,
+            msg_seq: this.seq++,
+        }).then(res => res.data).then(json => {
+            if (json.msg != "success") throw json;
+            else return json;
+        }).catch(async err => {
+            await this._sendFile(option, true).catch(err => log.error(err));
+            throw err;
+        });
+    }
+
+    async sendFile(option: Partial<SendOption.Chat>, force: boolean = false) {
+        return callWithRetry(this._sendFile, [option, force]);
+    }
+
+    private _sendFile = async (option: Partial<SendOption.Chat>, force: boolean = false): Promise<string> => {
+        const { imageUrl, fileUrl, groupId, fileType } = option;
+        const fUrl = imageUrl || fileUrl;
+        if (!groupId) throw "not has groupId";
+        if (!fUrl) throw "neither imageUrl nor fileUrl";
+        if (!fileType) throw "not has fileType";
+
+        const redisKey = `fileInfo:cache:${fUrl}`;
+        const fileInfo = await redis.get(redisKey);
+        if (fileInfo && !force) return fileInfo;
+        if (fUrl.includes("cdn.arona.schale.top") && !fileInfo) await fetch(fUrl).then(res => res.buffer()).then(buff => { });
+        log.info(`资源 ${fUrl} 获取中, 存在: ${!!fileInfo}`);
+        const fileRes = await client.groupApi.postFile(groupId, {
+            file_type: fileType,
+            url: fUrl,
+            srv_send_msg: false,
+        }).then(res => res.data);
+        await redis.setEx(redisKey, 60 * 60 * 24 * 5, fileRes.file_info);
+        return fileRes.file_info;
+    }
+
+    async sendMarkdown(options: Partial<SendOption.Channel> & SendOption.Markdown): Promise<RetryResult<GMessageRec>> {
+        return this.sendMsgEx(options);
+    }
+
+    // private _sendMarkdown = async (options: Partial<SendOption.Channel> & SendOption.Markdown) => {
+    //     return fetch(`https://api.sgroup.qq.com/channels/${options.channelId || this.channel_id}/messages`, {
+    //         method: "POST",
+    //         headers: {
+    //             "Content-Type": "application/json",
+    //             "Authorization": `Bot ${config.initConfig.appID}.${config.initConfig.token}`,
+    //         },
+    //         body: JSON.stringify({
+    //             event_id: options.eventId,
+    //             markdown: {
+    //                 custom_template_id: options.templateId,
+    //                 params: Object.entries(options.params).map(([key, value]) => {
+    //                     return { key, values: [value] };
+    //                 }),
+    //             },
+    //             keyboard: { id: options.keyboardId },
+    //         }),
+    //     }).then(async res => {
+    //         const json = await res.json();
+    //         if (json.code) {
+    //             log.error(res.headers.get("x-tps-trace-id"));
+    //             throw json;
+    //         } else return json;
+    //     });
+    // }
 
 }
 
-export class IMessageC2C extends IMessageChatCommon implements IntentMessage.C2C_MESSAGE_body {
-    attachments;
+// export class IMessageC2C extends IMessageChatCommon implements IntentMessage.C2C_MESSAGE_body {
+//     attachments;
 
-    constructor(msg: IntentMessage.C2C_MESSAGE_body, register = true) {
-        super(msg, MessageType.FRIEND);
-        this.attachments = msg.attachments;
+//     constructor(msg: IntentMessage.C2C_MESSAGE_body, register = true) {
+//         super(msg, MessageType.FRIEND);
+//         this.attachments = msg.attachments;
 
-        if (!register) return;
-        log.info(`私聊`);
-    }
-}
+//         if (!register) return;
+//         log.info(`私聊`);
+//     }
+// }
 
 
 namespace SendOption {
@@ -254,8 +359,29 @@ namespace SendOption {
         keyboardId?: string;
     }
 
-    export interface Chat {
+    export interface Ark {
+        template_id: number;
+        kv: {
+            key: string;
+            value: string;
+        }[];
+    }
 
+    export interface Chat {
+        // ref?: boolean;
+        msgType: 0 | 1 | 2 | 3 | 4 | 7;// 0: 文本 1: 图文混排 2: markdown 3: ark 4: embed 7: media
+        imageFile?: Buffer;
+        imagePath?: string;
+        imageUrl?: string;
+        fileUrl?: string;
+        fileType?: 1 | 2 | 3; // 1 图片，2 视频，3 语音，4 文件（暂不开放）
+        content?: string;
+        // sendType: MessageType;
+        msgId?: string;
+        eventId?: string;
+        groupId: string;
+        markdown: Markdown;
+        ark: Ark;
     }
 }
 

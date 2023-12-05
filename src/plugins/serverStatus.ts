@@ -1,24 +1,21 @@
 import fetch from "node-fetch";
 import format from "date-format";
 import { readFileSync } from "fs";
-import { IMessageGUILD } from "../libs/IMessageEx";
+import { IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 
 
-export async function baServerStatus(msg: IMessageGUILD) {
+export async function baServerStatus(msg: IMessageGUILD | IMessageGROUP) {
 
     const jpStatus = fetch("https://d3656gtd9j62z1.cloudfront.net/prod/index.json").then(res => res.json()); // prod-noticeindex.bluearchiveyostar.com
     const globalStatus = fetch("https://d13o75oynjs6mz.cloudfront.net/sdk/enterToy.nx", { // https://m-api.nexon.com/sdk/enterToy.nx
         method: "POST",
         headers: {
-            npparams: readFileSync(`${_path}/data/npparams`).toString(),
-            acceptLanguage: "zh_TW",
+            // npparams: readFileSync(`${_path}/data/npparams`).toString(),
+            // acceptLanguage: "zh_TW",
             "X-Forwarded-For": "8.8.8.8",
         },
         body: readFileSync(`${_path}/data/getPromotion.nx`),
-    }).then(res => res.json()).catch(err => {
-        log.error(err);
-        return { err };
-    });
+    }).then(res => res.json());
 
     return Promise.all([jpStatus, globalStatus]).then(([jpStatus, globalStatus]: [ServerStatusJP, ServerStatusGlobal]) => {
         // log.debug(json.Maintenance.StartDate)
@@ -40,6 +37,9 @@ export async function baServerStatus(msg: IMessageGUILD) {
             "国际服一切正常, 暂无官方维护通知(具体以游戏内提示为准)";
 
         return msg.sendMsgEx({ content: jpContent + "\n\n" + globalContent, });
+    }).catch(err => {
+        log.error(err);
+        return msg.sendMsgExRef({ content: `获取服务器状态时出错，请稍后重试` });
     });
 }
 

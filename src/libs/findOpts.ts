@@ -1,6 +1,6 @@
-import { IMessageGUILD, IMessageDIRECT, MessageType } from "./IMessageEx";
+import { IMessageGUILD, IMessageDIRECT, IMessageGROUP, MessageType } from "./IMessageEx";
 
-export async function findOpts(msg: IMessageGUILD | IMessageDIRECT): Promise<{ path: string; fnc: string; data?: string } | string | null> {
+export async function findOpts(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP): Promise<{ path: string; fnc: string; keyChild: string; data?: string } | string | null> {
     if (!msg.content) return null;
 
     const configOpt = await import("../../config/opts.json");
@@ -30,11 +30,18 @@ export async function findOpts(msg: IMessageGUILD | IMessageDIRECT): Promise<{ p
             // if (devEnv) allowKeys.push("dev");
             if (!opt.type.includes(msg.messageType)) continue;
             if (!RegExp(opt.reg).test(msg.content.replace(/<@!\d*>/g, "").trim())) continue;
-            const channelAllow = () => {
-                for (const allowChannelKey of allowChannels) for (const channel of channelAllows[allowChannelKey]) if (channel.id == msg.channel_id) return true;
+
+            if (msg instanceof IMessageGROUP) {
+                return { path: keyFather, keyChild, ...opt };
+            }
+
+            const channelAllow: () => boolean = () => {
+                for (const allowChannelKey of allowChannels) for (const channel of channelAllows[allowChannelKey])
+                    if (channel.id == msg.channel_id) return true;
+                return false;
             }
             if (devEnv || msg.guild_id == "5237615478283154023" || msg.messageType == MessageType.DIRECT || allowChannels[0] == "all" || channelAllow()) {
-                return { path: keyFather, ...opt };
+                return { path: keyFather, keyChild, ...opt };
             }
         }
 

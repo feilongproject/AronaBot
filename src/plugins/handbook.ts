@@ -4,7 +4,7 @@ import fetch from "node-fetch";
 import format from "date-format";
 import * as cheerio from "cheerio";
 import imageSize from "image-size";
-import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
+import { IMessageDIRECT, IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 import { findStudentInfo, settingUserConfig } from "../libs/common";
 import config from "../../config/config";
 
@@ -16,7 +16,7 @@ const updateTimeMessage = `图片更新时间：`;
 const serverMap: Record<string, string> = { jp: "日服", global: "国际服", all: "" };
 
 
-export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT) {
+export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP) {
     const hbMatched = await matchHandbook(msg.content.replaceAll(RegExp(`<@!?${meId}>`, "g"), "").trim(), msg.author.id).catch(err => JSON.stringify(err));
     // log.debug(msg.content, hbMatched);
     if (!hbMatched) return msg.sendMsgEx({ content: `未找到对应攻略数据` });
@@ -24,7 +24,7 @@ export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT) {
     const lastestImage = await getLastestImage(hbMatched.name, hbMatched.type);
     const filePath = `${config.handbookRoot}/${hbMatched.name}/${hbMatched.type}.png`;
 
-    const at_user = `<@${msg.author.id}> \u200b \u200b == ${serverMap[hbMatched.type] ?? hbMatched.nameDesc ?? hbMatched.type}${hbMatched.desc} == ${hbMatched.notChange ? noSetServerMessage : ""}`;
+    const at_user = (msg instanceof IMessageGROUP ? `` : `<@${msg.author.id}> `) + `\u200b \u200b == ${serverMap[hbMatched.type] ?? hbMatched.nameDesc ?? hbMatched.type}${hbMatched.desc} == ${hbMatched.notChange ? noSetServerMessage : ""}`;
     return msg.sendMarkdown({
         templateId: "102024160_1694664174",
         params: {
@@ -50,7 +50,9 @@ export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT) {
         // fallback 部分
     }).catch(err => {
         log.error(err);
-        return msg.sendMsgEx({ content: getErrorMessage + JSON.stringify(err).replaceAll(".", ",") });
+        return msg.sendMsgEx({
+            content: getErrorMessage + (err.errors.length ? (err.errors as string[]).join("\n") : JSON.stringify(err)).replaceAll(".", ",")
+        });
     });
 
 }
@@ -80,9 +82,9 @@ async function getLastestImage(name: string, type = "all"): Promise<HandbookInfo
     return {
         height: size.height || 400,
         width: size.width || 400,
-        info: imageInfo,
+        info: imageInfo || "",
         infoUrl: infoUrl || "",
-        updateTime: updateTimeMessage + updateTime,
+        updateTime: updateTimeMessage + (updateTime || "未知"),
         url: await redis.hGet(`handbook`, `baseUrl`) + `/${name}/${type}.png!HandbookImageCompress?expired=${updateTime}`,
     };
 }
@@ -230,7 +232,7 @@ export async function activityStrategyPush(msg: IMessageGUILD | IMessageDIRECT) 
         method: "GET",
         headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bot ${config.initConfig.appID}.${config.initConfig.token}`
+            "Authorization": `Bot ${config.bots[botType].appID}.${config.bots[botType].token}`
         },
     }).then(res => res.json()).then(json => (json.threads as any[]).find(thread => (thread.thread_info.title as string).startsWith(encode))).catch(err => log.error(err));
     if (isHas) return msg.sendMsgEx({ content: `已查询到存在相同动态` });
@@ -257,7 +259,7 @@ export async function activityStrategyPush(msg: IMessageGUILD | IMessageDIRECT) 
         method: "PUT",
         headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bot ${config.initConfig.appID}.${config.initConfig.token}`
+            "Authorization": `Bot ${config.bots[botType].appID}.${config.bots[botType].token}`
         },
         body: JSON.stringify({ title: postInfo.title, content: postInfo.content, format: 2 }),
     })).then(res => res.text())
@@ -265,7 +267,7 @@ export async function activityStrategyPush(msg: IMessageGUILD | IMessageDIRECT) 
         .catch(err => msg.sendMsgEx({ content: `获取出错\n${err}` }));
 }
 
-export async function searchHandbook(msg: IMessageGUILD) {
+export async function searchHandbook(msg: IMessageGUILD | IMessageGROUP) {
     const matched = new RE2("^/?((查询|搜索)攻略|攻略(查询|搜索))\\s*(?P<searchKey>.+)$").exec(msg.content);
     if (!matched?.groups) return msg.sendMsgExRef({
         content: `请输入要查询的攻略！例：`
@@ -293,7 +295,7 @@ export async function searchHandbook(msg: IMessageGUILD) {
         // fallback 部分
     });
     else if (resultData.data.length > 1) return msg.sendMsgEx({
-        content: `<@${msg.author.id}> 模糊查询结果：\n` +
+        content: `${msg instanceof IMessageGROUP ? `` : `<@${msg.author.id}>`} 模糊查询结果：` +
             resultData.data.map((v, i) => `第${i + 1} 搜索结果: ${v.name}`).join("\n"),
     });
 

@@ -2,7 +2,7 @@ import chokidar from "chokidar";
 import { createPool } from 'mariadb';
 import { createClient } from 'redis';
 import schedule from "node-schedule";
-import { createOpenAPI, createWebsocket } from 'qq-bot-sdk';
+import { IChannel, IGuild, createOpenAPI, createWebsocket } from "qq-bot-sdk";
 import _log from './libs/logger';
 import { reloadStudentInfo, sendToAdmin } from './libs/common';
 import config from '../config/config';
@@ -11,7 +11,7 @@ export async function init() {
 
     console.log(`机器人准备运行，正在初始化`);
 
-    global.adminId = ["7681074728704576201", "15874984758683127001"];
+    global.adminId = ["7681074728704576201", "15874984758683127001", "2975E2CA5AE779F1899A0AED2D4FA9FD"];
     global.log = _log;
     global._path = process.cwd();
     global.botStatus = {
@@ -25,6 +25,10 @@ export async function init() {
         global.devEnv = true;
         log.mark("当前环境处于开发环境，请注意！");
     } else global.devEnv = false;
+
+    global.botType = Object.keys(config.bots).find(v => process.argv.includes(v)) as BotTypes;
+    if (!botType) return log.error(`未知配置！`);
+    global.allowMarkdown = config.bots[botType].allowMarkdown;
 
     log.info(`初始化: 正在创建插件热加载监听`);
     chokidar.watch(`${global._path}/src/`,).on("change", async (filepath, stats) => {
@@ -61,7 +65,10 @@ export async function init() {
         process.exit();
     });
 
-    global.mariadb = await createPool(config.mariadb).getConnection().then(conn => {
+    global.mariadb = await createPool({
+        ...config.mariadb,
+        database: botType,
+    }).getConnection().then(conn => {
         log.info(`初始化: mariadb 数据库连接成功`);
         return conn;
     }).catch(err => {
@@ -70,8 +77,8 @@ export async function init() {
     });
 
     log.info(`初始化: 正在创建 client 与 ws`);
-    global.client = createOpenAPI(config.initConfig);
-    global.ws = createWebsocket(config.initConfig as any);
+    global.client = createOpenAPI(config.bots[botType]);
+    global.ws = createWebsocket(config.bots[botType]);
 
     log.info(`初始化: 正在创建频道树`);
     await loadGuildTree(true);
@@ -98,23 +105,42 @@ export async function init() {
 
 }
 
-export async function loadGuildTree(init?: boolean) {
+export async function loadGuildTree(init?: boolean): Promise<any>;
+export async function loadGuildTree(init: IChannel | IGuild): Promise<any>;
+export async function loadGuildTree(init?: boolean | IChannel | IGuild): Promise<any> {
     if (!global.saveGuildsTree) global.saveGuildsTree = {};
 
-    const guildData = await client.meApi.meGuilds().catch(err => log.error(err));
-    if (!guildData) return;
-    for (const guild of guildData.data) {
-        if (init) log.mark(`${guild.name}(${guild.id})`);
-        const guildInfo: SaveGuild = { ...guild, channels: {} };
-
-        const channelData = await client.channelApi.channels(guild.id).catch(err => log.error(err));
-        if (!channelData) continue;
-        for (const channel of channelData.data) {
-            if (init) log.mark(`${guild.name}(${guild.id})-${channel.name}(${channel.id})-father:${channel.parent_id}`);
-            guildInfo.channels[channel.id] = { ...channel };
+    if (typeof init == "object") {
+        // TODO: 当首次加入时, 不存在 saveGuildsTree[init.id] 需要单独获取
+        if ("member_count" in init) {
+            if (global.saveGuildsTree[init.id]) return saveGuildsTree[init.id] = { ...init, channels: saveGuildsTree[init.id].channels };
+            const guildInfo = await getGuildInfo(init);
+            if (!guildInfo) return log.error(`频道 ${init.name}(${init.id}) 信息获取失败`);
+            return saveGuildsTree[init.id] = guildInfo;
         }
+        if (("position" in init) && saveGuildsTree[init.guild_id]) saveGuildsTree[init.guild_id].channels[init.id] = init;
+        return;
+    };
+
+    const guildData = await client.meApi.meGuilds().then(res => res.data).catch(err => log.error(err));
+    if (!guildData) return;
+    for (const guild of guildData) {
+        if (init === true) log.mark(`${guild.name}(${guild.id})`);
+        const guildInfo = await getGuildInfo(guild);
+        if (!guildInfo) continue;
         global.saveGuildsTree[guild.id] = guildInfo;
     }
+}
+
+async function getGuildInfo(gInfo: IGuild): Promise<SaveGuild> {
+    const guildInfo: SaveGuild = { ...gInfo, channels: {} };
+    const channelData = await client.channelApi.channels(gInfo.id).then(res => res.data).catch(err => log.error(err));
+    if (!channelData) return guildInfo;
+    for (const channel of channelData) {
+        // if (init) log.mark(`${guild.name}(${guild.id})-${channel.name}(${channel.id})-father:${channel.parent_id}`);
+        guildInfo.channels[channel.id] = { ...channel };
+    }
+    return guildInfo;
 }
 
 Date.prototype.toDBString = function () {
@@ -128,4 +154,6 @@ Date.prototype.toDBString = function () {
             this.getMinutes().toString().padStart(2, "0"),
             this.getSeconds().toString().padStart(2, "0"),
         ].join(":") + "+08:00";
-}
+};
+(global as any).btoa = null;
+(global as any).atob = null;

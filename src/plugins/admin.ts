@@ -3,10 +3,12 @@ import qr from "qr-image";
 import Excel from "exceljs";
 import xlsx from 'node-xlsx';
 import fetch from "node-fetch";
+import format from "date-format";
 import * as cheerio from "cheerio";
+import { IUser } from "qq-bot-sdk";
 import child_process from "child_process";
-import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 import { reloadStudentInfo, sendToAdmin, timeConver } from "../libs/common";
+import { IMessageDIRECT, IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 
 
 export async function updateEventId(event?: IntentMessage.GUILD_MEMBERS) {
@@ -63,50 +65,7 @@ export async function updateGithubVersion(msg?: IMessageDIRECT) {
 
 }
 
-export async function help(msg: IMessageGUILD | IMessageDIRECT) {
-    if (!adminId.includes(msg.author.id)) return;
-
-    const optss: {
-        [fileName: string]: {
-            [optName: string]: {
-                reg: string;
-                fnc: string;
-                type: string[];
-                describe: string;
-                channelAllows?: string[];
-            }
-        }
-    } = (await import("../../config/opts.json")).default.command;
-
-    const sendStr: string[] = ["当前所有命令:"];
-    for (const optsName in optss) {
-        const opts = optss[optsName];
-        sendStr.push(`${optsName}`);
-        for (const optName in opts) {
-            const opt = opts[optName];
-            sendStr.push(
-                `╠ ${opt.fnc} [${opt.type}]`,
-                // `- ┣ reg:  ${opt.reg}`,
-                `- ┗ desc: ${opt.describe}`,
-            );
-        }
-        sendStr.push("");
-    }
-    sendStr.push(
-        `常用:`,
-        `碧蓝档案(7487571598174764531)`,
-        `🕹ba攻略分享贴(7389666)`,
-        `BA彩奈测试频道(9919414431536104110)`,
-        `测试频道1(7519512)`,
-        "测试帖子频道(14432713)",
-    );
-
-    return msg.sendMsgEx({
-        content: sendStr.join("\n"),
-    });
-}
-
-export async function status(msg: IMessageDIRECT) {
+export async function status(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP) {
     if (!adminId.includes(msg.author.id)) return;
     const content = `------状态------` +
         `\n系统版本：${child_process.execSync("lsb_release -d").toString().split(/(\t|\n)/)[2]}` +
@@ -117,8 +76,8 @@ export async function status(msg: IMessageDIRECT) {
         `\n内存使用：${(process.memoryUsage().rss / 1024 / 1024).toFixed(2)}MB` +
         `\n系统内存：${(os.freemem() / 1024 / 1024).toFixed()}MB/${(os.totalmem() / 1024 / 1024).toFixed()}MB (free/total)` +
         `\n系统已开机：${timeConver(os.uptime() * 1000)}`;
-    log.debug(`\n` + content);
-    return msg.sendMsgEx({ content });
+    if (devEnv) log.debug(`\n` + content);
+    return msg.sendMsgEx({ content: `\n` + content });
 }
 
 export async function ping(msg: IMessageGUILD | IMessageDIRECT) {
@@ -154,7 +113,7 @@ export async function directToAdmin(msg: IMessageDIRECT) {
             `\n用户id：${msg.author.id}` +
             `\n源频道：${msg.src_guild_id}` +
             `\n内容：${msg.content}`,
-        guildId: await global.redis.hGet(`directUid->Gid`, adminId[0]),
+        guildId: await global.redis.hGet(`directUid->Gid:${meId}`, adminId[0]),
     }).then(res => {
         if (res?.result) return redis.hSet(`directMid->Gid`, res.result.id, msg.guild_id);
     });
