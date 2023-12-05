@@ -6,11 +6,14 @@ import { IMessageDIRECT, IMessageGUILD } from "./libs/IMessageEx";
 async function execute(msg: IMessageDIRECT | IMessageGUILD) {
     try {
         global.redis.set("lastestMsgId", msg.id, { EX: 4 * 60 });
+        if (adminId.includes(msg.author.id) && !devEnv && (await redis.get("devEnv"))) return;
+
         const opt = await findOpts(msg);
         if (!opt) return;
-
-        if (adminId.includes(msg.author.id) && !devEnv && (await redis.get("devEnv"))) return;
         if (typeof opt == "string") return msg.sendMsgExRef({ content: opt });
+        if (await redis.sIsMember(`ban:opt:guild`, `${opt.path}:${opt.keyChild}:${msg.guild_id}`))
+            return msg.sendMsgExRef({ content: `命令 ${opt.path} ${opt.keyChild} 在该频道未启用` });
+
         if (global.devEnv) log.debug(`${_path}/src/plugins/${opt.path}:${opt.fnc}`);
 
         const plugin = await import(`./plugins/${opt.path}.ts`);
