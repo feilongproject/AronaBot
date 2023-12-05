@@ -6,12 +6,13 @@ import { IMessageGUILD } from "../libs/IMessageEx";
 
 export async function baServerStatus(msg: IMessageGUILD) {
 
-    const jpStatus = fetch("https://prod-noticeindex.bluearchiveyostar.com/prod/index.json").then(res => res.json());
-    const globalStatus = fetch("https://p.prpr.cf/sdk/enterToy.nx", { //https://m-api.nexon.com/sdk/enterToy.nx
+    const jpStatus = fetch("https://d3656gtd9j62z1.cloudfront.net/prod/index.json").then(res => res.json()); // prod-noticeindex.bluearchiveyostar.com
+    const globalStatus = fetch("https://d13o75oynjs6mz.cloudfront.net/sdk/enterToy.nx", { // https://m-api.nexon.com/sdk/enterToy.nx
         method: "POST",
         headers: {
             npparams: readFileSync(`${_path}/data/npparams`).toString(),
             acceptLanguage: "zh_TW",
+            "X-Forwarded-For": "8.8.8.8",
         },
         body: readFileSync(`${_path}/data/getPromotion.nx`),
     }).then(res => res.json()).catch(err => {
