@@ -283,7 +283,7 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
         const fileInfo = await redis.get(redisKey);
         if (fileInfo && !force) return fileInfo;
         if (fUrl.includes("cdn.arona.schale.top") && !fileInfo) await fetch(fUrl).then(res => res.buffer()).then(buff => { });
-        log.info(`资源 ${fUrl} 获取中, 存在: ${!!fileInfo}`);
+        if (!new URL(fUrl).pathname.startsWith("/p/gacha/")) log.mark(`资源 ${fUrl} 获取中, 存在: ${!!fileInfo}`);
         const fileRes = await client.groupApi.postFile(groupId, {
             file_type: fileType,
             url: fUrl,
