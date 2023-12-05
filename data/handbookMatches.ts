@@ -1,4 +1,5 @@
-import { findStudentInfo } from "../src/libs/common";
+import fs from "fs";
+import { findStudentInfo, sendToAdmin } from "../src/libs/common";
 
 
 export const match = {
@@ -38,10 +39,17 @@ export const adapter: Record<string, (content: string, type?: "GET") => ReturnTy
     studentEvaluation,
 }
 
-function studentEvaluation(content: string, type?: "GET"): { id: string; desc?: string; } {
+async function studentEvaluation(content: string, type?: "GET"): Promise<{ id: string; desc?: string | undefined; }> {
     const studentName = content.replace(/\/?(角评|角色评价)/, "").trim();
     if (!studentName || studentName == "all") return { id: "all" };
     const findedInfo = findStudentInfo(studentName);
-    if (!findedInfo) throw `未找到学生『${studentName}』数据`;
-    return { id: findedInfo.pathName, desc: findedInfo.name[0] };
+    if (findedInfo) return { id: findedInfo.pathName, desc: findedInfo.name[0] };
+
+    await sendToAdmin(`未找到学生『${studentName}』数据`).catch(err => log.error("handbookMatches.studentEvaluation", err));
+    const notNameList: string[] = JSON.parse(fs.readFileSync("/root/RemoteDir/qbot/AronaBot/data/studentNameAlias.json").toString());
+    notNameList.includes(studentName) ? "待整理数据库已存在该别名" : "待整理数据库未存在，已推送";
+    if (!notNameList.includes(studentName)) notNameList.push(studentName);
+    fs.writeFileSync("/root/RemoteDir/qbot/AronaBot/data/studentNameAlias.json", JSON.stringify(notNameList));
+    throw `未找到学生『${studentName}』数据`;
+
 }
