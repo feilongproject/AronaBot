@@ -15,7 +15,7 @@ export async function updateEventId(event?: IntentMessage.GUILD_MEMBERS) {
     const opUserId = "15874984758683127001";
     if (devEnv) log.debug(event?.eventId);
     if (event?.msg.user.id == opUserId) {
-        return await redis.setEx(`lastestEventId:${event.msg.guild_id}`, 60 * 4, event.eventId,);
+        return redis.setEx(`lastestEventId:${event.msg.guild_id}`, 60 * 4, event.eventId,);
     }
     if (event) return;
 
@@ -26,7 +26,7 @@ export async function updateEventId(event?: IntentMessage.GUILD_MEMBERS) {
 
         await client.memberApi.memberAddRole(guildId, "5", opUserId, channel.id).catch(err => {
             log.error(err);
-            sendToAdmin(JSON.stringify(err).replaceAll(".", "。")).catch(err => log.error(err));
+            return sendToAdmin(JSON.stringify(err).replaceAll(".", "。")).catch(err => log.error(err));
         });
     }
 }
@@ -58,7 +58,7 @@ export async function updateGithubVersion(msg?: IMessageDIRECT) {
         // log.debug("ahead:", reg[2], "behind:", reg[5], reg[6]);
     }).catch(err => {
         log.error(err);
-        sendToAdmin("updateGithubVersion\n" + JSON.stringify(err).replaceAll(".", "。"));
+        return sendToAdmin("updateGithubVersion\n" + JSON.stringify(err).replaceAll(".", "。"));
     }).catch(err => {
         log.error(err);
     });
