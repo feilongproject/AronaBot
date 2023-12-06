@@ -91,7 +91,7 @@ async function getLastestImage(name: string, type = "all"): Promise<HandbookInfo
 
 export async function handbookUpdate(msg: IMessageGUILD) {
     if (!adminId.includes(msg.author.id)) return;
-    const matched = new RE2("^/?hbupdate(?P<imageId>\\d+)?\\s+(?P<name>\\S+)\\s+(?P<type>\\S+)\\s+(?P<url>https?://\\S+)\\s?(?P<desc>.+)?").exec(msg.content);
+    const matched = new RE2("^/?hbupdate(?P<imageId>\\d+)?\\s+(?P<name>\\S+)\\s+(?P<type>\\S+)\\s+(?P<url>(https?://)?\\S+)\\s?(?P<desc>.+)?").exec(msg.content);
     // log.debug(matched?.groups);
     if (!matched || !matched.groups) return msg.sendMsgExRef({
         content: `命令错误，命令格式：` +
@@ -161,7 +161,7 @@ export async function handbookUpdate(msg: IMessageGUILD) {
     var imageUrl = "";
     if (/(arona\.schale\.top\/turn)|(t\.bilibili\.com\/(\d+))/.test(url)) {
         try {
-            imageUrl = await fetch(url).then(res => {
+            imageUrl = await fetch(url.startsWith("https://") ? url : "https://" + url).then(res => {
                 // log.debug(res.url);
                 const matchDynamic = /https:\/\/t.bilibili.com\/(\d+)/.exec(res.url);
                 if (matchDynamic) return fetch(`https://api.bilibili.com/x/polymer/web-dynamic/v1/detail?id=${matchDynamic[1]}`, {
