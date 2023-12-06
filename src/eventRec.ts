@@ -12,11 +12,11 @@ async function executeChannel(msg: IMessageDIRECT | IMessageGUILD) {
         const opt = await findOpts(msg);
         if (!opt) return;
         if (typeof opt == "string") return msg.sendMsgExRef({ content: opt });
+        if (await isBan(msg)) return;
         if (await redis.sIsMember(`ban:opt:guild`, `${opt.path}:${opt.keyChild}:${msg.guild_id}`))
             return msg.sendMsgExRef({ content: `命令 ${opt.path} ${opt.keyChild} 在该频道未启用` });
 
         if (global.devEnv) log.debug(`${_path}/src/plugins/${opt.path}:${opt.fnc}`);
-
         const plugin = await import(`./plugins/${opt.path}.ts`);
         if (typeof plugin[opt.fnc] != "function") log.error(`not found function ${opt.fnc}() at "${global._path}/src/plugins/${opt.path}.ts"`);
         else await (plugin[opt.fnc] as PluginFnc)(msg).catch(err => log.error(err));
@@ -44,8 +44,8 @@ async function executeChat(msg: IMessageGROUP) {
     try {
         const opt = await findOpts(msg);
         if (!opt) return;
-
         if (adminId.includes(msg.author.id) && !devEnv && (await redis.get("devEnv"))) return;
+        if (await isBan(msg)) return;
         if (typeof opt == "string") return msg.sendMsgEx({ content: opt });
         if (global.devEnv) log.debug(`${_path}/src/plugins/${opt.path}:${opt.fnc}`);
 
@@ -57,6 +57,24 @@ async function executeChat(msg: IMessageGROUP) {
         log.error(err);
     }
 
+}
+
+async function isBan(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP): Promise<boolean> {
+    const t = msg instanceof IMessageGROUP ? "群聊" : (msg instanceof IMessageGUILD ? "频道" : "私聊");
+    const isUserBan = await redis.hGet(`ban:use:user`, msg.author.id);
+    const isGroupBan = msg instanceof IMessageGROUP ? await redis.hGet(`ban:use:group`, msg.group_id) : undefined;
+    const isGuildBan = msg instanceof IMessageGUILD ? await redis.hGet(`ban:use:guild`, msg.guild_id) : undefined;
+
+    if (isUserBan || isGroupBan || isGuildBan) {
+        await msg.sendMsgEx({ content: `因「${isUserBan || isGroupBan || isGuildBan}」行为，禁止使用该命令` }).catch(err => log.error(err));
+        await sendToAdmin(
+            `被封禁${t}检测到使用命令行为\n`
+            + (msg instanceof IMessageGROUP ? `用户: ${msg.author.id}` : `用户: ${msg.author.username} (${msg.author.id})`) + "\n"
+            + (msg instanceof IMessageGROUP ? `群聊: ${msg.group_id}` : `${"channelName" in msg ? `子频道: ${msg.channelName}` : ">私聊<"} (${msg.channel_id})`)
+        ).catch(err => log.error(err));
+        return true;
+    }
+    return false;
 }
 
 type PluginFnc = (msg: IMessageDIRECT | IMessageGUILD | IMessageGROUP, data?: string | number) => Promise<any>

@@ -25,9 +25,19 @@ export async function baLogo(msg: IMessageGUILD | IMessageGROUP) {
     const result = await client.textCensorUserDefined(`${textL}\n${textR}\n${textL}${textR}`);
     // log.debug(result);
 
-    if (!result.data && (!result.conclusion || !result.conclusionType)) return msg.sendMsgExRef({
-        content: (msg instanceof IMessageGROUP ? "" : `<@${msg.author.id}>`) + `敏感词检测失败:\n${JSON.stringify(result)}`
-    });
+    if (!result.data || !result.conclusion || !!result.conclusionType) {
+        log.error(result);
+        return msg.sendMsgExRef({
+            content: (msg instanceof IMessageGROUP ? "" : `<@${msg.author.id}>`) + `敏感词检测失败:\n${JSON.stringify(result)}`
+        });
+    }
+
+    if (result.data.find(v => v.subType == 3)) {
+        if (msg instanceof IMessageGROUP) await redis.hSet(`ban:use:group`, msg.group_id, "群聊中有人存在使用机器人发布政治敏感消息");
+        else await redis.hSet(`ban:use:guild`, msg.guild_id, "频道中存在使用机器人发布政治敏感消息");
+        await redis.hSet(`ban:use:user`, msg.author.id, "历史中存在使用机器人发布政治敏感消息");
+    }
+
     if (result.conclusionType != 1) return msg.sendMsgExRef({
         content: (msg instanceof IMessageGROUP ? "" : `<@${adminId[0]}>`) + `检测词组违规:\n` + result.data!.map(v => v.msg).join(`\n`),
     }).then(() => sendToAdmin(

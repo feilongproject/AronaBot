@@ -1,6 +1,6 @@
 import format from "date-format";
 import { IUser } from "qq-bot-sdk";
-import { IMessageGUILD } from "../libs/IMessageEx";
+import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 import { sendToAdmin, timeConver } from "../libs/common";
 import RE2 from "re2";
 
@@ -94,4 +94,24 @@ export async function mute(msg: IMessageGUILD) {
         });
     }
 
+}
+
+export async function ban(msg: IMessageDIRECT) {
+    const match = RE2("^(?P<isUnBan>un)?ban(?P<isForce>f)?\\s+(?P<banType>group|guild|user)\\s+(?P<banId>\\S+)\\s+(?P<banDesc>\\S+)$").exec(msg.content);
+    if (!match || !match.groups) return msg.sendMsgEx({
+        content: `指令错误, 格式: \n` +
+            `(un)ban (group|guild|user) <id> <原因>`
+    });
+    const { isUnBan, banType, banId, banDesc, isForce } = match.groups;
+
+    const isExist = await redis.hGet(`ban:use:${banType}`, banId);
+    if (!isUnBan && isExist && !isForce) return msg.sendMsgEx({ content: `已存在该封禁, 理由:\n${isExist}` });
+    const result = isUnBan ? await redis.hDel(`ban:use:${banType}`, banId) : await redis.hSet(`ban:use:${banType}`, banId, banDesc);
+
+    return msg.sendMsgEx({
+        content: `已${isUnBan || ""}ban ${result} ${(isForce && isExist) ? "(force)" : ""}`
+            + `\n类型: ${banType}`
+            + `\nid: ${banId}`
+            + `\n理由: ${banDesc}`,
+    });
 }

@@ -58,6 +58,12 @@
                 "channelAllows": ["all"],
                 "type": ["GUILD"],
                 "describe": "管理员对某人禁言"
+            },
+            "ban": {
+                "reg": "^(un)?ban1?",
+                "fnc": "ban",
+                "type": ["DIRECT"],
+                "describe": "对某用户/群聊/频道执行封禁"
             }
         },
         "gacha": {
