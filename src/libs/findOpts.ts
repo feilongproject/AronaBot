@@ -1,6 +1,6 @@
 import { IMessageGUILD, IMessageDIRECT, IMessageGROUP, MessageType } from "./IMessageEx";
 
-export async function findOpts(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP): Promise<{ path: string; fnc: string; keyChild: string; data?: string } | string | null> {
+export async function findOpts(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP): Promise<{ path: string; fnc: string; keyChild: string; data?: string } | null> {
     if (!msg.content) return null;
 
     const configOpt = await import("../../config/opts.json");

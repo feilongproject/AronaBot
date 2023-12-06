@@ -97,7 +97,7 @@ export async function init() {
         await redis.setEx("devEnv", 10, "1");
         schedule.scheduleJob("*/10 * * * * ? ", () => redis.setEx("devEnv", 10, "1"));
         // schedule.scheduleJob("0 */3 * * * ?", () => import("./plugins/admin").then(module => module.updateEventId()));
-    } else {
+    } else if (botType == "AronaBot") {
         schedule.scheduleJob("0 * * * * ? ", () => redis.save().then(v => log.mark(`保存数据库:${v}`)));
         schedule.scheduleJob("0 */3 * * * ?", () => import("./plugins/admin").then(module => module.updateEventId()));
         schedule.scheduleJob("0 */5 * * * ? ", () => import("./plugins/biliDynamic").then(module => module.mainCheck()).catch(err => {

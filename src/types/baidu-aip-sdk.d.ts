@@ -22,9 +22,9 @@ declare module 'baidu-aip-sdk' {
             msg: string;
             conclusion: string;
             hits: Hit[];
-            subType: number;
+            type: 11 | 12 | 13 | 14;
+            subType: 0 | 1 | 2 | 3 | 4 | 5;
             conclusionType: number;
-            type: number;
         }
 
         interface Hit {
