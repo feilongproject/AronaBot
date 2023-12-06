@@ -90,15 +90,15 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
 
     const _studentInfo: StudentInfos = {};
     if (type == "net") {
-        const netStudents: StudentInfoNet[] | void = await fetch("https://raw.gh.schale.top/lonqie/SchaleDB/main/data/cn/students.min.json").then(res => {
-            return res.json();
-        }).then((json: StudentInfoNet[]) => json.map(v => ({ ...v, Name: fixName(v.Name) }))).catch(err => log.error(err));
+        const netStudents: StudentInfoNet[] | void = await fetch("https://raw.gh.schale.top/lonqie/SchaleDB/main/data/cn/students.min.json", {
+            timeout: 10 * 1000,
+        }).then(res => res.json()).then((json: StudentInfoNet[]) => json.map(v => ({ ...v, Name: fixName(v.Name) }))).catch(err => log.error(err));
         if (!netStudents) throw `can't fetch json:students`;
 
         const aliasStudentNameLocal: Record<string, string[]> = JSON.parse(fs.readFileSync(config.aliasStudentNameLocal, { encoding: "utf8" }));
-        const aliasStudentNameWeb: Record<string, string[]> | void = await fetch("https://raw.gh.schale.top/lgc2333/bawiki-data/main/data/stu_alias.json").then(res => {
-            return res.json();
-        }).then((json: Record<string, string[]>) => {
+        const aliasStudentNameWeb: Record<string, string[]> | void = await fetch("https://raw.gh.schale.top/lgc2333/bawiki-data/main/data/stu_alias.json", {
+            timeout: 10 * 1000,
+        }).then(res => res.json()).then((json: Record<string, string[]>) => {
             for (const names in json) json[names] = json[names].map(v => fixName(v));
             return json;
         }).catch(err => log.error(err));
@@ -109,7 +109,7 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
             _studentInfo[d.Id] = {
                 id: d.Id,
                 releaseStatus: d.IsReleased,
-                name: [d.Name],
+                name: [d.Name, String(d.Id), fixName(d.DevName), fixName(d.PathName)],
                 devName,
                 pathName: d.PathName,
                 star: d.StarGrade,
@@ -119,7 +119,10 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
             const asnw = aliasStudentNameWeb[d.Name];
             if (asnw) for (const _nameWeb of asnw)
                 if (!_nameWeb.includes("老婆")) _studentInfo[d.Id].name.push(_nameWeb); // 去除私货
-            if (aliasStudentNameLocal[d.Name]) _studentInfo[d.Id].name.push(...aliasStudentNameLocal[d.Name]); // 增加本地别名
+            for (const _ of _studentInfo[d.Id].name)
+                if (aliasStudentNameLocal[_]) _studentInfo[d.Id].name.push(...aliasStudentNameLocal[_]); // 增加本地别名
+
+            _studentInfo[d.Id].name = _studentInfo[d.Id].name.filter((v, i, arr) => arr.indexOf(v, 0) === i); // 去重
 
             if (!fs.existsSync(`${config.images.characters}/Student_Portrait_${devName}.png`))
                 throw `not found png file in local: Student_Portrait_${devName}`;
