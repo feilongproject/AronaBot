@@ -161,7 +161,7 @@
                 "describe": "进行一个活动攻略的更新"
             },
             "searchHandbook": {
-                "reg": "^/?(查询攻略|攻略查询)",
+                "reg": "^/?((查询|搜索)攻略|攻略(查询|搜索))",
                 "fnc": "searchHandbook",
                 "channelAllows": ["all"],
                 "type": ["GUILD", "GROUP"],

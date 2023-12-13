@@ -71,6 +71,19 @@ declare global {
             msg: T;
         }
 
+        type READY = EventRespose<READY_body>;
+        interface READY_body {
+            version: number;
+            session_id: string;
+            user: {
+                id: string;
+                username: string;
+                bot: boolean;
+                status: number;
+            };
+            shard: [number, number];
+        }
+
         type GUILD_MEMBERS = EventRespose<GUILD_MEMBERS__body>;//测试包括 GUILD_MEMBER_ADD,GUILD_UPDATE,GUILD_DELETE
         type GUILD_MEMBERS__body = {
             guild_id: string;
@@ -195,6 +208,7 @@ declare global {
     }
 
     const enum IntentEventType {
+        READY = 'READY',
         MESSAGE_CREATE = "MESSAGE_CREATE",
         MESSAGE_DELETE = "MESSAGE_DELETE",
         AT_MESSAGE_CREATE = "AT_MESSAGE_CREATE",

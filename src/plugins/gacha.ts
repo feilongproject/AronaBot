@@ -48,18 +48,15 @@ export async function gachaImage(msg: IMessageGUILD | IMessageGROUP) {
         (analyze ? "\n" + [analyze.today_gacha, analyze.total_gacha, analyze.gacha_analyze].join("\n") : "");
 
     return msg.sendMarkdown({
-        templateId: "102024160_1694664174",
-        params: Object.assign({
-            at_user: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)\r`,
+        markdownNameId: "common",
+        params: {
+            desc: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)\r`
+                + (analyze ? `${analyze?.today_gacha}\r${analyze?.total_gacha}\r${analyze?.gacha_analyze}` : ""),
             link1: "\u200b](https://ip.arona.schale.top/turn/",
             img1: `img #1700px #980px](https://ip.arona.schale.top/p/gacha/${imageName}`,
             img2: "img #-1px #1px](  ",
-        }, analyze ? {
-            desc1: `${analyze?.today_gacha}`,
-            desc2: `\r${analyze?.total_gacha}`,
-            desc3: `\r${analyze?.gacha_analyze}`,
-        } : {} as any),
-        keyboardId: "102024160_1692938526",
+        },
+        keyboardNameId: "gacha",
         // markdown 部分
 
         content: sendContent,

@@ -26,18 +26,18 @@ export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessag
 
     const at_user = (msg instanceof IMessageGROUP ? `` : `<@${msg.author.id}> `) + `\u200b \u200b == ${serverMap[hbMatched.type] ?? hbMatched.nameDesc ?? hbMatched.type}${hbMatched.desc} == ${hbMatched.notChange ? noSetServerMessage : ""}`;
     return msg.sendMarkdown({
-        templateId: "102024160_1694664174",
+        markdownNameId: "common",
         params: {
-            at_user,
-            desc1: `\r${needUpdateMessage}\r`,
-            desc2: `攻略制作: 夜猫\r`,
+            desc: at_user
+                + `\r${needUpdateMessage}\r`
+                + `攻略制作: 夜猫\r`,
             ...(lastestImage.info ? { desc3: lastestImage.info + "\r" } : {}),
             link1: `${lastestImage.infoUrl ? "🔗详情点我" : "\u200b"}](${lastestImage.infoUrl || "https://ip.arona.schale.top/turn/"}`,
             img1: `img #${lastestImage.width}px #${lastestImage.height}px](${lastestImage.url}`,
             img1_status: `\r${lastestImage.updateTime}`,
             img2: "img #-1px #1px](  ",
         },
-        keyboardId: "102024160_1694010888",
+        keyboardNameId: "handbook",
         // markdown 部分
 
         content: at_user
@@ -191,7 +191,7 @@ export async function handbookUpdate(msg: IMessageGUILD) {
         content: (`已判断完毕，正在下载`
             + `\nname: ${imageName}`
             + `\ntype: ${imageType}`
-            + `\ndesc: ${imageDesc || "空"}`
+            + `\ndesc: ${imageDesc || ""}`
             + `\nimageTurnUrl: ${imageTurnUrl}`).replaceAll(".", ",")
     });
 
@@ -278,15 +278,16 @@ export async function searchHandbook(msg: IMessageGUILD | IMessageGROUP) {
 
     const imageUrl = `https://arona.cdn.diyigemt.com/image${resultData.data[0].path}?hash=${resultData.data[0].hash}`;
     if (resultData.data.length == 1) return msg.sendMarkdown({
-        templateId: "102024160_1694664174",
+        markdownNameId: "common",
         params: {
-            at_user: `<@${msg.author.id}>`,
-            desc2: `\r数据来源: diyigemt`,
+            desc: `<@${msg.author.id}>`
+                + `\r数据来源: diyigemt`,
             link1: "\u200b](https://ip.arona.schale.top/turn/",
             img1: `img](${imageUrl}`,
             // img1_status: `\r${lastestImage.updateTime}`,
             img2: "img #-1px #1px](  ",
         },
+        keyboardNameId: "handbook",
         // markdown 部分
 
         content: `<@${msg.author.id}>`

@@ -1,11 +1,8 @@
 import os from "os";
 import qr from "qr-image";
 import Excel from "exceljs";
-import xlsx from 'node-xlsx';
 import fetch from "node-fetch";
-import format from "date-format";
 import * as cheerio from "cheerio";
-import { IUser } from "qq-bot-sdk";
 import child_process from "child_process";
 import { reloadStudentInfo, sendToAdmin, timeConver } from "../libs/common";
 import { IMessageDIRECT, IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
@@ -15,7 +12,7 @@ export async function updateEventId(event?: IntentMessage.GUILD_MEMBERS) {
     const opUserId = "15874984758683127001";
     if (devEnv) log.debug(event?.eventId);
     if (event?.msg.user.id == opUserId) {
-        return redis.setEx(`lastestEventId:${event.msg.guild_id}`, 60 * 4, event.eventId,);
+        return redis.setEx(`lastestEventId:${meId}:${event.msg.guild_id}`, 60 * 4, event.eventId);
     }
     if (event) return;
 
@@ -80,7 +77,7 @@ export async function status(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP
     return msg.sendMsgEx({ content: `\n` + content });
 }
 
-export async function ping(msg: IMessageGUILD | IMessageDIRECT) {
+export async function ping(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP) {
     if (!adminId.includes(msg.author.id)) return;
     // log.debug(msg);
     return msg.sendMsgEx({ content: await global.redis.ping() });

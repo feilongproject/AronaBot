@@ -225,6 +225,7 @@ function todayLucky() {
     else if (rand <= 0.95) return `凶`;//(0.90~0.95]5%
     else if (rand <= 1) return `大凶`;//(0.95~1.00]5%
     else return "■■■■";
+    //大吉 中吉 小吉 吉 半吉 末吉 末小吉
 }
 
 

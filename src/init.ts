@@ -82,6 +82,9 @@ export async function init() {
     log.info(`初始化: 正在创建 client 与 ws`);
     global.client = createOpenAPI(config.bots[botType]);
     global.ws = createWebsocket(config.bots[botType]);
+    global.ws.once("READY", async (data: IntentMessage.READY) => {
+        log.mark(`ws已建立, 机器人信息: ${data.msg.user.username}(${data.msg.user.id})`);
+    });
 
     log.info(`初始化: 正在创建频道树`);
     await loadGuildTree(true);

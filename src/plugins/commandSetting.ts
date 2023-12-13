@@ -73,17 +73,17 @@ export async function commandSetting(msg: IMessageGUILD | IMessageGROUP) {
     }
 
     return msg.sendMarkdown({
-        templateId: "102024160_1694664174",
+        markdownNameId: "common",
         params: {
-            at_user: `<@${msg.author.id}> ${optStr}`,
-            desc1: `\r当前卡池选择: ${status.server == "jp" ? "日服" : "国际服"}卡池`,
-            desc2: `\r抽卡分析显示状态: ${status.analyzeHide == "true" ? "隐藏" : "显示"}`,
-            desc3: "\r注: 使用按钮可以快速设置",
+            desc: `<@${msg.author.id}> ${optStr}`
+                + `\r当前卡池选择: ${status.server == "jp" ? "日服" : "国际服"}卡池`
+                + `\r抽卡分析显示状态: ${status.analyzeHide == "true" ? "隐藏" : "显示"}`
+                + "\r注: 使用按钮可以快速设置",
             link1: "\u200b](https://ip.arona.schale.top/turn/",
             img1: "img #-1px #1px](  ",
             img2: "img #-1px #1px](  ",
         },
-        keyboardId: "102024160_1692938526",
+        keyboardNameId: "handbook",
         // markdown 部分
 
         content: (msg instanceof IMessageGROUP ? "" : `<@${msg.author.id}> `) + `${optStr}`
