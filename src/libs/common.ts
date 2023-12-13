@@ -32,6 +32,10 @@ export async function callWithRetry<T extends (...args: A) => Promise<R>, R, A e
             log.error(`url 不被允许:\n`, JSON.stringify(args[0]));
             throw { errors: errors };
         }
+        if (err && (err as any).code == 40014 || ((err as any)?.msg as string | null)?.includes("file too large")) {
+            log.error(`文件过大\n`, JSON.stringify(args[0]));
+            throw { errors: errors };
+        }
         if (retries < config.retryTime - 1) {
             await sleep(300);
             return await callWithRetry(functionCall, args, ++retries, errors);
