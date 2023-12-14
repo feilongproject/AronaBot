@@ -65,7 +65,7 @@ async function matchHandbook(content: string, aid: string, _hbType: string | und
     var nameDesc = "";
     const hbName = Object.entries(handbookMatches.match.names).find(([k, v]) => RegExp(v.reg).test(content));
     if (!hbName || !hbName[0]) return undefined;
-    var hbType: string | undefined = _hbType || hbName[1]?.has?.includes("all") ? "all" : ((Object.entries(handbookMatches.match.types).find(([k, v]) => RegExp(v).test(content)) || [])[0]) as any;
+    var hbType: string | undefined = _hbType || (hbName[1]?.has?.includes("all") ? "all" : ((Object.entries(handbookMatches.match.types).find(([k, v]) => RegExp(v).test(content)) || [])[0]) as any);
     if (handbookMatches.adapter[hbName[0]]) {
         const _ = await handbookMatches.adapter[hbName[0]](content, "GET");
         hbType = _.id;
