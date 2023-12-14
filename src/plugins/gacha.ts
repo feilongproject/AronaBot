@@ -52,7 +52,7 @@ export async function gachaImage(msg: IMessageGUILD | IMessageGROUP) {
         params: {
             desc: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)\r`
                 + (analyze ? `${analyze?.today_gacha}\r${analyze?.total_gacha}\r${analyze?.gacha_analyze}` : ""),
-            link1: "\u200b](https://ip.arona.schale.top/turn/",
+            link1: "\u200b](https://ip.arona.schale.top/p/233",
             img1: `img #1700px #980px](https://ip.arona.schale.top/p/gacha/${imageName}`,
             img2: "img #-1px #1px](  ",
         },

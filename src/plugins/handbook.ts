@@ -13,11 +13,13 @@ const getErrorMessage = `发送时出现了一些问题<@${adminId[0]}>\n这可�
 const needUpdateMessage = `若数据未更新，请直接@bot管理, 或使用「查询攻略」功能`;
 const updateTimeMessage = `图片更新时间：`;
 
-const serverMap: Record<string, string> = { jp: "日服", global: "国际服", all: "" };
+const serverMap: Record<string, string> = { jp: "日服", global: "国际服", cn: "国服", all: "" };
+const provideMap: Record<string, string> = { jp: "夜猫", global: "夜猫", cn: "朝夕desu", all: "夜猫" };
 
 
 export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP) {
-    const hbMatched = await matchHandbook(msg.content.replaceAll(RegExp(`<@!?${meId}>`, "g"), "").trim(), msg.author.id).catch(err => JSON.stringify(err));
+    const forceGuildType = ("guild_id" in msg && ["16392937652181489481"].includes(msg.guild_id)) ? "cn" : undefined;
+    const hbMatched = await matchHandbook(msg.content.replaceAll(/<@!?\d+>/g, "").trim(), msg.author.id, forceGuildType).catch(err => JSON.stringify(err));
     // log.debug(msg.content, hbMatched);
     if (!hbMatched) return msg.sendMsgEx({ content: `未找到对应攻略数据` });
     if (typeof hbMatched == "string") return msg.sendMsgEx({ content: hbMatched });
@@ -30,9 +32,9 @@ export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessag
         params: {
             desc: at_user
                 + `\r${needUpdateMessage}\r`
-                + `攻略制作: 夜猫\r`,
+                + `攻略制作: ${provideMap[hbMatched.type]}\r`,
             ...(lastestImage.info ? { desc3: lastestImage.info + "\r" } : {}),
-            link1: `${lastestImage.infoUrl ? "🔗详情点我" : "\u200b"}](${lastestImage.infoUrl || "https://ip.arona.schale.top/turn/"}`,
+            link1: `${lastestImage.infoUrl ? "🔗详情点我" : "\u200b"}](${lastestImage.infoUrl || "https://ip.arona.schale.top/p/233"}`,
             img1: `img #${lastestImage.width}px #${lastestImage.height}px](${lastestImage.url}`,
             img1_status: `\r${lastestImage.updateTime}`,
             img2: "img #-1px #1px](  ",
@@ -42,7 +44,7 @@ export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessag
 
         content: at_user
             + `\n${needUpdateMessage}`
-            + `\n攻略制作: 夜猫`
+            + `\n攻略制作: ${provideMap[hbMatched.type]}`
             + `\n${lastestImage.info}`
             + `${lastestImage.infoUrl ? `\n详情: ${lastestImage.infoUrl}\n` : ""}`
             + lastestImage.updateTime,
@@ -57,21 +59,22 @@ export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessag
 
 }
 
-async function matchHandbook(content: string, aid: string): Promise<{ name: string; nameDesc?: string; type: string; desc: string; notChange: boolean; } | undefined> {
+async function matchHandbook(content: string, aid: string, _hbType: string | undefined = undefined): Promise<{ name: string; nameDesc?: string; type: string; desc: string; notChange: boolean; } | undefined> {
     const handbookMatches = await import("../../data/handbookMatches");
     // const { names, types } = .handbookMatches as any as HandbookMatches;
     var nameDesc = "";
-    const hbName = (Object.entries(handbookMatches.match.names).find(([k, v]) => RegExp(v.reg).test(content)));
+    const hbName = Object.entries(handbookMatches.match.names).find(([k, v]) => RegExp(v.reg).test(content));
     if (!hbName || !hbName[0]) return undefined;
-    var hbType: string = hbName[1]?.has?.includes("all") ? "all" : ((Object.entries(handbookMatches.match.types).find(([k, v]) => RegExp(v).test(content)) || [])[0]) as any;
+    var hbType: string | undefined = _hbType || hbName[1]?.has?.includes("all") ? "all" : ((Object.entries(handbookMatches.match.types).find(([k, v]) => RegExp(v).test(content)) || [])[0]) as any;
     if (handbookMatches.adapter[hbName[0]]) {
         const _ = await handbookMatches.adapter[hbName[0]](content, "GET");
         hbType = _.id;
         if (_.desc) nameDesc = _.desc;
     } else if (hbType != "all" && !hbType) {
         hbType = (await settingUserConfig(aid, "GET", ["server"])).server;
+        if (!hbName[1].has.includes(hbType)) hbType = undefined;
     }
-    return { name: hbName[0], nameDesc, type: hbType || "global", ...hbName[1], notChange: !hbType };
+    return { name: hbName[0], nameDesc, type: hbType || _hbType || "global", ...hbName[1], notChange: !(hbType || _hbType) };
 }
 
 async function getLastestImage(name: string, type = "all"): Promise<HandbookInfo.Data> {
@@ -182,7 +185,7 @@ export async function handbookUpdate(msg: IMessageGUILD) {
             log.error(err);
             return msg.sendMsgEx({ content: `查找图片时出现错误\n` + JSON.stringify(err).replaceAll(".", ",") });
         }
-    } else if (/https:\/\/.+hdslb\.com\/.+\.(png|jpg|jpeg)/.test(url)) imageUrl = /(https:\/\/.+\.(png|jpg|jpeg))/.exec(url)![1];
+    } else if (/(https:\/\/)?.+hdslb\.com\/.+\.(png|jpg|jpeg)/.test(url)) imageUrl = /((https:\/\/)?.+\.(png|jpg|jpeg))/.exec(url)![1];
     if (!imageUrl) return msg.sendMsgExRef({ content: "图片未找到" });
     // 图片 URL 结束
 
@@ -198,7 +201,9 @@ export async function handbookUpdate(msg: IMessageGUILD) {
     await redis.hSet("handbook:cache", `${imageName}:${imageType}`, format.asString(new Date()));
     await redis.hSet("handbook:info", `${imageName}:${imageType}`, imageDesc || "");
     await redis.hSet("handbook:infoUrl", `${imageName}:${imageType}`, imageTurnUrl || "");
-    await fetch(imageUrl).then(res => res.buffer()).then(buff => fs.writeFileSync(`${config.handbookRoot}/${imageName}/${imageType}.png`, buff));
+    await fetch(imageUrl.startsWith("http") ? imageUrl : `https://${imageUrl}`)
+        .then(res => res.buffer())
+        .then(buff => fs.writeFileSync(`${config.handbookRoot}/${imageName}/${imageType}.png`, buff));
 
     const lastestImage = await getLastestImage(imageName, imageType);
     if (devEnv) log.debug(lastestImage);
@@ -282,8 +287,8 @@ export async function searchHandbook(msg: IMessageGUILD | IMessageGROUP) {
         params: {
             desc: `<@${msg.author.id}>`
                 + `\r数据来源: diyigemt`,
-            link1: "\u200b](https://ip.arona.schale.top/turn/",
-            img1: `img](${imageUrl}`,
+            link1: "\u200b](https://ip.arona.schale.top/p/233",
+            img1: `img #1920px #1080px](${imageUrl}`,
             // img1_status: `\r${lastestImage.updateTime}`,
             img2: "img #-1px #1px](  ",
         },

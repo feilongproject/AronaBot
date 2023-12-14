@@ -79,7 +79,7 @@ export async function commandSetting(msg: IMessageGUILD | IMessageGROUP) {
                 + `\r当前卡池选择: ${status.server == "jp" ? "日服" : "国际服"}卡池`
                 + `\r抽卡分析显示状态: ${status.analyzeHide == "true" ? "隐藏" : "显示"}`
                 + "\r注: 使用按钮可以快速设置",
-            link1: "\u200b](https://ip.arona.schale.top/turn/",
+            link1: "\u200b](https://ip.arona.schale.top/p/233",
             img1: "img #-1px #1px](  ",
             img2: "img #-1px #1px](  ",
         },

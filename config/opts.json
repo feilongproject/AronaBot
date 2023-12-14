@@ -123,12 +123,12 @@
                 "describe": "总力战一图流",
                 "export": "/总力战一图流 [国际服|日服]"
             },
-            "globalClairvoyance": {
-                "reg": "^/?千里眼$",
+            "clairvoyance": {
+                "reg": "^/?(千|万)里眼",
                 "fnc": "handbookMain",
                 "channelAllows": ["all"],
                 "type": ["GUILD", "DIRECT", "GROUP"],
-                "describe": "获取国际服千里眼",
+                "describe": "获取国际服/国服千里眼",
                 "export": "/千里眼"
             },
             "activityStrategy": {

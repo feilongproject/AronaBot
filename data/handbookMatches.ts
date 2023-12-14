@@ -10,11 +10,11 @@ export const match = {
             desc: "总力战一图流",
             has: ["jp", "global"],
         },
-        globalClairvoyance: {
-            reg: "^/?千里眼",
-            typeReg: "(千里眼?)|(global(Clairvoyance)?)",
+        clairvoyance: {
+            reg: "^/?(千|万)里眼",
+            typeReg: "(千里眼?)|(clairvoyance)",
             desc: "千里眼",
-            has: ["all"],
+            has: ["global", "cn"],
         },
         activityStrategy: {
             reg: "^/?活动攻略",
@@ -32,6 +32,7 @@ export const match = {
     types: {
         global: "(国际|g)服?",
         jp: "(日|jp)服?",
+        cn: "(国|cn)服?",
     },
 }
 
