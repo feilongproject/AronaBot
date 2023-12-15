@@ -1,6 +1,5 @@
-import RE2 from "re2";
-import { btoa } from "js-base64";
-import { readFileSync, existsSync, writeFileSync } from "fs";
+import fs from "fs";
+import md5 from "md5";
 import { contentCensor as AipContentCensorClient } from "baidu-aip-sdk";
 import { createCanvas, Canvas, registerFont, DOMMatrix, loadImage, } from "canvas";
 import { sendToAdmin } from "../libs/common";
@@ -13,13 +12,13 @@ registerFont(`${config.fontRoot}/RoGSanSrfStd-Bd.otf`, { family: "Ro GSan Serif 
 
 export async function baLogo(msg: IMessageGUILD | IMessageGROUP) {
     // log.debug(msg.content);
-    const match = RE2("/?[Bb][Aa][-_]?[Ll][Oo][Gg][Oo]\\s+(?P<textL>\\S+)\\s+(?P<textR>\\S+)").match(msg.content);
-    if (!match) return msg.sendMsgExRef({
+    const match = /\/?[Bb][Aa][-_]?[Ll][Oo][Gg][Oo]\s+(?<textL>\S+)\s+(?<textR>\S+)/.exec(msg.content);
+    if (!match?.groups) return msg.sendMsgExRef({
         content: `命令错误，命令格式：`
             + `\n/balogo 左文字 右文字`
             + `\n注意：命令与左文字、左文字与右文字中间必须存在空格，否则无法识别`
     });
-    const { textL, textR } = match.groups!;
+    const { textL, textR } = match.groups;
 
     const client = new AipContentCensorClient(config.baiduCensoring.APP_ID, config.baiduCensoring.API_KEY, config.baiduCensoring.SECRET_KEY);
     const result = await client.textCensorUserDefined(`${textL}\n${textR}\n${textL}${textR}`);
@@ -64,9 +63,10 @@ export async function baLogo(msg: IMessageGUILD | IMessageGROUP) {
         ).join("\n")
     ));
 
-    const fileName = `${btoa(textL)}-${btoa(textR)}.png`;
+    const fileName = `${md5(textL)}-${md5(textR)}.png`;
     const saveFilePath = `${config.imagesOut}/${fileName}`;
-    if (!existsSync(saveFilePath)) writeFileSync(saveFilePath, await generate(textL, textR), { encoding: "binary" });
+    if (devEnv) log.debug(saveFilePath);
+    if (!fs.existsSync(saveFilePath)) fs.writeFileSync(saveFilePath, await generate(textL, textR), { encoding: "binary" });
 
     return msg.sendMsgEx({
         content: msg instanceof IMessageGROUP ? "" : `<@${msg.author.id}>`,
@@ -126,7 +126,7 @@ async function generate(textL: string, textR: string, transparentBg = false) {
 
     // halo
     c.drawImage(
-        await loadImage(readFileSync(`${config.images.baLogo}/halo.png`)),
+        await loadImage(fs.readFileSync(`${config.images.baLogo}/halo.png`)),
         canvasWidthL - canvas.height / 2 + graphOffset.X,
         graphOffset.Y,
         canvasHeight,
@@ -165,7 +165,7 @@ async function generate(textL: string, textR: string, transparentBg = false) {
 
     // cross
     c.drawImage(
-        await loadImage(readFileSync(`${config.images.baLogo}/cross.png`)),
+        await loadImage(fs.readFileSync(`${config.images.baLogo}/cross.png`)),
         canvasWidthL - canvas.height / 2 + graphOffset.X,
         graphOffset.Y,
         canvasHeight,
