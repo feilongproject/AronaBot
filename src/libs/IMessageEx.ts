@@ -1,7 +1,7 @@
 import fs from "fs";
 import fetch from "node-fetch";
 import FormData from 'form-data';
-import { Ark, GMessageRec, IMember, IMessage, IUser, MessageAttachment, MessageReference } from "qq-bot-sdk";
+import { Ark, GMessageRec, IMember, IMessage, IUser, MessageAttachment, MessageKeyboard, MessageReference } from "qq-bot-sdk";
 import { callWithRetry, pushToDB } from "./common";
 import config from '../../config/config';
 
@@ -332,7 +332,7 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
                         return { key, values: [value] };
                     }),
                 },
-                keyboard: options.keyboardId ? { id: options.keyboardId } : undefined,
+                keyboard: options.keyboard ? { ...options.keyboard } : (options.keyboardId ? { id: options.keyboardId } : undefined),
             },
             msg_seq: this.seq++,
         }).then(res => {
@@ -380,12 +380,14 @@ namespace SendOption {
         markdownNameId: string;
         params: Record<string, string>;
         keyboardNameId?: string;
+        keyboard?: MessageKeyboard;
     }
 
     export interface MarkdownOrgin {
         templateId: string;
         params: Record<string, string>;
         keyboardId?: string;
+        keyboard?: MessageKeyboard;
     }
 
     export interface Group {
