@@ -129,7 +129,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
                 log.error(`频道树部分加载失败`, err);
             });
         }
-        case "GUILD_MEMBERS": {
+        case AvailableIntentsEventsEnum.GUILD_MEMBERS: {
             if (botType != "AronaBot") return;
             import("./plugins/admin").then(module => module.updateEventId(event as IntentMessage.GUILD_MEMBERS)).catch(err => log.error(err));
             if (devEnv) return;
@@ -150,7 +150,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             else return;
         }
 
-        case "GUILD_MESSAGE_REACTIONS": {
+        case AvailableIntentsEventsEnum.GUILD_MESSAGE_REACTIONS: {
             if (botType != "AronaBot") return;
             const msg = (event as IntentMessage.GUILD_MESSAGE_REACTIONS).msg;
             if (global.devEnv && !adminId.includes(msg.user_id)) return;
@@ -185,7 +185,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             });
         }
 
-        case "FORUMS_EVENT":
+        case AvailableIntentsEventsEnum.FORUMS_EVENT: {
             break;
 
     }

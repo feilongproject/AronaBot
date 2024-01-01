@@ -71,6 +71,26 @@ declare global {
             msg: T;
         }
 
+        type INTERACTION = EventRespose<INTERACTION_body>;
+        interface INTERACTION_body {
+            application_id: string;
+            chat_type: number;
+            data: {
+                resolved: {
+                    button_data: string;
+                    button_id: string;
+                },
+                type: number;
+            },
+            group_member_openid: string;
+            group_openid: string;
+            id: string;
+            scene: string;
+            timestamp: string;
+            type: number;
+            version: number;
+        }
+
         type READY = EventRespose<READY_body>;
         interface READY_body {
             version: number;
