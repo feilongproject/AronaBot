@@ -90,7 +90,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             if (!['AT_MESSAGE_CREATE', 'MESSAGE_CREATE'].includes(event.eventType)) return;
             if (global.devEnv && !adminId.includes(data.author.id)) return;
             const msg = new IMessageGUILD(data);
-            msg.content = msg.content.replaceAll("@BA彩奈", "<@!5671091699016759820>");
+            msg.content = msg.content.replaceAll("@彩奈", "<@!5671091699016759820>");
             if (botType == "AronaBot") import("./plugins/AvalonSystem").then(e => e.avalonSystem(msg)).catch(err => log.error(err));
             return executeChannel(msg);
         }
