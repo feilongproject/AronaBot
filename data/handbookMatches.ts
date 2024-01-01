@@ -1,6 +1,6 @@
 import fs from "fs";
 import { findStudentInfo, sendToAdmin } from "../src/libs/common";
-
+import config from "../config/config";
 
 export const match = {
     names: {
@@ -46,11 +46,11 @@ async function studentEvaluation(content: string, type?: "GET"): Promise<{ id: s
     const findedInfo = findStudentInfo(studentName);
     if (findedInfo) return { id: findedInfo.pathName, desc: findedInfo.name[0] };
 
-    await sendToAdmin(`未找到学生『${studentName}』数据`).catch(err => log.error("handbookMatches.studentEvaluation", err));
-    const notNameList: string[] = JSON.parse(fs.readFileSync("/root/RemoteDir/qbot/AronaBot/data/studentNameAlias.json").toString());
+    await sendToAdmin(`未找到『${studentName}』数据`).catch(err => log.error("handbookMatches.studentEvaluation", err));
+    const notNameList: string[] = JSON.parse(fs.readFileSync(config.studentNameAlias).toString());
     notNameList.includes(studentName) ? "待整理数据库已存在该别名" : "待整理数据库未存在，已推送";
     if (!notNameList.includes(studentName)) notNameList.push(studentName);
-    fs.writeFileSync("/root/RemoteDir/qbot/AronaBot/data/studentNameAlias.json", JSON.stringify(notNameList));
-    throw `未找到学生『${studentName}』数据`;
+    fs.writeFileSync(config.studentNameAlias, JSON.stringify(notNameList));
+    throw `未找到『${studentName}』数据`;
 
 }
