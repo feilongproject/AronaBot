@@ -10,13 +10,14 @@ export async function updateGithubVersion(msg?: IMessageDIRECT) {
     const queue: Promise<string>[] = [];
     const regexp = /This branch is ((\d+) commits? ahead,? (of)?)?((\d+) commits? behind)?(up to date with)? lonqie(\/SchaleDB)?:main/;
     for (const _ of Array.from({ length: 5 })) {
-        queue.push(fetch("https://p.prpr.cf/feilongproject/SchaleDB?host=github.com", { timeout: 10 * 1000 }).then(res => res.text()).catch(err => ""));
+        queue.push(fetch("http://gh.schale.top/feilongproject/SchaleDB", { timeout: 10 * 1000 }).then(res => res.text()).catch(err => ""));
         queue.push(fetch("https://github.com/feilongproject/SchaleDB", { timeout: 10 * 1000 }).then(res => res.text()).catch(err => ""));
     }
 
     return Promise.all(queue).then(htmls => {
 
         const matches = htmls.map(html => {
+            if (!html) return null;
             const reg = regexp.exec(cheerio.load(html)("#repo-content-pjax-container > div > div").text());
             return reg && reg[0] ? reg[0] : null;
         });
