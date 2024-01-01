@@ -77,8 +77,6 @@ export async function mainCheck() {
     }
 
     delete require.cache[dynamicPushFilePath];
-
-    await import("./admin").then(m => m.updateGithubVersion());
 }
 
 //参考: https://github.com/SocialSisterYi/bilibili-API-collect/issues/686
