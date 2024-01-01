@@ -34,6 +34,7 @@
         "canvas": "^2.11.2",
         "cheerio": "^1.0.0-rc.12",
         "chokidar": "^3.5.3",
+        "console-png": "^1.2.1",
         "date-format": "^4.0.14",
         "exceljs": "^4.3.0",
         "flatbuffers": "^23.5.26",

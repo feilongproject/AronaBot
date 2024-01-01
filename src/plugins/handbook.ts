@@ -77,7 +77,7 @@ async function matchHandbook(content: string, aid: string, _hbType: string | und
     return { name: hbName[0], nameDesc, type: hbType || _hbType || "global", ...hbName[1], notChange: !(hbType || _hbType) };
 }
 
-async function getLastestImage(name: string, type = "all"): Promise<HandbookInfo.Data> {
+export async function getLastestImage(name: string, type = "all"): Promise<HandbookInfo.Data> {
     const updateTime = await redis.hGet("handbook:cache", `${name}:${type}`);
     const imageInfo = await redis.hGet("handbook:info", `${name}:${type}`);
     const infoUrl = await redis.hGet("handbook:infoUrl", `${name}:${type}`);
