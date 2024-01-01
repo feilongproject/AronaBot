@@ -2,7 +2,7 @@ declare module 'baidu-aip-sdk' {
 
     class contentCensor {
         constructor(APP_ID: string, API_KEY: string, SECRET_KEY: string);
-        textCensorUserDefined(content: string): Promise<TextCensorUserDefined.Root>;
+        textCensorUserDefined(content: string, options?: { userId?: string; userIp?: string; strategyId?: number; }): Promise<TextCensorUserDefined.Root>;
     }
 
     namespace TextCensorUserDefined {

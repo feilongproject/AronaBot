@@ -21,7 +21,10 @@ export async function baLogo(msg: IMessageGUILD | IMessageGROUP) {
     const { textL, textR } = match.groups;
 
     const client = new AipContentCensorClient(config.baiduCensoring.APP_ID, config.baiduCensoring.API_KEY, config.baiduCensoring.SECRET_KEY);
-    const result = await client.textCensorUserDefined(`${textL}\n${textR}\n${textL}${textR}`);
+    const result = await client.textCensorUserDefined(`${textL}\n${textR}\n${textL}${textR}`, {
+        userId: msg.author.id,
+        userIp: "guild_id" in msg ? msg.guild_id : msg.group_id,
+    });
     // log.debug(result);
 
     if (!result.data && (!result.conclusion || !result.conclusionType)) {
