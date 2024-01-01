@@ -1,6 +1,7 @@
 import sharp from "sharp";
 import { IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 import config from "../../config/config";
+import { sendToAdmin } from "../libs/common";
 
 const allowLen = 20;
 
@@ -17,14 +18,14 @@ export async function generateALA(msg: IMessageGUILD | IMessageGROUP) {
         try {
             const fileName = `ala-${new Date().getTime()}.png`;
             const outFilePath = `${config.imagesOut}/${fileName}`;
-            const ret = await buildImage(outFilePath, alaQueue);
-            if (ret) return msg.sendMsgEx({
+            await buildImage(outFilePath, alaQueue);
+            return msg.sendMsgEx({
                 content: (msg instanceof IMessageGROUP ? "" : `<@${msg.author.id}>`),
                 imageUrl: `https://ip.arona.schale.top/p/gacha/${fileName}`,
             });
-            else return msg.sendMsgExRef({ content: `无法发送图片, 请联系管理员<@${adminId[0]}>处理` });
         } catch (err) {
-            return msg.sendMsgExRef({ content: `发送图片异常! <@${adminId[0]}>\n${JSON.stringify(err).replaceAll(".", ",")}` })
+            await sendToAdmin(`generateALA\n${JSON.stringify(err).replaceAll(".", ",")}`);
+            return msg.sendMsgExRef({ content: `发送图片异常! \n${JSON.stringify(err).replaceAll(".", ",")}` });
         }
     }
 
@@ -82,7 +83,7 @@ function buildALA(content: string) {
     return alaQueue;
 }
 
-async function buildImage(tmpOutPath: string, alaQueue: ("01" | "10" | "02" | "20" | "12" | "21")[]): Promise<sharp.OutputInfo | void> {
+async function buildImage(tmpOutPath: string, alaQueue: ("01" | "10" | "02" | "20" | "12" | "21")[]): Promise<sharp.OutputInfo> {
     var files: { input: string, top: number, left: number, }[] = [];
     for (const [iv, id] of alaQueue.entries()) {
         files.push({
@@ -101,6 +102,5 @@ async function buildImage(tmpOutPath: string, alaQueue: ("01" | "10" | "02" | "2
         }
     }).composite(files)
         .png({ compressionLevel: 6, quality: 5, })
-        .toFile(tmpOutPath)
-        .catch(err => log.error(err));
+        .toFile(tmpOutPath);
 }
