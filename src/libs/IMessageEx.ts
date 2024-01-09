@@ -72,12 +72,12 @@ class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
         }).then(res => res.data);
     }
 
-    async sendMarkdown(options: Partial<SendOption.Channel> & SendOption.MarkdownPublic) {
+    async sendMarkdown(options: Partial<SendOption.Channel> & Partial<SendOption.MarkdownOrgin> & SendOption.MarkdownPublic) {
         options.guildId = options.guildId || this.guild_id;
         options.eventId = await redis.get(`lastestEventId:${meId}:${options.guildId}`) || undefined;
         const { markdownNameId, eventId, keyboardNameId, } = options;
 
-        const mdTemplateId = await redis.hGet(`config:md:${markdownNameId}`, meId);
+        const mdTemplateId = options.templateId || await redis.hGet(`config:md:${markdownNameId}`, meId);
         if (devEnv) log.debug("options.eventId:", options.eventId);
         if (!mdTemplateId || !eventId || !allowMarkdown) return this.sendMsgEx(options);
 
@@ -306,11 +306,11 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
         return fileRes.file_info;
     }
 
-    async sendMarkdown(options: Partial<SendOption.Group> & SendOption.MarkdownPublic): Promise<RetryResult<GMessageRec>> {
+    async sendMarkdown(options: Partial<SendOption.Group> & Partial<SendOption.MarkdownOrgin> & SendOption.MarkdownPublic): Promise<RetryResult<GMessageRec>> {
         options.groupId = options.groupId || this.group_id;
         options.msgId = options.msgId || this.id;
         const { markdownNameId, keyboardNameId, } = options;
-        const mdTemplateId = await redis.hGet(`config:md:${markdownNameId}`, meId);
+        const mdTemplateId = options.templateId || await redis.hGet(`config:md:${markdownNameId}`, meId);
         if (!mdTemplateId || !allowMarkdown) return this.sendMsgEx(options);
 
         const kbTemplateId = await redis.hGet(`config:kb:${keyboardNameId}`, meId);
