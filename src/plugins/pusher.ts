@@ -7,29 +7,26 @@ import { IMessageDIRECT } from "../libs/IMessageEx";
 export async function updateGithubVersion(msg?: IMessageDIRECT) {
     if (!devEnv && await redis.exists("push:ghUpdate")) return;
 
-    const queue: Promise<string>[] = [];
-    const regexp = /This branch is ((\d+) commits? ahead,? (of)?)?((\d+) commits? behind)?(up to date with)? lonqie(\/SchaleDB)?:main/;
-    for (const _ of Array.from({ length: 5 })) {
-        queue.push(fetch("http://gh.schale.top/feilongproject/SchaleDB", { timeout: 10 * 1000 }).then(res => res.text()).catch(err => ""));
-        queue.push(fetch("https://github.com/feilongproject/SchaleDB", { timeout: 10 * 1000 }).then(res => res.text()).catch(err => ""));
+    const queue: Promise<GithubBranchInfobar | undefined>[] = [];
+    const proxyHosts = ["https://gh.schale.top", "https://github.com"];
+    for (const host of proxyHosts) {
+        for (const _ of Array.from({ length: 5 })) {
+            queue.push(fetch(`${host}/feilongproject/SchaleDB/branch-infobar/main`, {
+                timeout: 10 * 1000,
+                headers: { Accept: "application/json" },
+            }).then(res => res.json() as Promise<GithubBranchInfobar>).catch(err => undefined));
+        }
     }
 
-    return Promise.all(queue).then(htmls => {
+    return Promise.all(queue).then(branchInfos => {
+        const branchInfo = branchInfos.find(v => v);
+        if (!branchInfo) throw "reg unmatched";
 
-        const matches = htmls.map(html => {
-            if (!html) return null;
-            const reg = regexp.exec(cheerio.load(html)("#repo-content-pjax-container > div > div").text());
-            return reg && reg[0] ? reg[0] : null;
-        });
-        const matched = matches.find(v => v);
-        if (!matched) throw "reg unmatched";
+        const { behind, ahead, baseBranchRange } = branchInfo.refComparison;
+        const branchInfoString = `Branch ahead:${ahead}, behind:${behind} -> ${baseBranchRange}`;
 
-        const reg = regexp.exec(matched)!;
-        if (msg) return msg.sendMsgEx({ content: reg[0] });
-
-        const behind = reg[5];
-        if (behind) return sendToAdmin(reg[0]).then(() => redis.setEx("push:ghUpdate", 60 * 60 * 1, behind) as any);
-        // log.debug("ahead:", reg[2], "behind:", reg[5], reg[6]);
+        if (msg) return msg.sendMsgEx({ content: JSON.stringify(branchInfoString) });
+        if (behind) return sendToAdmin(branchInfoString).then(() => redis.setEx("push:ghUpdate", 60 * 60 * 1, branchInfoString) as any);
     }).catch(err => {
         log.error(err);
         return sendToAdmin("updateGithubVersion\n" + JSON.stringify(err).replaceAll(".", "。"));
@@ -37,4 +34,16 @@ export async function updateGithubVersion(msg?: IMessageDIRECT) {
         log.error(err);
     });
 
+}
+
+interface GithubBranchInfobar {
+    refComparison: {
+        behind: number; // 原仓库比镜像领先部分
+        ahead: number; // 镜像比原仓库领先部分
+        baseBranch: `${string}/${string}:${string}`;
+        baseBranchRange: `${string}:${string}:${string}`;
+        currentRef: string;
+        isTrackingBranch: boolean;
+    };
+    pullRequestNumber: null;
 }
