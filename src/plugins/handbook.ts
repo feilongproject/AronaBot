@@ -301,7 +301,7 @@ export async function searchHandbook(msg: IMessageGUILD | IMessageGROUP) {
         // fallback 部分
     });
     else if (resultData.data.length > 1) return msg.sendMsgEx({
-        content: `${msg instanceof IMessageGROUP ? `` : `<@${msg.author.id}>`} 模糊查询结果：` +
+        content: `${msg instanceof IMessageGROUP ? `` : `<@${msg.author.id}>`} 模糊查询结果如下：\n` +
             resultData.data.map((v, i) => `第${i + 1} 搜索结果: ${v.name}`).join("\n"),
     });
 
