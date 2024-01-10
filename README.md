@@ -11,7 +11,8 @@
 
 ### Plana - 星奈
 
-![image](https://github.com/feilongproject/AronaBot/assets/43880786/7a44edfe-1144-4c53-b3cf-8436611b921c)
+![添加到频道与群二维码](https://github.com/feilongproject/AronaBot/assets/43880786/b3d18713-31b4-4e1e-ad1b-e2f197fa1d4c)
+
 > 注: 星奈为面向 `Q群` & `频道` 公开提供，各位可以任意添加到自己的 Q 群与频道
 
 ## 赞助（为爱发电）
