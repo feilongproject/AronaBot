@@ -7,7 +7,7 @@ import { pushToDB, searchDB, sendToAdmin, sleep } from "../libs/common";
 
 const browserCkFile = `${_path}/data/ck.json`;
 const dynamicPushFilePath = `${_path}/data/dynamicPush.json`;
-const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0";
+export const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0";
 
 export async function mainCheck() {
 
@@ -80,7 +80,7 @@ export async function mainCheck() {
 }
 
 //参考: https://github.com/SocialSisterYi/bilibili-API-collect/issues/686
-async function getCookie(): Promise<string> {
+export async function getCookie(): Promise<string> {
     const biliCookie = await redis.get("biliCookie") || "";
     const happy = await checkUser("1", biliCookie).then(items => items.length != 0).catch(err => false);
     // log.debug(`happy ${happy}`);
