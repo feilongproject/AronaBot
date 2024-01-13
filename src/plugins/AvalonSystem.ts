@@ -126,6 +126,7 @@ export async function accuseGacha(msg: IMessageGUILD) {
             content: ["禁言记录", ...m].join("\n"),
         }));// 发送禁言记录
         await msg.sendMsgEx({
+            channelId: await redis.hGet("mute:sendChannel", msg.guild_id),
             content: `<@${srcMsg.author.id}>(id: ${srcMsg.author.id})` +
                 `\n禁言${(muteTime / 60 / 60)}小时` +
                 `\n原因: 被举报晒卡` +
@@ -139,7 +140,7 @@ export async function accuseGacha(msg: IMessageGUILD) {
     } catch (err: any) {
         isChecking = false;
         log.error(err);
-        if (err?.code == 306004) return msg.sendMsgExRef({ content: `<@${adminId[0]}>没有权限删除！请检查禁言对象权限` });
+        if (err?.code == 306004) return msg.sendMsgExRef({ content: `没有权限删除！请检查禁言对象权限` });
         return msg.sendMsgExRef({ content: `检测过程中出现了一些问题 <@${adminId[0]}>\n${(typeof (err) == "object" ? JSON.stringify(err) : String(err)).replaceAll(".", ",")}` });
     }
 }
