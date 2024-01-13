@@ -63,6 +63,8 @@ declare global {
         toDBString: () => string;
     }
 
+    var stringifyFormat: (d: Object) => string;
+
     namespace IntentMessage {
         interface EventRespose<T> {
             eventRootType: AvailableIntentsEventsEnum;

@@ -28,7 +28,7 @@ export async function findOpts(msg: IMessageGUILD | IMessageDIRECT | IMessageGRO
             const opt = commandFathers[keyFather][keyChild];
             const allowChannels = opt.channelAllows || ["common"];
             // if (devEnv) allowKeys.push("dev");
-            if (!opt.type.includes(msg.messageType)) continue;
+            if ((typeof opt == "function") || !opt.type.includes(msg.messageType)) continue;
             if (!RegExp(opt.reg).test(msg.content.replace(/<@!\d*>/g, "").trim())) continue;
 
             if (msg instanceof IMessageGROUP) {

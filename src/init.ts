@@ -163,5 +163,10 @@ Date.prototype.toDBString = function () {
             this.getSeconds().toString().padStart(2, "0"),
         ].join(":") + "+08:00";
 };
+
+global.stringifyFormat = function (obj: Object) {
+    return JSON.stringify(obj, undefined, "    ");
+};
+
 (global as any).btoa = null;
 (global as any).atob = null;

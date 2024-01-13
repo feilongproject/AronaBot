@@ -1,8 +1,11 @@
+import nodemailer from "nodemailer";
+import { readFileSync, writeFileSync } from "fs";
 import { AvailableIntentsEventsEnum, IChannel, IGuild } from "qq-bot-sdk";
 import { loadGuildTree } from "./init";
 import { findOpts } from "./libs/findOpts";
 import { pushToDB, sendToAdmin } from "./libs/common";
 import { IMessageGROUP, IMessageDIRECT, IMessageGUILD } from "./libs/IMessageEx";
+import config from "../config/config";
 
 async function executeChannel(msg: IMessageDIRECT | IMessageGUILD) {
     try {
@@ -19,7 +22,7 @@ async function executeChannel(msg: IMessageDIRECT | IMessageGUILD) {
         if (global.devEnv) log.debug(`${_path}/src/plugins/${opt.path}:${opt.fnc}`);
         const plugin = await import(`./plugins/${opt.path}.ts`);
         if (typeof plugin[opt.fnc] != "function") log.error(`not found function ${opt.fnc}() at "${global._path}/src/plugins/${opt.path}.ts"`);
-        else await (plugin[opt.fnc] as PluginFnc)(msg).catch(err => log.error(err));
+        else await (plugin[opt.fnc] as PluginFnc)(msg);
 
         await pushToDB("executeRecord", {
             mid: msg.id,
@@ -36,7 +39,8 @@ async function executeChannel(msg: IMessageDIRECT | IMessageGUILD) {
             content: msg.content,
         });
     } catch (err) {
-        log.error(err);
+        await mailerError(msg, err instanceof Error ? err : new Error(JSON.stringify(err)))
+            .catch(err => log.error(err));
     }
 }
 
@@ -51,12 +55,42 @@ async function executeChat(msg: IMessageGROUP) {
 
         const plugin = await import(`./plugins/${opt.path}.ts`);
         if (typeof plugin[opt.fnc] != "function") log.error(`not found function ${opt.fnc}() at "${global._path}/src/plugins/${opt.path}.ts"`);
-        else await (plugin[opt.fnc] as PluginFnc)(msg).catch(err => log.error(err));
+        else await (plugin[opt.fnc] as PluginFnc)(msg);
 
     } catch (err) {
-        log.error(err);
+        await mailerError(msg, err instanceof Error ? err : new Error(JSON.stringify(err)))
+            .catch(err => log.error(err));
     }
 
+}
+
+export async function mailerError(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP, err: Error) {
+    log.error(err);
+    // if (devEnv) return;
+
+    const user = await redis.hGet("config", "sendMail:user");
+    const pass = await redis.hGet("config", "sendMail:pass");
+    const to = await redis.hGet("config", "sendMail:to");
+    if (!user || !pass || !to) return;
+
+    const from = `"${botType}" <${user}>`;
+    const html = readFileSync(config.errorMessageTemaple).toString()
+        .replace("%message%", stringifyFormat(msg))
+        .replace("%errorName%", err.name)
+        .replace("%errorMessage%", err.message)
+        .replace("%errorStack%", err.stack || "");
+
+    // writeFileSync("/tmp/html/index.html", html);
+
+    const transporter = nodemailer.createTransport({
+        host: 'smtp-mail.outlook.com',
+        port: 587,
+        auth: { user, pass },
+    });
+    return transporter.sendMail({
+        subject: `エラー発生。${err.message}`.slice(0, 60),
+        from, to, html,
+    }).catch(err => log.error(err));
 }
 
 async function isBan(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP): Promise<boolean> {
