@@ -1,37 +1,37 @@
 import fetch from "node-fetch";
 import * as puppeteer from "puppeteer";
 import { readFileSync, writeFileSync } from "fs";
-import { IMessageGUILD, MessageType } from "../libs/IMessageEx";
+import { mailerError } from "../eventRec";
+import { IMessageDIRECT, IMessageGUILD, MessageType } from "../libs/IMessageEx";
 import { pushToDB, searchDB, sendToAdmin, sleep } from "../libs/common";
 
 
 const browserCkFile = `${_path}/data/ck.json`;
 const dynamicPushFilePath = `${_path}/data/dynamicPush.json`;
-export const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0";
+export const userAgent = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36 Edg/120.0.0.0";
 
-export async function mainCheck() {
+export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT) {
 
     const cookies = await getCookie().catch(err => {
         log.error(err);
-        sendToAdmin(typeof err == "object" ? JSON.stringify(err) : String(err)).catch(() => { });
+        sendToAdmin(typeof err == "object" ? stringifyFormat(err) : String(err)).catch(() => { });
     });
     if (!cookies) return;
 
-    const dynamicPush: DynamicPush = (await import(dynamicPushFilePath)).default;
+    const dynamicPush: DynamicPush[] = (await import(dynamicPushFilePath)).default;
 
-    for (const bId in dynamicPush) {
-        const bUser = dynamicPush[bId];
-        const dynamicItems = await checkUser(bId, cookies).catch(err => {
-            log.error(bUser.bName, bId, err);
-            return sendToAdmin(`api出错: ${bUser.bName} ${bId} ${JSON.stringify(err)}`.replaceAll(".", "。")).then(() => [] as BiliDynamic.Item[]);
+    for (const bUser of dynamicPush) {
+        const dynamicItems = await checkUser(bUser.id, cookies).catch(err => {
+            log.error(bUser.name, bUser.id, err);
+            return sendToAdmin(`api出错: ${bUser.name} ${bUser.id} ${stringifyFormat(err)}`.replaceAll(".", ",")).then(() => [] as BiliDynamic.Item[]);
         }).catch(err => { });
-        if (!dynamicItems) continue;
+        if (!dynamicItems?.length) break;
 
-        if (devEnv) log.debug(`开始检查 ${bUser.bName}(${bId})的动态`);
+        if (devEnv) log.debug(`开始检查 ${bUser.name}(${bUser.id})的动态`);
         for (const item of dynamicItems) {
             const searchResult: BiliDynamic.DB[] | undefined = await searchDB("biliMessage", "msgId", item.id_str);
             if (searchResult && searchResult[0]?.msgId == item.id_str) continue;
-            log.info(`${bUser.bName}(${bId})的动态更新了: ${item.id_str}`);
+            log.info(`${bUser.name}(${bUser.id})的动态更新了: ${item.id_str}`);
 
             try {
                 const picInfo = await screenshot(item.id_str, item.modules.module_author.pub_ts.toString());
@@ -51,7 +51,7 @@ export async function mainCheck() {
                         channelId: cId,
                         sendType: MessageType.GUILD,
                         imageFile: picInfo,
-                        content: `${devEnv ? "dev " : ""}${bUser.bName} 更新了一条动态\nhttps://t.bilibili.com/${item.id_str}`,
+                        content: `${devEnv ? "dev " : ""}${bUser.name} 更新了一条动态\nhttps://t.bilibili.com/${item.id_str}`,
                     });
                 }
 
@@ -68,7 +68,8 @@ export async function mainCheck() {
                 });
             } catch (err) {
                 log.error(err);
-                await sendToAdmin(`${bUser.bName} ${item.id_str} 发送失败\n${JSON.stringify(err).replaceAll(".", ",")}`).catch(err => { });
+                await mailerError(item, err instanceof Error ? err : new Error(JSON.stringify(err))).catch(err => { });
+                await sendToAdmin(`${bUser.name} ${item.id_str} 发送失败\n${JSON.stringify(err).replaceAll(".", ",")}`).catch(err => { });
             }
 
             await sleep(5 * 1000);
@@ -145,7 +146,7 @@ async function checkUser(biliUserId: string, cookies: string): Promise<BiliDynam
     });
 }
 
-async function screenshot(biliDynamicId: string, biliDynamicPubTs: string): Promise<Buffer | undefined> {
+async function screenshot(biliDynamicId: string, biliDynamicPubTs: string): Promise<Buffer> {
 
     if (!global.browser || !browser.isConnected()) global.browser = await puppeteer.launch({
         headless: !devEnv,
@@ -164,16 +165,40 @@ async function screenshot(biliDynamicId: string, biliDynamicPubTs: string): Prom
     await page.goto(`https://t.bilibili.com/${biliDynamicId}`, {
         waitUntil: "networkidle0",
     });
+    if (await page.$("#app > div > div > div.launch-app-btn.opus-module-blocked"))
+        await page.reload({ waitUntil: "networkidle0" });
+
     await page.evaluate(() => {
-        document.querySelector("#app > div")?.setAttribute("style", "padding-top:0px;padding-right: 3.2vmin;background-color: #fff;");
-        document.querySelector(`#bili-header-container`)?.remove();
-        document.querySelector(`#app > div.content > div > div > div.bili-dyn-item__panel > div.bili-comment-container.bili-dyn-comment`)?.remove();
+        const r = "#app > div > div";
+        document.querySelector(r)?.remove();//删除nav
+        document.querySelector(`${r}.openapp-dialog.large`)?.remove();//删除阴影遮罩
+        document.querySelector(`${r}.v-switcher.v-switcher--fluid`)?.remove();//删除"评论"
+
+        document.querySelector(`${r}.launch-app-btn.card-wrap > div > div.dyn-share`)?.remove()//删除分享至 (dynamic)
+        document.querySelector(`${r}.launch-app-btn.card-wrap > div > div.dyn-header > div.dyn-header__right`)?.remove();//删除"关注"按钮 (dynamic)
+        document.querySelector(`${r}.launch-app-btn.card-wrap > div > div.dyn-content > div.dyn-content__orig.reference > div.dyn-content__orig__additional`)?.remove();//删除"相关游戏" (dynamic)
+
+        document.querySelector(`${r}.launch-app-btn.float-openapp.opus-float-btn`)?.remove();//删除"打开app"按钮
+        document.querySelector(`${r}.opus-modules > div.opus-module-content.limit`)?.classList.remove("limit");//"展开阅读全文" (opus)
+        document.querySelector(`${r}.opus-modules > div.opus-module-content > div.opus-read-more`)?.remove();//删除"展开阅读全文"阴影 (opus)
+        document.querySelector(`${r}.opus-modules > div.opus-module-content > div.link-card-para`)?.remove();//删除"相关游戏" (opus)
+        document.querySelector(`${r}.opus-modules > div.opus-module-author > div.launch-app-btn.opus-module-author__action`)?.remove();//删除"关注"按钮 (opus)
+
+        // document.querySelector("#app > div")?.setAttribute("style", "padding-top:0px;padding-right: 3.2vmin;background-color: #fff;");
+        // document.querySelector(`#bili-header-container`)?.remove();
+        // document.querySelector(`#app > div.content > div > div > div.bili-dyn-item__panel > div.bili-comment-container.bili-dyn-comment`)?.remove();
     });
-    const pic = await page.$("#app > div.content > div > div").then(value => value!.screenshot({
+    // const pic = await page.$("#app").then(value => value!.screenshot({
+    //     type: "jpeg",
+    //     quality: 70,
+    //     encoding: "binary",
+    // }) as Promise<Buffer>);
+    const pic = await page.screenshot({
         type: "jpeg",
         quality: 70,
         encoding: "binary",
-    }) as Promise<Buffer>);
+        fullPage: true,
+    });
 
     writeFileSync(browserCkFile, JSON.stringify(await page.cookies()));
     await page.close();
@@ -181,12 +206,7 @@ async function screenshot(biliDynamicId: string, biliDynamicPubTs: string): Prom
 }
 
 interface DynamicPush {
-    [bId: string]: {
-        bName: string;
-        channels: {
-            [cId: string]: {
-                cName: string;
-            }
-        }
-    }
+    name: string;
+    id: string;
+    channels: Record<string, string>;
 }
