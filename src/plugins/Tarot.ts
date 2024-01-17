@@ -1,4 +1,5 @@
 import fs from "fs";
+import crypto from "crypto";
 import { IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 import config from "../../config/config";
 
@@ -16,7 +17,7 @@ export async function todayTarot(msg: IMessageGUILD | IMessageGROUP) {
     //        return msg.sendMsgEx({ content: `该群聊暂未开启该功能, 请联系Bot Master(QQ 1728904631) 开启` });
 
     const has = await redis.hGet(`Tarot:${nowDay}`, msg.author.id);
-    const notHas = random();
+    const notHas = `${crypto.randomInt(0, 21 + 1)}:${crypto.randomInt(0, 2) == 1 ? "u" : "d"}`;
     await redis.hSet(`Tarot:${nowDay}`, msg.author.id, has || notHas);
     const [num, type] = (has || notHas).split(":");
     const desc: Tarot = JSON.parse(fs.readFileSync(`${config.images.Tarot}/Tarot.json`).toString())[Number(num)];
@@ -36,12 +37,6 @@ export async function todayTarot(msg: IMessageGUILD | IMessageGROUP) {
     });
 }
 
-function random(maxLen = 0) {
-    maxLen = maxLen || fs.readdirSync(config.images.Tarot).length - 3;
-    const num = Math.round(Math.random() * maxLen);
-    const type = (num % 2) == 1 ? "u" : "d";
-    return `${Math.floor(num / 2)}:${type}`;
-}
 
 interface Tarot {
     name: string;
