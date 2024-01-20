@@ -6,8 +6,8 @@ import { IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 
 export async function baServerStatus(msg: IMessageGUILD | IMessageGROUP) {
 
-    const jpStatus = fetch("https://d3656gtd9j62z1.cloudfront.net/prod/index.json").then(res => res.json()); // prod-noticeindex.bluearchiveyostar.com
-    const globalStatus = fetch("https://d13o75oynjs6mz.cloudfront.net/sdk/enterToy.nx", { // https://m-api.nexon.com/sdk/enterToy.nx
+    const jpStatus: Promise<ServerStatusJP> = fetch("https://d3656gtd9j62z1.cloudfront.net/prod/index.json").then(res => res.json()); // prod-noticeindex.bluearchiveyostar.com
+    const globalStatus: Promise<ServerStatusGlobal> = fetch("https://d13o75oynjs6mz.cloudfront.net/sdk/enterToy.nx", { // https://m-api.nexon.com/sdk/enterToy.nx
         method: "POST",
         headers: {
             // npparams: readFileSync(`${_path}/data/npparams`).toString(),
@@ -16,12 +16,13 @@ export async function baServerStatus(msg: IMessageGUILD | IMessageGROUP) {
         },
         body: readFileSync(`${_path}/data/getPromotion.nx`),
     }).then(res => res.json());
+    const cnStatus: Gamekee.Index = await fetch(`https://ba.gamekee.com/v1/wiki/index`, { headers: { "game-alias": "ba" } }).then(res => res.json());
 
-    return Promise.all([jpStatus, globalStatus]).then(([jpStatus, globalStatus]: [ServerStatusJP, ServerStatusGlobal]) => {
+    return Promise.all([jpStatus, globalStatus, cnStatus]).then(([jpStatus, globalStatus, cnStatus]) => {
         // log.debug(json.Maintenance.StartDate)
         const jpEndTime = new Date(jpStatus.Maintenance.EndDate);
         const jpContent = (jpEndTime.getTime() + 1000 * 60 * 60 <= new Date().getTime()) ?
-            "日服一切正常, 暂无官方维护通知(具体以游戏内提示为准)" :
+            "日服一切正常, 暂无官方维护通知" :
             `日服状态:` +
             `\n开始维护时间: ${jpStatus.Maintenance.StartDate}` +
             `\n终止维护时间: ${jpStatus.Maintenance.EndDate}` +
@@ -34,9 +35,18 @@ export async function baServerStatus(msg: IMessageGUILD | IMessageGROUP) {
             `\n开始维护时间: ${format.asString(globalStartTime)}` +
             `\n终止维护时间: ${format.asString(globalEndTime)}` +
             `\n原因: ${globalStatus.result.maintenanceInfo.title}` :
-            "国际服一切正常, 暂无官方维护通知(具体以游戏内提示为准)";
+            "国际服一切正常, 暂无官方维护通知";
 
-        return msg.sendMsgEx({ content: jpContent + "\n\n" + globalContent, });
+        const cnNode = cnStatus.data.find(v => v.module.name == "活动周历")?.list.filter(v => v.pub_area == "国服").find(v => v.title.includes("国服维护"));
+        const cnStartTime = new Date((cnNode?.begin_at || 0) * 1000);
+        const cnEndTime = new Date((cnNode?.end_at || 0) * 1000);
+        const cnContent = cnNode ?
+            `国服状态: ${cnNode.title}` +
+            `\n开始维护时间: ${format.asString(cnStartTime)}` +
+            `\n终止维护时间: ${format.asString(cnEndTime)}` :
+            "国服一切正常, 暂无维护通知（具体以游戏内提示为准）";
+
+        return msg.sendMsgEx({ content: jpContent + "\n\n" + globalContent + "\n\n" + cnContent, });
     }).catch(err => {
         log.error(err);
         return msg.sendMsgExRef({ content: `获取服务器状态时出错，请稍后重试` });
@@ -180,4 +190,50 @@ interface ServerStatusGlobal {
     };
     errorText: string;
     errorDetail: string;
+}
+
+namespace Gamekee {
+    export interface Index {
+        code: number;
+        msg: string;
+        data: {
+            module: Module;
+            list: List[];
+        }[];
+        meta: {
+            request_id: string
+            trace_id: string
+        };
+    }
+
+    export interface Module {
+        id: number;
+        game_id: number;
+        name: string;
+        status: number;
+        type: number;
+        sort: number;
+        land_sort: number;
+        updated_uid: number;
+        updated_at: number;
+    }
+
+    export interface List {
+        begin_at: number;
+        count_down: number;
+        created_at: number;
+        creator_uid: number;
+        description: string;
+        end_at: number;
+        game_id: number;
+        id: number;
+        importance: number;
+        link_url: string;
+        picture: string;
+        pub_area: string;
+        sort: number;
+        title: string;
+        updated_at: number;
+    }
+
 }
