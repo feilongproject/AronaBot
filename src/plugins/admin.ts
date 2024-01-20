@@ -47,9 +47,9 @@ export async function ping(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP) 
     return msg.sendMsgEx({ content: await global.redis.ping() });
 }
 
-export async function hotLoad(msg: IMessageDIRECT) {
-    if (!adminId.includes(msg.author.id)) return;
-    if (devEnv) return;
+export async function hotLoad(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP) {
+    if (!adminId.includes(msg.author.id)) return !(msg instanceof IMessageGUILD) ? msg.sendMsgEx({ content: "无权限调用" }) : undefined;
+    // if (devEnv) return;
     const times = /^\/?热(加载|更新)(-?\d+)$/.exec(msg.content)![2];
     hotLoadStatus = Number(times);
     return msg.sendMsgEx({ content: `已${msg.content}` });

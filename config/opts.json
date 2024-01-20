@@ -37,7 +37,7 @@
             "hotLoad": {
                 "reg": "^/?热(加载|更新)(-?\\d+)$",
                 "fnc": "hotLoad",
-                "type": ["DIRECT"],
+                "type": ["GUILD", "DIRECT", "GROUP"],
                 "describe": "开启或关闭热加载"
             },
             "reloadStudentData": {
