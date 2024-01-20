@@ -25,7 +25,7 @@ export async function accuseGacha(msg: IMessageGUILD) {
         `\n举报人: ${msg.author.username}(${msg.author.id})`
     );
     const muteLogChannel = await redis.hGet("mute:logChannel", msg.guild_id);
-    if (!muteLogChannel) return msg.sendMsgExRef({ content: "未指定发送子频道" });
+    if (!muteLogChannel) return msg.sendMsgExRef({ content: "未指定muteLog发送子频道" });
     const ruleChannel = await redis.hGet("mute:ruleChannel", msg.guild_id);
     if (!ruleChannel) return msg.sendMsgExRef({ content: `未指定频规子频道` });
 

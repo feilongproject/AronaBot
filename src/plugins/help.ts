@@ -4,19 +4,7 @@ import { IMessageGROUP, IMessageGUILD, MessageType } from "../libs/IMessageEx";
 const typeMap = { GUILD: "频道", DIRECT: "频道私聊", GROUP: "群聊", FRIEND: "私聊" };
 
 export async function help(msg: IMessageGUILD | IMessageGROUP) {
-    const opts: {
-        [keyFather: string]: {
-            [keyChild: string]: {
-                reg: string;
-                fnc: string;
-                channelAllows?: string[];
-                data?: string;
-                type: MessageType[],
-                describe: string;
-                export?: string;
-            }
-        }
-    } = (await import("../../config/opts.json")).command as any;
+    const opts = (await import("../../config/opts")).default.command;
     const sendStr = [`当前场景下（${typeMap[msg.messageType]}）可用的命令有：`];
     const split = `${" ".repeat(4)}===${" ".repeat(4)}`;
 
@@ -50,6 +38,7 @@ export async function help(msg: IMessageGUILD | IMessageGROUP) {
 
     return msg.sendMsgEx({
         content: sendStr.join("\n"),
+    }).catch(err => {
+        throw new Error(stringifyFormat(err));
     });
 }
-
