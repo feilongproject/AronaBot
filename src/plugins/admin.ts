@@ -55,6 +55,12 @@ export async function hotLoad(msg: IMessageGUILD | IMessageDIRECT | IMessageGROU
     return msg.sendMsgEx({ content: `已${msg.content}` });
 }
 
+export async function restart(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP) {
+    await redis.set(`isRestart`, "T");
+    await msg.sendMsgEx({ content: "开始重启" });
+    process.exit();
+}
+
 export async function directToAdmin(msg: IMessageDIRECT) {
     if (adminId.includes(msg.author.id)) {
         //log.debug(`refMid:${msg.message_reference?.message_id}`);

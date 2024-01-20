@@ -111,6 +111,12 @@ export async function init() {
         }));
     }
 
+
+    if (await redis.exists("isRestart")) {
+        await redis.del("isRestart");
+        return sendToAdmin("重启成功");
+    }
+
 }
 
 export async function loadGuildTree(init?: boolean): Promise<any>;
@@ -119,7 +125,6 @@ export async function loadGuildTree(init?: boolean | IChannel | IGuild): Promise
     if (!global.saveGuildsTree) global.saveGuildsTree = {};
 
     if (typeof init == "object") {
-        // TODO: 当首次加入时, 不存在 saveGuildsTree[init.id] 需要单独获取
         if ("member_count" in init) {
             if (global.saveGuildsTree[init.id]) return saveGuildsTree[init.id] = { ...init, channels: saveGuildsTree[init.id].channels };
             const guildInfo = await getGuildInfo(init);

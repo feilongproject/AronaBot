@@ -51,6 +51,12 @@
                 "fnc": "dumpChatRecord",
                 "type": ["GUILD", "DIRECT"],
                 "describe": "dump发言记录"
+            },
+            "restart": {
+                "reg": "^/?(restart|重启)$",
+                "fnc": "restart",
+                "type": ["GUILD", "DIRECT", "GROUP"],
+                "describe": "重启机器人"
             }
         },
         "mute": {
