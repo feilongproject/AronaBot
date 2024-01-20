@@ -68,7 +68,7 @@ export async function init() {
         process.exit();
     });
 
-    global.mariadb = await createPool({
+    if (config.bots[botType].allowMariadb && !devEnv) global.mariadb = await createPool({
         ...config.mariadb,
         database: botType,
     }).getConnection().then(conn => {
