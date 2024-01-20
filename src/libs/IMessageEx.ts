@@ -69,7 +69,7 @@ class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
             msg_id: options.msgId,
             content: content,
             image: imageUrl,
-        }).then(res => res.data);
+        }).then(res => ({ ...res.data, traceId: res.headers["x-tps-trace-id"], }));
     }
 
     async sendMarkdown(options: Partial<SendOption.Channel> & Partial<SendOption.MarkdownOrgin> & SendOption.MarkdownPublic) {
@@ -272,16 +272,10 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
         }).then(res => {
             (res.data as any)["x-tps-trace-id"] = res.headers["x-tps-trace-id"];
             return res.data;
-        }).then(json => {
-            if (json.msg != "success") throw json;
-            else return json;
-        }).catch(async err => {
-            await this._sendFile(options, true).catch(err => log.error(err));
-            throw err;
         });
     }
 
-    async sendFile(options: Partial<SendOption.Group>, force: boolean = false) {
+    async sendFile(options: Partial<SendOption.Group>, force = false) {
         return callWithRetry(this._sendFile, [options, force]);
     }
 
@@ -339,11 +333,6 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
         }).then(res => {
             (res.data as any)["x-tps-trace-id"] = res.headers["x-tps-trace-id"];
             return res.data;
-        }).then(json => {
-            if (json.msg != "success") throw json;
-            else return json;
-        }).catch(async err => {
-            throw err;
         });
     }
 }
