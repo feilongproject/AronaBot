@@ -133,7 +133,8 @@ export async function handbookUpdate(msg: IMessageGUILD) {
     var imageTurnUrl = "";
     if (/(arona\.schale\.top\/turn)|(t\.bilibili\.com\/(\d+))/.test(desc)) {
         try {
-            await fetch(/(https?:\/\/\S+)\s*/.exec(desc)![1]).then(res => {
+            const descUrl = /((https?:\/\/)?\S+)\s*/.exec(desc)![1];
+            await fetch(descUrl.startsWith("https://") ? descUrl : "https://" + descUrl).then(res => {
                 const matchDynamicId = (/https:\/\/t.bilibili.com\/(\d+)/.exec(res.url) || [])[1];
                 if (matchDynamicId) return biliDynamicInfo(matchDynamicId);
                 else throw `未知的url: ${res.url}`;
