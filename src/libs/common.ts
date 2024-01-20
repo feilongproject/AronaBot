@@ -1,16 +1,18 @@
 import fs from 'fs';
 import fetch from 'node-fetch';
 import config from '../../config/config';
-import { IMessageDIRECT } from './IMessageEx';
+import { IMessageGUILD } from './IMessageEx';
 
 
 const nameToId = { jp: 0, global: 1 };
 var key: keyof typeof nameToId;
 
 export async function sendToAdmin(content: string) {
-    return new IMessageDIRECT({
+    const callbackChannel = await redis.hGet("config", `callbackChannel`) as string;
+    return new IMessageGUILD({
         id: await redis.get(`lastestMsgId`) || "08f3fb8adca9d6ccf46710b4e66c38cba64e48a2cfa1a006",
-    } as any, false).sendToAdmin(content);
+        channel_id: callbackChannel,
+    } as any, false).sendMsgEx({ content });
 }
 
 export async function sleep(ms: number) {
@@ -26,23 +28,23 @@ export async function callWithRetry<T extends (...args: A) => Promise<R>, R, A e
             retries--;
             args[0].msgId = await redis.get(`lastestMsgId`);
         } else log.error(err);
-        if (typeof err == "object") errors.push(JSON.stringify(err));
+        if (typeof err == "object") errors.push(stringifyFormat(err));
         else errors.push(String(err));
         if (err && (err as any).code == 304003 || ((err as any)?.msg as string | null)?.includes("url not allowed")) {
             log.error(`url 不被允许:\n`, JSON.stringify(args[0]));
-            throw { errors: errors };
+            throw { errors };
         }
         if (err && (err as any).code == 40014 || ((err as any)?.msg as string | null)?.includes("file too large")) {
             log.error(`文件过大\n`, JSON.stringify(args[0]));
-            throw { errors: errors };
+            throw { errors };
         }
         if (retries < config.retryTime - 1) {
-            await sleep(300);
+            await sleep(100);
             return await callWithRetry(functionCall, args, ++retries, errors);
         } else {
             if (args && args[0] && args[0].imageFile) args[0].imageFile = { type: "Buffer", length: args[0].imageFile.length };
             log.error(`重试多次未成功 args:\n`, JSON.stringify(args[0]));
-            throw { errors: errors };
+            throw { errors };
         }
     }
 }
@@ -161,7 +163,7 @@ export async function settingUserConfig(aid: string, types: "GET" | "SET", data:
     });
 }
 
-export function findStudentInfo(name: string) {
+export function findStudentInfo(name: string): StudentInfo | null {
     for (const id in studentInfo) if (studentInfo[id].name.includes(fixName(name))) return studentInfo[id];
     return null;
 }
