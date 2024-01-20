@@ -63,7 +63,7 @@ declare global {
         toDBString: () => string;
     }
 
-    var stringifyFormat: (d: Object) => string;
+    var stringifyFormat: (d: any) => string;
 
     namespace IntentMessage {
         interface EventRespose<T> {

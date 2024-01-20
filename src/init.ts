@@ -169,7 +169,7 @@ Date.prototype.toDBString = function () {
         ].join(":") + "+08:00";
 };
 
-global.stringifyFormat = function (obj: Object) {
+global.stringifyFormat = function (obj: any) {
     return JSON.stringify(obj, undefined, "    ");
 };
 
