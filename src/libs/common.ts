@@ -5,7 +5,7 @@ import config from '../../config/config';
 export async function sendToAdmin(content: string) {
     const callbackChannel = await redis.hGet("config", `callbackChannel`) as string;
     return new IMessageGUILD({
-        id: await redis.get(`lastestMsgId`) || "08f3fb8adca9d6ccf46710b4e66c38cba64e48a2cfa1a006",
+        id: await redis.get(`lastestMsgId:${botType}`) || "08f3fb8adca9d6ccf46710b4e66c38cba64e48a2cfa1a006",
         channel_id: callbackChannel,
     } as any, false).sendMsgEx({ content });
 }
@@ -19,9 +19,11 @@ export async function callWithRetry<T extends (...args: A) => Promise<R>, R, A e
         const result = await functionCall(...args);
         return { result, errors };
     } catch (err) {
+        if (args[0]?.imageFile) args[0].imageFile = { type: "Buffer", length: args[0].imageFile.length };
+
         if (err && ((err as any).code == 304027) && args && args[0] && args[0].msgId) { //message is expired
             retries--;
-            args[0].msgId = await redis.get(`lastestMsgId`);
+            args[0].msgId = await redis.get(`lastestMsgId:${botType}`);
         } else log.error(err);
         if (typeof err == "object") errors.push(stringifyFormat(err));
         else errors.push(String(err));
@@ -33,34 +35,17 @@ export async function callWithRetry<T extends (...args: A) => Promise<R>, R, A e
             log.error(`文件过大\n`, JSON.stringify(args[0]));
             throw { errors };
         }
+        if (err && (err as any).code == 304020 || ((err as any)?.msg as string | null)?.includes("file size exceeded")) {
+            log.error(`文件超过大小\n`, JSON.stringify(args[0]));
+            throw { errors };
+        }
         if (retries < config.retryTime - 1) {
             await sleep(100);
             return await callWithRetry(functionCall, args, ++retries, errors);
         } else {
-            if (args && args[0] && args[0].imageFile) args[0].imageFile = { type: "Buffer", length: args[0].imageFile.length };
             log.error(`重试多次未成功 args:\n`, JSON.stringify(args[0]));
             throw { errors };
         }
-    }
-}
-
-export function writeFileSyncEx(filePath: string, data: string | Buffer, options?: fs.WriteFileOptions) {
-
-    const pathPart = filePath.split("/");
-    pathPart.pop();
-
-    if (fs.existsSync(pathPart.join("/"))) {
-        fs.writeFileSync(filePath, data, options);
-
-    } else {
-        var _p = "";
-        for (const [iv, _part] of pathPart.entries()) {
-            //if (iv + 1 == pathPart.length) break;
-            _p += `${_part}/`;
-            if (fs.existsSync(_p)) continue;
-            else fs.mkdirSync(_p);
-        }
-        writeFileSyncEx(filePath, data, options);
     }
 }
 
@@ -77,6 +62,7 @@ export async function pushToDB(table: string, data: Record<string, any>) {
     }
     //log.debug(`INSERT INTO ${table} (${keys.join()}) VALUES (${keyss.join()})`);
     return mariadb.query(`INSERT INTO ${table} (${keys.join()}) VALUES (${keyss.join()})`, values).catch(err => {
+        // if(err instanceof SqlError)mariadb.isValid
         log.error(err);
     });
 }
