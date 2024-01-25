@@ -24,19 +24,15 @@ declare global {
     }
     var hotLoadStatus: number;
     var saveGuildsTree: Record<string, SaveGuild>;
-    var studentInfo: StudentInfos;
+    var studentInfo: Record<string, StudentInfo>;
     var botType: BotTypes;
     var allowMarkdown: boolean;
 
     type BotTypes = keyof typeof config.bots;
 
-    interface StudentInfos {
-        [id: string]: StudentInfo;
-    }
-
     interface StudentInfo {
         id: number;
-        releaseStatus: [boolean, boolean];
+        releaseStatus: [boolean, boolean, boolean];
         name: string[];
         pathName: string;
         devName: string;
@@ -539,5 +535,15 @@ declare global {
             MAJOR_TYPE_UGC_SEASON = "MAJOR_TYPE_UGC_SEASON",
             MAJOR_TYPE_SUBSCRIPTION_NEW = "MAJOR_TYPE_SUBSCRIPTION_NEW",
         }
+    }
+
+    interface StudentInfoNet {
+        Id: number;
+        Name: string;
+        DevName: string;
+        PathName: string;
+        StarGrade: 1 | 2 | 3;
+        IsLimited: number;
+        IsReleased: [boolean, boolean, boolean];
     }
 }

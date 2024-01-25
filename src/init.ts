@@ -4,8 +4,9 @@ import { createClient } from 'redis';
 import schedule from "node-schedule";
 import { IChannel, IGuild, createOpenAPI, createWebsocket } from "qq-bot-sdk";
 import _log from './libs/logger';
-import { reloadStudentInfo, sendToAdmin } from './libs/common';
+import { sendToAdmin } from './libs/common';
 import config from '../config/config';
+
 
 export async function init() {
 
@@ -13,7 +14,6 @@ export async function init() {
 
     global.adminId = ["7681074728704576201", "15874984758683127001", "2975E2CA5AE779F1899A0AED2D4FA9FD"];
     global.log = _log;
-    global._path = process.cwd();
     global.botStatus = {
         startTime: new Date(),
         msgSendNum: 0,
@@ -91,7 +91,7 @@ export async function init() {
 
     await global.client.meApi.me().then(res => global.meId = res.data.id);
 
-    await reloadStudentInfo("local").then(d => {
+    await import("./plugins/studentInfo").then(module => module.reloadStudentInfo("local")).then(d => {
         log.info(`学生数据加载完毕 ${d}`);
     });
 

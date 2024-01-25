@@ -3,7 +3,7 @@ import sharp from "sharp";
 import fetch from "node-fetch";
 import format from "date-format";
 import { IMessageDIRECT, IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
-import { reloadStudentInfo, settingUserConfig } from "../libs/common";
+import { sendToAdmin, settingUserConfig } from "../libs/common";
 import config from '../../config/config';
 
 const starString = ["☆☆☆", "★☆☆", "★★☆", "★★★"];
@@ -20,9 +20,7 @@ gachaReload("local").then(d => {
     return log.info(`初始化抽卡数据加载完毕: ${d}`);
 }).catch(async err => {
     log.error(err);
-    return global.client.directMessageApi.postDirectMessage((await global.redis.hGet(`directUid->Gid`, adminId[0]))!, {
-        content: `初始化抽卡数据过程中出错: ${err}`,
-    });
+    return sendToAdmin(`初始化抽卡数据过程中出错: ${err}`);
 });
 
 
@@ -159,7 +157,7 @@ async function analyzeRandData(server: "global" | "jp", uid: string, data: Gacha
 
 export async function reloadGachaData(msg: IMessageDIRECT) {
     if (!adminId.includes(msg.author.id)) return;
-    const type = /^抽卡数据(网络|本地)重加载$/.exec(msg.content)![1];
+    const type = /抽卡数据(网络|本地)重加载/.exec(msg.content)![1];
     return gachaReload(type == "网络" ? "net" : "local")
         .then(r => msg.sendMsgExRef({ content: `已从${type}重加载资源并保存\n${r}\n${analyzeLocalDate().join("\n")}` }))
         .catch(err => {
@@ -195,7 +193,7 @@ function analyzeLocalDate() {
 }
 
 async function gachaReload(type: "net" | "local") {
-    if (type == "net") return reloadStudentInfo(type).then(async r => {
+    if (type == "net") return import("./studentInfo").then(module => module.reloadStudentInfo(type)).then(async r => {
         const _gachaPoolInfo: GachaPoolInfo = {
             global: { common: { 1: [], 2: [], 3: [] }, pickup: { characters: [], start: 0, end: 0 } },
             jp: { common: { 1: [], 2: [], 3: [] }, pickup: { characters: [], start: 0, end: 0 } },
@@ -225,7 +223,7 @@ async function gachaReload(type: "net" | "local") {
 
         gachaPoolInfo.global = _gachaPoolInfo.global;
         gachaPoolInfo.jp = _gachaPoolInfo.jp;
-        fs.writeFileSync(config.gachaPoolInfo, JSON.stringify(_gachaPoolInfo));
+        fs.writeFileSync(config.gachaPoolInfo, stringifyFormat(_gachaPoolInfo));
         return `net | ${r}`;
     });
     else {

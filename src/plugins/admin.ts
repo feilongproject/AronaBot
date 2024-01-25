@@ -2,7 +2,7 @@ import os from "os";
 import qr from "qr-image";
 import Excel from "exceljs";
 import child_process from "child_process";
-import { reloadStudentInfo, sendToAdmin, timeConver } from "../libs/common";
+import { sendToAdmin, timeConver } from "../libs/common";
 import { IMessageDIRECT, IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 
 
@@ -89,7 +89,7 @@ export async function directToAdmin(msg: IMessageDIRECT) {
 export async function reloadStudentData(msg: IMessageDIRECT) {
     if (!adminId.includes(msg.author.id)) return;
     const type = /^学生数据(网络|本地)重加载$/.exec(msg.content)![1];
-    return reloadStudentInfo(type == "网络" ? "net" : "local")
+    return import("./studentInfo").then(module => module.reloadStudentInfo(type == "网络" ? "net" : "local"))
         .then(r => msg.sendMsgExRef({ content: `已从${type}重加载资源并保存\n${r}` }))
         .catch(err => {
             log.error(err);

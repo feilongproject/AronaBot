@@ -1,11 +1,6 @@
-import fs from 'fs';
-import fetch from 'node-fetch';
-import config from '../../config/config';
 import { IMessageGUILD } from './IMessageEx';
+import config from '../../config/config';
 
-
-const nameToId = { jp: 0, global: 1 };
-var key: keyof typeof nameToId;
 
 export async function sendToAdmin(content: string) {
     const callbackChannel = await redis.hGet("config", `callbackChannel`) as string;
@@ -92,58 +87,6 @@ export async function searchDB(table: string, key: string, value: string) {
     });
 }
 
-export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok" | "local ok" | "ok"> {
-
-    const _studentInfo: StudentInfos = {};
-    if (type == "net") {
-        const netStudents: StudentInfoNet[] | void = await fetch("https://raw.gh.schale.top/lonqie/SchaleDB/main/data/cn/students.min.json", {
-            timeout: 10 * 1000,
-        }).then(res => res.json()).then((json: StudentInfoNet[]) => json.map(v => ({ ...v, Name: fixName(v.Name) }))).catch(err => log.error(err));
-        if (!netStudents) throw `can't fetch json:students`;
-
-        const aliasStudentNameLocal: Record<string, string[]> = JSON.parse(fs.readFileSync(config.aliasStudentNameLocal, { encoding: "utf8" }));
-        const aliasStudentNameWeb: Record<string, string[]> | void = await fetch("https://raw.gh.schale.top/lgc2333/bawiki-data/main/data/stu_alias.json", {
-            timeout: 10 * 1000,
-        }).then(res => res.json()).then((json: Record<string, string[]>) => {
-            for (const names in json) json[names] = json[names].map(v => fixName(v));
-            return json;
-        }).catch(err => log.error(err));
-        if (!aliasStudentNameWeb) throw `can't fetch json:aliasStudentNameWeb`;
-
-        for (const d of netStudents) {
-            const devName = d.DevName[0].toUpperCase() + d.DevName.slice(1);
-            _studentInfo[d.Id] = {
-                id: d.Id,
-                releaseStatus: d.IsReleased,
-                name: [d.Name, String(d.Id), fixName(d.DevName), fixName(d.PathName)],
-                devName,
-                pathName: d.PathName,
-                star: d.StarGrade,
-                limitedType: d.IsLimited,
-            };
-
-            const asnw = aliasStudentNameWeb[d.Name];
-            if (asnw) for (const _nameWeb of asnw)
-                if (!_nameWeb.includes("老婆")) _studentInfo[d.Id].name.push(_nameWeb); // 去除私货
-            for (const _ of _studentInfo[d.Id].name)
-                if (aliasStudentNameLocal[_]) _studentInfo[d.Id].name.push(...aliasStudentNameLocal[_]); // 增加本地别名
-
-            _studentInfo[d.Id].name = _studentInfo[d.Id].name.filter((v, i, arr) => arr.indexOf(v, 0) === i); // 去重
-
-            if (!fs.existsSync(`${config.images.characters}/Student_Portrait_${devName}.png`))
-                throw `not found png file in local: Student_Portrait_${devName}`;
-        }
-        global.studentInfo = _studentInfo;
-        fs.writeFileSync(config.studentInfo, JSON.stringify(_studentInfo));
-        return "net ok";
-    } else if (type == "local") {
-        if (fs.existsSync(config.studentInfo)) {
-            global.studentInfo = JSON.parse(fs.readFileSync(config.studentInfo).toString());
-            return "local ok";
-        } else return reloadStudentInfo("net");
-    }
-    return "ok";
-}
 
 export async function settingUserConfig(aid: string, types: "GET", data: string[]): Promise<Record<string, string>>
 export async function settingUserConfig(aid: string, types: "SET", data: Record<string, string>): Promise<Record<string, string>>
@@ -163,16 +106,10 @@ export async function settingUserConfig(aid: string, types: "GET" | "SET", data:
     });
 }
 
-export function findStudentInfo(name: string): StudentInfo | null {
-    for (const id in studentInfo) if (studentInfo[id].name.includes(fixName(name))) return studentInfo[id];
-    return null;
-}
-
 export async function findDirectAidToGid(aid: string, guildId: string): Promise<string> {
 
     const redisGid = await redis.hGet(`directUid->Gid`, aid).catch(err => log.error(err));
     if (redisGid) return redisGid;
-
 
     const createGid = await client.directMessageApi.createDirectMessage({
         source_guild_id: guildId,
@@ -189,7 +126,7 @@ export async function findDirectAidToGid(aid: string, guildId: string): Promise<
     throw "not found guild and create guild";
 }
 
-const fixName = (name: string) => name.replace("（", "(").replace("）", ")").toLowerCase();
+export const fixName = (name: string) => name.replace("（", "(").replace("）", ")").toLowerCase();
 
 export function timeConver(ms: number) {
     ms = Number((ms / 1000).toFixed(0));
@@ -207,14 +144,4 @@ export function timeConver(ms: number) {
     ms = (ms - h) / 24;
 
     return `${ms ? `${ms}天 ` : ``}${h ? `${h}小时 ` : ``}${m ? `${m}分钟 ` : ``}`;
-}
-
-export interface StudentInfoNet {
-    Id: number;
-    Name: string;
-    DevName: string;
-    PathName: string;
-    StarGrade: 1 | 2 | 3;
-    IsLimited: number;
-    IsReleased: [boolean, boolean];
 }

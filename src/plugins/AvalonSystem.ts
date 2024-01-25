@@ -2,7 +2,7 @@ import fs from "fs";
 import fetch from "node-fetch";
 import format from "date-format";
 import { PythonShell } from "python-shell";
-import { StudentInfoNet, sendToAdmin } from "../libs/common";
+import { sendToAdmin } from "../libs/common";
 import { IMessageGUILD, IMessageDIRECT, MessageType } from "../libs/IMessageEx";
 import config from "../../config/config";
 

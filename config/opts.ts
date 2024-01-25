@@ -45,7 +45,8 @@ export default {
             reloadStudentData: {
                 reg: "^学生数据(网络|本地)重加载$",
                 fnc: "reloadStudentData",
-                type: [MessageType.DIRECT],
+                type: [MessageType.GUILD, MessageType.DIRECT],
+                channelAllows: ["all"],
                 describe: "重加载学生数据"
             },
             dumpChatRecord: {
@@ -94,7 +95,8 @@ export default {
             reloadGachaData: {
                 reg: "^抽卡数据(网络|本地)重加载$",
                 fnc: "reloadGachaData",
-                type: [MessageType.DIRECT],
+                channelAllows: ["all"],
+                type: [MessageType.GUILD, MessageType.DIRECT],
                 describe: "重加载抽卡数据"
             }
         },

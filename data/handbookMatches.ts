@@ -1,5 +1,5 @@
 import fs from "fs";
-import { findStudentInfo, sendToAdmin } from "../src/libs/common";
+import { sendToAdmin } from "../src/libs/common";
 import config from "../config/config";
 
 export const match = {
@@ -43,7 +43,7 @@ export const adapter: Record<string, (content: string, type?: "GET") => ReturnTy
 async function studentEvaluation(content: string, type?: "GET"): Promise<{ id: string; desc?: string | undefined; }> {
     const studentName = content.replace(/\/?(角评|角色评价)/, "").trim();
     if (!studentName || studentName == "all") return { id: "all" };
-    const findedInfo = findStudentInfo(studentName);
+    const findedInfo = await import("../src/plugins/studentInfo").then(module => module.findStudentInfo(studentName));
     if (findedInfo) return { id: findedInfo.pathName, desc: findedInfo.name[0] };
 
     await sendToAdmin(`未找到『${studentName}』数据`).catch(err => log.error("handbookMatches.studentEvaluation", err));
