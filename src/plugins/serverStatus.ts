@@ -40,7 +40,7 @@ export async function baServerStatus(msg: IMessageGUILD | IMessageGROUP) {
         const cnNode = cnStatus.data.find(v => v.module.name == "活动周历")?.list.filter(v => v.pub_area == "国服").find(v => v.title.includes("国服维护"));
         const cnStartTime = new Date((cnNode?.begin_at || 0) * 1000);
         const cnEndTime = new Date((cnNode?.end_at || 0) * 1000);
-        const cnContent = cnNode ?
+        const cnContent = cnNode && (cnEndTime.getTime() > new Date().getTime()) ?
             `国服状态: ${cnNode.title}` +
             `\n开始维护时间: ${format.asString(cnStartTime)}` +
             `\n终止维护时间: ${format.asString(cnEndTime)}` :
