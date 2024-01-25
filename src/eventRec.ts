@@ -65,7 +65,7 @@ async function executeChat(msg: IMessageGROUP) {
 
 }
 
-export async function mailerError(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP, err: Error) {
+export async function mailerError(msg: any, err: Error) {
     log.error(err);
     // if (devEnv) return;
 
