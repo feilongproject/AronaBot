@@ -1,5 +1,5 @@
 {
-    "ignore": [".git", "node_modules/**/node_modules", "src/plugins/", "config/opts.json"],
+    "ignore": [".git", "node_modules/**/node_modules", "src/plugins/", "config/opts.ts"],
     "execMap": {
         "ts": "tsc"
     },
