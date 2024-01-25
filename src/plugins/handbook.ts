@@ -19,20 +19,21 @@ const provideMap: Record<string, string> = { jp: "夜猫", global: "夜猫", cn:
 
 export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP) {
     const forceGuildType = ("guild_id" in msg && ["16392937652181489481"].includes(msg.guild_id)) ? "cn" : undefined;
-    const hbMatched = await matchHandbook(msg.content.replaceAll(/<@!?\d+>/g, "").trim(), msg.author.id, forceGuildType).catch(err => JSON.stringify(err));
-    // log.debug(msg.content, hbMatched);
+    const hbMatched = await matchHandbook(msg, msg.author.id, forceGuildType).catch(err => stringifyFormat(err));
+    if (devEnv) log.debug(msg.content, hbMatched);
     if (!hbMatched) return msg.sendMsgEx({ content: `未找到对应攻略数据` });
     if (typeof hbMatched == "string") return msg.sendMsgEx({ content: hbMatched });
     const lastestImage = await getLastestImage(hbMatched.name, hbMatched.type);
     const filePath = `${config.handbookRoot}/${hbMatched.name}/${hbMatched.type}.png`;
 
     const at_user = (msg instanceof IMessageGROUP ? `` : `<@${msg.author.id}> `) + `\u200b \u200b == ${serverMap[hbMatched.type] ?? hbMatched.nameDesc ?? hbMatched.type}${hbMatched.desc} == ${hbMatched.notChange ? noSetServerMessage : ""}`;
+    const handbookAuthor = provideMap[hbMatched.type] || hbMatched.name == "studentEvaluation" ? provideMap.jp : undefined;
     return msg.sendMarkdown({
         markdownNameId: "common",
         params: {
             desc: at_user
                 + `\r${needUpdateMessage}\r`
-                + `攻略制作: ${provideMap[hbMatched.type]}\r`,
+                + `攻略制作: ${handbookAuthor}\r`,
             ...(lastestImage.info ? { desc3: lastestImage.info + "\r" } : {}),
             link1: `${lastestImage.infoUrl ? "🔗详情点我" : "\u200b"}](${lastestImage.infoUrl || "https://ip.arona.schale.top/p/233"}`,
             img1: `img #${lastestImage.width}px #${lastestImage.height}px](${lastestImage.url}`,
@@ -44,7 +45,7 @@ export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessag
 
         content: at_user
             + `\n${needUpdateMessage}`
-            + `\n攻略制作: ${provideMap[hbMatched.type]}`
+            + `\n攻略制作: ${handbookAuthor}`
             + `\n${lastestImage.info}`
             + `${lastestImage.infoUrl ? `\n详情: ${lastestImage.infoUrl}\n` : ""}`
             + lastestImage.updateTime,
@@ -59,7 +60,8 @@ export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessag
 
 }
 
-async function matchHandbook(content: string, aid: string, _hbType: string | undefined = undefined): Promise<{ name: string; nameDesc?: string; type: string; desc: string; notChange: boolean; } | undefined> {
+async function matchHandbook(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP, aid: string, _hbType: string | undefined = undefined): Promise<{ name: string; nameDesc?: string; type: string; desc: string; notChange: boolean; } | undefined> {
+    const content = msg.content.replaceAll(/<@!?\d+>/g, "").trim();
     const handbookMatches = await import("../../data/handbookMatches");
     // const { names, types } = .handbookMatches as any as HandbookMatches;
     var nameDesc = "";
