@@ -9,7 +9,7 @@ import config from "../config/config";
 
 async function executeChannel(msg: IMessageDIRECT | IMessageGUILD) {
     try {
-        global.redis.set("lastestMsgId", msg.id, { EX: 4 * 60 });
+        global.redis.set(`lastestMsgId:${botType}`, msg.id, { EX: 4 * 60 });
         if (adminId.includes(msg.author.id) && !devEnv && (await redis.get("devEnv"))) return;
         if (msg instanceof IMessageGUILD && msg.mentions?.find(v => v.bot && v.id != meId && !msg.mentions?.find(m => m.id == meId))) return;
 

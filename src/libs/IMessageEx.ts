@@ -47,7 +47,7 @@ class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
 
     async sendMsgEx(options: Partial<SendOption.Channel>) {
         global.botStatus.msgSendNum++;
-        options.msgId = options.msgId || this.id || await redis.get("lastestMsgId") || undefined;
+        options.msgId = options.msgId || this.id || await redis.get(`lastestMsgId:${botType}`) || undefined;
         options.guildId = options.guildId || this.guild_id;
         options.channelId = options.channelId || this.channel_id;
         options.sendType = options.sendType || this.messageType;

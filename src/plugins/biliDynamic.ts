@@ -1,9 +1,9 @@
+import sharp from "sharp";
 import fetch from "node-fetch";
 import * as puppeteer from "puppeteer";
 import { readFileSync, writeFileSync } from "fs";
-import { mailerError } from "../eventRec";
-import { IMessageDIRECT, IMessageGUILD, MessageType } from "../libs/IMessageEx";
 import { pushToDB, searchDB, sendToAdmin, sleep } from "../libs/common";
+import { IMessageDIRECT, IMessageGUILD, MessageType } from "../libs/IMessageEx";
 
 
 const browserCkFile = `${_path}/data/ck.json`;
@@ -11,6 +11,7 @@ const dynamicPushFilePath = `${_path}/data/dynamicPush.json`;
 export const userAgent = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36 Edg/120.0.0.0";
 
 export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT) {
+    // if (!devEnv) return;
 
     const cookies = await getCookie().catch(err => {
         log.error(err);
@@ -34,15 +35,29 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT) {
             log.info(`${bUser.name}(${bUser.id})的动态更新了: ${item.id_str}`);
 
             try {
-                const picInfo = await screenshot(item.id_str, item.modules.module_author.pub_ts.toString());
-                for (const cId in bUser.channels) {
-                    const msg = new IMessageGUILD({ id: await redis.get(`lastestMsgId`), } as any, false);
+                let imageBuffer = await screenshot(item.id_str, item.modules.module_author.pub_ts.toString(), 60);
+                const imageSharp = sharp(imageBuffer);
+                const metadata = await imageSharp.metadata();
+                var imageHeight = metadata.height;
+
+                while (imageBuffer && imageBuffer.length >= 4 * 1024 * 1024) {
+                    imageHeight = imageHeight ? Math.floor(imageHeight * 0.8) : undefined;
+                    imageBuffer = await imageSharp.resize(metadata.width, imageHeight, {
+                        position: "top",
+                    }).toBuffer();
+                }
+
+                // const fileName = `bili-${item.id_str}.png`;
+                // writeFileSync(`${config.imagesOut}/${fileName}`, imageBuffer);
+
+                if (imageBuffer) for (const cId in bUser.channels) {
+                    const msg = new IMessageGUILD({ id: await redis.get(`lastestMsgId:${botType}`), } as any, false);
                     if (cId == "544252608") {
                         if (item.type == "DYNAMIC_TYPE_FORWARD") continue;
                         await msg.sendMsgEx({
                             channelId: cId,
                             sendType: MessageType.GUILD,
-                            imageFile: picInfo,
+                            imageFile: imageBuffer,
                             content: `https://t.bilibili.com/${item.id_str}`,
                         });
                         continue;
@@ -50,9 +65,11 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT) {
                     await msg.sendMsgEx({
                         channelId: cId,
                         sendType: MessageType.GUILD,
-                        imageFile: picInfo,
+                        imageFile: imageBuffer,
                         content: `${devEnv ? "dev " : ""}${bUser.name} 更新了一条动态\nhttps://t.bilibili.com/${item.id_str}`,
                     });
+                } else {
+                    await sendToAdmin(`${bUser.name} ${item.id_str} 发送失败，${imageBuffer === undefined ? "div未找到" : "图片过大"}`).catch(err => { });
                 }
 
                 await pushToDB("biliMessage", {
@@ -68,8 +85,8 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT) {
                 });
             } catch (err) {
                 log.error(err);
-                await mailerError(item, err instanceof Error ? err : new Error(JSON.stringify(err))).catch(err => { });
-                await sendToAdmin(`${bUser.name} ${item.id_str} 发送失败\n${JSON.stringify(err).replaceAll(".", ",")}`).catch(err => { });
+                await import("../eventRec").then(m => m.mailerError(item, err instanceof Error ? err : new Error(stringifyFormat(err))).catch(err => { }));
+                await sendToAdmin(`${bUser.name} ${item.id_str} 发送失败\n${stringifyFormat(err).replaceAll(".", ",")}`).catch(err => { });
             }
 
             await sleep(5 * 1000);
@@ -89,9 +106,7 @@ export async function getCookie(): Promise<string> {
 
     const newCookie = await fetch("https://space.bilibili.com/1/dynamic", {
         headers: { "User-Agent": userAgent },
-    }).then(async res => res.headers.raw()["set-cookie"]).then(rawCookies => {//
-        return rawCookies.map(k => k.split(";")[0].trim()).join("; ");
-    });
+    }).then(res => res.headers.raw()["set-cookie"]).then(rawCookies => rawCookies.map(k => k.split(";")[0].trim()).join("; "));
     if (!newCookie) throw "not get Cookie in headers";
 
     const payload = readFileSync(`${_path}/data/biliPayload.txt`).toString();
@@ -103,7 +118,7 @@ export async function getCookie(): Promise<string> {
             "Accept-Encoding": "gzip, deflate, br",
             "Accept-Language": "zh-CN,zh;q=0.9",
             "Cache-Control": "no-cache",
-            "Content-Length": "6244",
+            // "Content-Length": "6244",
             "Content-Type": "application/json;charset=UTF-8",
             "Dnt": "1",
             "Origin": "https://space.bilibili.com",
@@ -136,7 +151,22 @@ async function checkUser(biliUserId: string, cookies: string): Promise<BiliDynam
         headers: {
             "User-Agent": userAgent,// userAgent,
             "Cookie": cookies, //`SESSDATA=feilongproject.com;${cookies}`,
-            "accept-language": "en,zh-CN;q=0.9,zh;q=0.8",
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Language": "zh-CN,zh;q=0.9",
+            "Cache-Control": "no-cache",
+            // "Content-Length": "6244",
+            "Content-Type": "application/json;charset=UTF-8",
+            "Dnt": "1",
+            "Origin": "https://space.bilibili.com",
+            "Pragma": "no-cache",
+            "Referer": "https://space.bilibili.com/1/dynamic",
+            "Sec-Ch-Ua": `"Not.A/Brand";v="8", "Chromium";v="114", "Microsoft Edge";v="114"`,
+            "Sec-Ch-Ua-Mobile": "?0",
+            "Sec-Ch-Ua-Platform": "Windows",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-site",
         }
     }).then(res => res.json()).then((json: BiliDynamic.List) => {
         //log.debug(json);
@@ -146,10 +176,10 @@ async function checkUser(biliUserId: string, cookies: string): Promise<BiliDynam
     });
 }
 
-async function screenshot(biliDynamicId: string, biliDynamicPubTs: string): Promise<Buffer> {
+async function screenshot(biliDynamicId: string, pubTs: string, quality = 60): Promise<Buffer | undefined> {
 
     if (!global.browser || !browser.isConnected()) global.browser = await puppeteer.launch({
-        headless: !devEnv,
+        headless: true,
         args: ['--no-sandbox'],
     });
 
@@ -193,16 +223,16 @@ async function screenshot(biliDynamicId: string, biliDynamicPubTs: string): Prom
     //     quality: 70,
     //     encoding: "binary",
     // }) as Promise<Buffer>);
-    const pic = await page.screenshot({
+    const pic = await (await page.$("#app > div"))?.screenshot({
         type: "jpeg",
-        quality: 70,
+        quality,
         encoding: "binary",
-        fullPage: true,
-    });
+        // fullPage: true,
+    }) as Buffer | null;
 
-    writeFileSync(browserCkFile, JSON.stringify(await page.cookies()));
+    writeFileSync(browserCkFile, stringifyFormat(await page.cookies()));
     await page.close();
-    return pic;
+    return pic || undefined;
 }
 
 interface DynamicPush {
