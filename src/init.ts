@@ -33,28 +33,19 @@ export async function init() {
     }
     global.allowMarkdown = config.bots[botType].allowMarkdown;
 
-    log.info(`初始化: 正在创建插件热加载监听`);
-    chokidar.watch(`${global._path}/src/`,).on("change", async (filepath, stats) => {
-        if (filepath.endsWith("src/init.ts") || filepath.endsWith("src/index.ts")) return;
-        if (!devEnv && !hotLoadStatus) return;
-        if (require.cache[filepath]) {
-            hotLoadStatus--;
-            log.mark(`文件 ${filepath} 正在进行热更新`);
-            delete require.cache[filepath];
-            if (!devEnv) return sendToAdmin(`文件 ${filepath} 正在进行热更新 ${hotLoadStatus}`);
-        }
-    });
-
-    log.info(`初始化: 正在创建指令文件热加载监听`);
-    chokidar.watch(`${global._path}/config/opts.json`).on("change", async (filepath, stats) => {
-        if (!devEnv && !hotLoadStatus) return;
-        if (require.cache[filepath]) {
-            hotLoadStatus--;
-            log.mark(`指令配置文件正在进行热更新`);
-            delete require.cache[filepath];
-            if (!devEnv) return sendToAdmin(`指令配置文件正在进行热更新 ${hotLoadStatus}`);
-        }
-    });
+    log.info(`初始化: 正在创建热加载监听`);
+    for (const hotloadConfig of config.hotLoadConfigs) {
+        log.info(`初始化: 正在创建热加载监听: ${hotloadConfig.type}`);
+        chokidar.watch(hotloadConfig.path).on("change", async (filepath, stats) => {
+            if (!devEnv && !hotLoadStatus) return;
+            if (require.cache[filepath]) {
+                hotLoadStatus--;
+                log.mark(`${hotloadConfig.type} 正在进行热更新`);
+                delete require.cache[filepath];
+                return sendToAdmin(`${devEnv} ${hotloadConfig.type} 正在进行热更新 ${hotLoadStatus}`);
+            }
+        });
+    }
 
     log.info(`初始化: 正在连接数据库`);
     global.redis = createClient({
