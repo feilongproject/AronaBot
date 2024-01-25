@@ -60,6 +60,13 @@ export default {
                 fnc: "restart",
                 type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP],
                 describe: "重启机器人"
+            },
+            sendTopMessage: {
+                reg: "^/?stm",
+                fnc: "sendTopMessage",
+                type: [MessageType.GUILD],
+                channelAllows: ["all"],
+                describe: "向指定子频道发送消息并置顶"
             }
         },
         mute: {

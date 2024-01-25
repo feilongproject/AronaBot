@@ -62,6 +62,18 @@ export async function restart(msg: IMessageGUILD | IMessageDIRECT | IMessageGROU
     process.exit();
 }
 
+export async function sendTopMessage(msg: IMessageGUILD) {
+    if (!adminId.includes(msg.author.id)) return;
+    const match = /^\/?stm\s+(?<channelId>\d+)\s+(?<sendContent>.+)/s.exec(msg.content)?.groups;
+    if (!match) return msg.sendMsgEx({ content: `channelId 或 content 为空` });
+    const { channelId, sendContent } = match;
+    const result = await msg.sendMsgEx({ channelId, content: sendContent });
+    const msgId = result.result?.id;
+    if (!msgId) throw new Error("sendTopMessage未找到msgId");
+
+    return client.pinsMessageApi.putPinsMessage(channelId, msgId).then(() => msg.sendMsgEx({ content: `已发送消息至 ${channelId}` }));
+}
+
 export async function directToAdmin(msg: IMessageDIRECT) {
     if (adminId.includes(msg.author.id)) {
         //log.debug(`refMid:${msg.message_reference?.message_id}`);
