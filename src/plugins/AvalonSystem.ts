@@ -134,7 +134,6 @@ export async function accuseGacha(msg: IMessageGUILD) {
                 `\n举报人: <@${msg.author.id}>(id: ${msg.author.id})` +
                 `\n注意: 该消息由举报人进行举报, 并由bot自动检测出存在晒卡行为, 如有误判或异议请联系举报人与<@${adminId[0]}>` +
                 `\n(该步骤为初步操作, 若无后续则以本次为准)`,
-            channelId: await redis.hGet("mute:sendChannel", msg.guild_id),
         });// 发送小黑屋
 
     } catch (err: any) {
