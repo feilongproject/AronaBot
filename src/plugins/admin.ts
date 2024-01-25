@@ -40,6 +40,10 @@ export async function status(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP
     if (devEnv) log.debug(`\n` + content);
     return msg.sendMsgEx({ content: `\n` + content });
 }
+export async function dmsMe(msg: IMessageGUILD) {
+    const dmsInfo = await client.directMessageApi.createDirectMessage({ source_guild_id: msg.guild_id, recipient_id: msg.author.id });
+    return client.directMessageApi.postDirectMessage(dmsInfo.data.guild_id, { content: "pong" });
+}
 
 export async function ping(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP) {
     if (!adminId.includes(msg.author.id)) return;

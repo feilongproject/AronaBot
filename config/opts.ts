@@ -21,6 +21,13 @@ export default {
             }
         },
         admin: {
+            dmsMe: {
+                reg: "^/?dmsme",
+                fnc: "dmsMe",
+                type: [MessageType.GUILD],
+                channelAllows: ["all"],
+                describe: "创建一个私信会话并pong"
+            },
             ping: {
                 reg: "^/?ping$",
                 fnc: "ping",
