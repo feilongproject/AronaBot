@@ -1,6 +1,6 @@
 import fs from "fs";
 import fetch from 'node-fetch';
-import { fixName, sendToAdmin } from "../libs/common";
+import { sendToAdmin } from "../libs/common";
 import config from '../../config/config';
 
 

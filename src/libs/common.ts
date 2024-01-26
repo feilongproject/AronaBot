@@ -10,10 +10,6 @@ export async function sendToAdmin(content: string) {
     } as any, false).sendMsgEx({ content });
 }
 
-export async function sleep(ms: number) {
-    return new Promise(resovle => { setTimeout(resovle, ms) });
-}
-
 export async function callWithRetry<T extends (...args: A) => Promise<R>, R, A extends Array<any>>(functionCall: (...args: A) => Promise<R>, args: Parameters<T>, retries = 0, errors: any[] = []): Promise<RetryResult<R>> {
     try {
         const result = await functionCall(...args);
@@ -111,8 +107,6 @@ export async function findDirectAidToGid(aid: string, guildId: string): Promise<
     }
     throw "not found guild and create guild";
 }
-
-export const fixName = (name: string) => name.replace("（", "(").replace("）", ")").toLowerCase();
 
 export function timeConver(ms: number) {
     ms = Number((ms / 1000).toFixed(0));

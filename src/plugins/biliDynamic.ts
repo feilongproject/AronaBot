@@ -2,7 +2,7 @@ import sharp from "sharp";
 import fetch from "node-fetch";
 import * as puppeteer from "puppeteer";
 import { readFileSync, writeFileSync } from "fs";
-import { pushToDB, searchDB, sendToAdmin, sleep } from "../libs/common";
+import { pushToDB, searchDB, sendToAdmin } from "../libs/common";
 import { IMessageDIRECT, IMessageGUILD, MessageType } from "../libs/IMessageEx";
 
 

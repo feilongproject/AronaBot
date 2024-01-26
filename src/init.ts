@@ -160,9 +160,9 @@ Date.prototype.toDBString = function () {
         ].join(":") + "+08:00";
 };
 
-global.stringifyFormat = function (obj: any) {
-    return JSON.stringify(obj, undefined, "    ");
-};
+global.stringifyFormat = (obj: any) => JSON.stringify(obj, undefined, "    ");
+global.sleep = (ms: number) => new Promise(resovle => { setTimeout(resovle, ms) });
+global.fixName = (name: string) => name.replace("（", "(").replace("）", ")").toLowerCase().replaceAll(" ", "");
 
 (global as any).btoa = null;
 (global as any).atob = null;

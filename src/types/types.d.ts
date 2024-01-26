@@ -30,6 +30,14 @@ declare global {
 
     type BotTypes = keyof typeof config.bots;
 
+    interface Date {
+        toDBString: () => string;
+    }
+
+    var stringifyFormat: (d: any) => string;
+    var sleep: (time: number) => Promise<any>;
+    var fixName: (name: string) => string;
+
     interface StudentInfo {
         id: number;
         releaseStatus: [boolean, boolean, boolean];
@@ -54,12 +62,6 @@ declare global {
         id: string,
         name: string,
     }
-
-    interface Date {
-        toDBString: () => string;
-    }
-
-    var stringifyFormat: (d: any) => string;
 
     namespace IntentMessage {
         interface EventRespose<T> {
