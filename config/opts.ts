@@ -29,7 +29,7 @@ export default {
                 describe: "创建一个私信会话并pong"
             },
             ping: {
-                reg: "^/?ping$",
+                reg: "^/?ping",
                 fnc: "ping",
                 type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP],
                 channelAllows: ["all"],
@@ -47,6 +47,7 @@ export default {
                 reg: "^/?热(加载|更新)(-?\\d+)$",
                 fnc: "hotLoad",
                 type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP],
+                channelAllows: ["all"],
                 describe: "开启或关闭热加载"
             },
             reloadStudentData: {
@@ -60,6 +61,7 @@ export default {
                 reg: "^dump\\s*(\\d+)$",
                 fnc: "dumpChatRecord",
                 type: [MessageType.GUILD, MessageType.DIRECT],
+                channelAllows: ["all"],
                 describe: "dump发言记录"
             },
             restart: {
