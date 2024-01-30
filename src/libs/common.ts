@@ -21,7 +21,7 @@ export async function callWithRetry<T extends (...args: A) => Promise<R>, R, A e
             retries--;
             args[0].msgId = await redis.get(`lastestMsgId:${botType}`);
         } else log.error(err);
-        if (typeof err == "object") errors.push(stringifyFormat(err));
+        if (typeof err == "object") errors.push(JSON.stringify(err));
         else errors.push(String(err));
         if (err && (err as any).code == 304003 || ((err as any)?.msg as string | null)?.includes("url not allowed")) {
             log.error(`url 不被允许:\n`, JSON.stringify(args[0]));

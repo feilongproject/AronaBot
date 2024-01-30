@@ -83,6 +83,7 @@ class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
 
         const kbTemplateId = await redis.hGet(`config:kb:${keyboardNameId}`, meId);
         const _options = { templateId: mdTemplateId, keyboardId: kbTemplateId };
+        if (botType == "PlanaBot") return this.sendMsgEx(options);
         return callWithRetry(this._sendMarkdown, [{ ...options, ..._options }]).catch(err => this.sendMsgEx(options));
     }
 

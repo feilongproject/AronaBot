@@ -103,8 +103,8 @@ export async function init() {
     }
 
 
-    if (await redis.exists("isRestart")) {
-        await redis.del("isRestart");
+    if (await redis.exists(`isRestart:${meId}`)) {
+        await redis.del(`isRestart:${meId}`);
         return sendToAdmin("重启成功");
     }
 

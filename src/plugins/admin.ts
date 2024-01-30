@@ -61,7 +61,7 @@ export async function hotLoad(msg: IMessageGUILD | IMessageDIRECT | IMessageGROU
 
 export async function restart(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP) {
     if (!adminId.includes(msg.author.id)) return;
-    await redis.set(`isRestart`, "T");
+    await redis.set(`isRestart:${meId}`, "T");
     await msg.sendMsgEx({ content: "开始重启" });
     process.exit();
 }
