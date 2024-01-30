@@ -21,7 +21,7 @@ export async function updateEventId(event?: IntentMessage.GUILD_MEMBERS) {
 
         await client.memberApi.memberAddRole(guildId, "5", opUserId, channel.id).catch(err => {
             log.error(err);
-            return sendToAdmin(JSON.stringify(err).replaceAll(".", "。")).catch(err => log.error(err));
+            return sendToAdmin("updateEventId memberAddRole\n" + stringifyFormat(err).replaceAll(".", ",")).catch(err => log.error(err));
         });
     }
 }

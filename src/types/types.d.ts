@@ -148,6 +148,19 @@ declare global {
             union_appid: string;
         }
 
+        type FORUMS_EVENT = EventRespose<FORUMS_EVENT__body>; // 测试包括 FORUM_REPLY_CREATE,FORUM_POST_CREATE,FORUM_THREAD_CREATE,FORUM_THREAD_UPDATE
+        type FORUMS_EVENT__body = {
+            author_id: string;
+            channel_id: string;
+            guild_id: string;
+            post_info: {
+                content: string;
+                date_time: string;
+                post_id: string;
+                thread_id: string;
+            }
+        }
+
         // type CHANNEL = EventRespose<CHANNEL__body>;//测试包括 CHANNEL_CREATE,CHANNEL_UPDATE,CHANNEL_DELETE
         // type CHANNEL__body = {
         //     op_user_id: string;
@@ -234,8 +247,8 @@ declare global {
     }
 
     interface RetryResult<R> {
-        result?: R;
-        errors: any[];
+        result: R;
+        errors?: any[];
     }
 
     const enum IntentEventType {
@@ -260,6 +273,7 @@ declare global {
         CHANNEL_CREATE = "CHANNEL_CREATE",
         CHANNEL_UPDATE = "CHANNEL_UPDATE",
         CHANNEL_DELETE = "CHANNEL_DELETE",
+        FORUM_POST_CREATE = "FORUM_POST_CREATE",
     }
 
     namespace BiliDynamic {
