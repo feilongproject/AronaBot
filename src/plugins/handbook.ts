@@ -4,7 +4,7 @@ import fetch from "node-fetch";
 import format from "date-format";
 import * as cheerio from "cheerio";
 import imageSize from "image-size";
-import { settingUserConfig } from "../libs/common";
+import { sendToAdmin, settingUserConfig } from "../libs/common";
 import { IMessageDIRECT, IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 import config from "../../config/config";
 
@@ -16,67 +16,119 @@ const updateTimeMessage = `图片更新时间：`;
 const serverMap: Record<string, string> = { jp: "日服", global: "国际服", cn: "国服", all: "" };
 const provideMap: Record<string, string> = { jp: "夜猫", global: "夜猫", cn: "朝夕desu", all: "夜猫" };
 
+const handbookMatches: HandbookMatches.Root = {
+    names: {
+        totalAssault: {
+            reg: /^\/?总力战一图流/,
+            typeReg: /(总力战?(一图流?)?)|(totalAssault)/,
+            desc: "总力战一图流",
+            has: [HandbookMatches.Type.jp, HandbookMatches.Type.global],
+        },
+        clairvoyance: {
+            reg: /^\/?(千|万)里眼/,
+            typeReg: /(千里眼?)|(clairvoyance)/,
+            desc: "千里眼",
+            has: [HandbookMatches.Type.global, HandbookMatches.Type.cn],
+        },
+        activityStrategy: {
+            reg: /^\/?活动攻略/,
+            typeReg: /(活动(攻略)?)|(activity(Strategy)?)/,
+            desc: "活动攻略",
+            has: [HandbookMatches.Type.jp, HandbookMatches.Type.global],
+        },
+        studentEvaluation: {
+            reg: /^\/?(角评|角色评价)/,
+            typeReg: /(角评|角色评价)|student(Evaluation)?/,
+            desc: "角评",
+            has: [HandbookMatches.Type.all],
+        },
+    },
+    types: {
+        global: /(国际|g)服?/,
+        jp: /(日|jp)服?/,
+        cn: /(国|cn)服?/,
+    },
+}
 
 export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP) {
     const forceGuildType = ("guild_id" in msg && ["16392937652181489481"].includes(msg.guild_id)) ? "cn" : undefined;
-    const hbMatched = await matchHandbook(msg, msg.author.id, forceGuildType).catch(err => stringifyFormat(err));
+    const hbMatched = await matchHandbook(msg, forceGuildType).catch(err => stringifyFormat(err));
     if (devEnv) log.debug(msg.content, hbMatched);
-    if (!hbMatched) return msg.sendMsgEx({ content: `未找到对应攻略数据` });
-    if (typeof hbMatched == "string") return msg.sendMsgEx({ content: hbMatched });
-    const lastestImage = await getLastestImage(hbMatched.name, hbMatched.type);
+    if (typeof hbMatched == "string") return msg.sendMsgEx({ content: `未找到对应攻略数据，${hbMatched}` });
+    const lastestImage = hbMatched.fuzzy ? undefined : await getLastestImage(hbMatched.name, hbMatched.type);
     const filePath = `${config.handbookRoot}/${hbMatched.name}/${hbMatched.type}.png`;
 
-    const at_user = (msg instanceof IMessageGROUP ? `` : `<@${msg.author.id}> `) + `\u200b \u200b == ${serverMap[hbMatched.type] ?? hbMatched.nameDesc ?? hbMatched.type}${hbMatched.desc} == ${hbMatched.notChange ? noSetServerMessage : ""}`;
+    const at_user = (msg instanceof IMessageGROUP ? `` : `<@${msg.author.id}> `)
+        + `\u200b \u200b == ${serverMap[hbMatched.type] ?? hbMatched.nameDesc ?? hbMatched.type}`
+        + `${hbMatched.desc} == ${hbMatched.default ? noSetServerMessage : ""}`;
     const handbookAuthor = provideMap[hbMatched.type] || hbMatched.name == "studentEvaluation" ? provideMap.jp : undefined;
+
+    const markdownLink: Record<`link${number}`, string> = { link1: lastestImage?.infoUrl ? `🔗详情点我](${lastestImage.infoUrl}` : undefined as any, };
+    for (const [iv, fuzzy] of (hbMatched.fuzzy || []).entries()) {
+        markdownLink[`link${iv + 2}`] = mdCommandLink(`「${fuzzy.name}」`, `角评 ${fuzzy.name}`);
+    }
+    for (let iv = 1; iv <= 6; iv++) {
+        if (!markdownLink[`link${iv}`]) markdownLink[`link${iv}`] = "\u200b](https://ip.arona.schale.top/p/233";
+    }
+
     return msg.sendMarkdown({
         markdownNameId: "common",
         params: {
-            desc: at_user
-                + `\r${needUpdateMessage}\r`
-                + `攻略制作: ${handbookAuthor}\r`,
-            ...(lastestImage.info ? { desc3: lastestImage.info + "\r" } : {}),
-            link1: `${lastestImage.infoUrl ? "🔗详情点我" : "\u200b"}](${lastestImage.infoUrl || "https://ip.arona.schale.top/p/233"}`,
-            img1: `img #${lastestImage.width}px #${lastestImage.height}px](${lastestImage.url}`,
-            img1_status: `\r${lastestImage.updateTime}`,
+            desc1: at_user + (hbMatched.fuzzy ? "" : `\r${needUpdateMessage}\r攻略制作: ${handbookAuthor}\r`),
+            // + (lastestImage?.info ? `${lastestImage.info}\r` : ""), // sb腾讯，'type:business, code:30, msg:["[[图片] [少女]]","[[少女] [图片]]"]'
+            img1: `img #${lastestImage?.width || -1}px #${lastestImage?.height || 1}px](${lastestImage?.url || "  "}`,
+            desc2: `\r${lastestImage?.updateTime || (hbMatched.fuzzy ? "当前为模糊搜索，请从以下搜素结果中选择(若点击未发送请更新QQ至新版):\r" : "")}`,
             img2: "img #-1px #1px](  ",
+            ...markdownLink,
         },
         keyboardNameId: "handbook",
         // markdown 部分
 
-        content: at_user
-            + `\n${needUpdateMessage}`
-            + `\n攻略制作: ${handbookAuthor}`
-            + `\n${lastestImage.info}`
-            + `${lastestImage.infoUrl ? `\n详情: ${lastestImage.infoUrl}\n` : ""}`
-            + lastestImage.updateTime,
-        imageUrl: lastestImage.url,
+        content: at_user + (hbMatched.fuzzy ? "" : `\n${needUpdateMessage}\n攻略制作: ${handbookAuthor}`)
+            // + `\n${lastestImage?.info}`
+            + `${lastestImage?.infoUrl ? `\n详情: ${lastestImage.infoUrl}` : ""}`
+            + `\n${lastestImage?.updateTime || (hbMatched.fuzzy ? "当前为模糊搜索，请从以下搜素结果中选择:\r" : "")}`
+            + (hbMatched.fuzzy?.map(v => `「${v.name}」`).join("\n") || ""),
+        imageUrl: lastestImage?.url,
         // fallback 部分
     }).catch(err => {
         log.error(err);
         return msg.sendMsgEx({
-            content: getErrorMessage + (err.errors.length ? (err.errors as string[]).join("\n") : JSON.stringify(err)).replaceAll(".", ",")
+            content: getErrorMessage + (err.errors.length ? (err.errors as string[]).join("\n") : stringifyFormat(err)).replaceAll(".", ",")
         });
     });
 
 }
 
-async function matchHandbook(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP, aid: string, _hbType: string | undefined = undefined): Promise<{ name: string; nameDesc?: string; type: string; desc: string; notChange: boolean; } | undefined> {
+function mdCommandLink(showDesc: string, command: string, enter = true) {
+    command = command.replace(/\(/g, "（").replace(/\)/g, "）");
+    return `${showDesc}](mqqapi://aio/inlinecmd?command=${encodeURI(command)}&reply=false&enter=${enter}`;
+}
+
+async function matchHandbook(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP, _hbType?: string): Promise<HandbookMatched | string> {
     const content = msg.content.replaceAll(/<@!?\d+>/g, "").trim();
-    const handbookMatches = await import("../../data/handbookMatches");
-    // const { names, types } = .handbookMatches as any as HandbookMatches;
-    var nameDesc = "";
-    const hbName = Object.entries(handbookMatches.match.names).find(([k, v]) => RegExp(v.reg).test(content));
-    if (!hbName || !hbName[0]) return undefined;
-    var hbType: string | undefined = _hbType || (hbName[1]?.has?.includes("all") ? "all" : ((Object.entries(handbookMatches.match.types).find(([k, v]) => RegExp(v).test(content)) || [])[0]) as any);
-    if (handbookMatches.adapter[hbName[0]]) {
-        const _ = await handbookMatches.adapter[hbName[0]](content, "GET");
-        hbType = _.id;
-        if (_.desc) nameDesc = _.desc;
-    } else if (hbType != "all" && !hbType) {
-        hbType = (await settingUserConfig(aid, "GET", ["server"])).server;
-        if (!hbName[1].has.includes(hbType)) hbType = undefined;
+    const [hbMatchedType, hbMatchedName] = Object.entries(handbookMatches.names).find(([k, v]) => v.reg.test(content)) || [];
+    if (!hbMatchedType || !hbMatchedName) return "未匹配到攻略类型";
+
+    const hbType: HandbookMatches.Type | undefined = _hbType ||
+        (hbMatchedName.has.includes(HandbookMatches.Type.all) ? // 角评只有all
+            HandbookMatches.Type.all :
+            ((Object.entries(handbookMatches.types).find(([_, v]) => v.test(content)) || [])[0]) as any);
+    const ret: HandbookMatched & typeof hbMatchedName = { name: hbMatchedType, type: hbType!, ...hbMatchedName, default: true, };
+    if (hbMatchedType == "studentEvaluation") {
+        const _ = await studentEvaluation(content);
+        ret.type = _.type; // fuzzy或者角色的pathName
+        ret.nameDesc = _.desc || ret.nameDesc; // 对于type的描述, 精准匹配时为角色名称
+        ret.fuzzy = _.fuzzy; // 模糊匹配结果
+    } else {
+        if (ret.type && !ret.has.includes(ret.type)) return `暂未支持「${ret.type}」类型${ret.desc}`;
+        const customType = (await settingUserConfig(msg.author.id, "GET", ["server"])).server as HandbookMatches.Type;
+        if (customType) {
+            ret.default = false;
+            ret.type = ret.has.includes(customType) ? customType : HandbookMatches.Type.global;
+        } else ret.type = HandbookMatches.Type.global;
     }
-    return { name: hbName[0], nameDesc, type: hbType || _hbType || "global", ...hbName[1], notChange: !(hbType || _hbType) };
+    return ret;
 }
 
 export async function getLastestImage(name: string, type = "all"): Promise<HandbookInfo.Data> {
@@ -107,7 +159,7 @@ export async function handbookUpdate(msg: IMessageGUILD) {
 
     // 图片 name 开始
     var imageName = "";
-    const matchNames = ((await import("../../data/handbookMatches")).match as any as HandbookMatches).names;
+    const matchNames = handbookMatches.names;
     for (const _key in matchNames) {
         if (RegExp(matchNames[_key].typeReg).test(name)) { imageName = _key; break; }
     }
@@ -116,10 +168,9 @@ export async function handbookUpdate(msg: IMessageGUILD) {
 
     // 图片 type 开始
     var imageType = type;
-    const handbookMatches = await import("../../data/handbookMatches");
-    if (handbookMatches.adapter[imageName]) {
+    if (imageName == "studentEvaluation") {
         try {
-            imageType = (await handbookMatches.adapter[imageName](type)).id;
+            imageType = (await studentEvaluation(type)).type;
         } catch (err) {
             log.error(err);
             return msg.sendMsgEx({ content: `判断图片type时出现错误\n` + JSON.stringify(err).replaceAll(".", ",") });
@@ -310,6 +361,26 @@ async function biliDynamicInfo(dynamicId: string): Promise<BiliDynamic.Info> {
     }).then(res => res.json());
 }
 
+async function studentEvaluation(content: string): Promise<{ type: HandbookMatches.Type; desc: string; fuzzy?: SearchPinyin[]; }> {
+    const studentName = content.replace(handbookMatches.names.studentEvaluation.reg, "").trim();
+    if (!studentName || studentName == "all") return { type: HandbookMatches.Type.all, desc: "", };
+    const findedInfo = await import("./studentInfo").then(module => module.findStudentInfo(studentName));
+    if (findedInfo) return { type: findedInfo.pathName as any, desc: findedInfo.name[0] };
+
+    const notNameList: string[] = JSON.parse(fs.readFileSync(config.studentNameAlias).toString());
+    const pushType = notNameList.includes(studentName) ? "待整理数据库已存在该别名" : "待整理数据库未存在，已推送";
+    if (!notNameList.includes(studentName)) notNameList.push(studentName);
+    fs.writeFileSync(config.studentNameAlias, stringifyFormat(notNameList));
+
+    const fuzzySearch = await import("./studentInfo").then(m => m.sutdentNameFuzzySearch(studentName));
+
+    await sendToAdmin(`未找到『${studentName}』数据 ${pushType}\n${fuzzySearch.map(v => `${v.id}(${v.name}): ${v.pinyin}-${v.score}`).join("\n")}`)
+        .catch(err => log.error("handbookMatches.studentEvaluation", err));
+
+    if (fuzzySearch.length) return { type: HandbookMatches.Type.fuzzy, desc: "模糊搜索", fuzzy: fuzzySearch };
+    throw `未找到『${studentName}』数据，模糊搜索失败，${pushType}`;
+}
+
 
 namespace HandbookInfo {
     export interface Root {
@@ -328,14 +399,33 @@ namespace HandbookInfo {
     }
 }
 
-interface HandbookMatches {
-    names: Record<string, {
-        reg: string;
-        typeReg: string;
-        has: ["jp" | "global" | "all"];
+namespace HandbookMatches {
+    export interface Root {
+        names: Record<string, Name>;
+        types: Record<string, RegExp>;
+    }
+    export interface Name {
+        reg: RegExp;
+        typeReg: RegExp;
+        has: Type[];
         desc: string;
-    }>;
-    types: Record<string, string>;
+    }
+    export const enum Type {
+        jp = "jp",
+        global = "global",
+        cn = "cn",
+        all = "all",
+        fuzzy = "fuzzy",
+    }
+}
+
+interface HandbookMatched {
+    name: string;
+    nameDesc?: string;
+    type: HandbookMatches.Type;
+    desc: string;
+    default: boolean;
+    fuzzy?: SearchPinyin[];
 }
 
 namespace DiyigemtAPI {

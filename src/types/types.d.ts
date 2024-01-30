@@ -38,6 +38,17 @@ declare global {
     var sleep: (time: number) => Promise<any>;
     var fixName: (name: string) => string;
 
+    // 结巴分词后判断与source的相关性
+    interface SearchResultScore extends SearchPinyin {
+        score: number;
+    }
+
+    interface SearchPinyin {
+        id: string;
+        name: string;
+        pinyin: string;
+    }
+
     interface StudentInfo {
         id: number;
         releaseStatus: [boolean, boolean, boolean];

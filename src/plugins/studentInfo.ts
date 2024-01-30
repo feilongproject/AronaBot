@@ -1,11 +1,19 @@
 import fs from "fs";
+import pinyin from "pinyin";
+import jieba from "nodejieba";
 import fetch from 'node-fetch';
+import { uniqBy } from "lodash";
+import PinyinMatch from "pinyin-match";
 import { sendToAdmin } from "../libs/common";
+import { IMessageDIRECT, IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 import config from '../../config/config';
 
 
 const nameToId = { jp: 0, global: 1 };
 var key: keyof typeof nameToId;
+const searchPinyin: SearchPinyin[] = [];
+jieba.load({ userDict: config.studentNameDict });
+if (!searchPinyin.length && global.studentInfo) updateSearchPinyin();
 
 export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok" | "local ok" | "ok"> {
 
@@ -44,7 +52,7 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
             _studentInfo[d.Id] = {
                 id: d.Id,
                 releaseStatus: d.IsReleased || [false, false, false],
-                name: [d.Name, String(d.Id), fixName(d.DevName), d.PathName ? fixName(d.PathName) : undefined].filter(v => v) as string[],
+                name: [d.Name, fixName(d.DevName), String(d.Id), d.PathName ? fixName(d.PathName) : undefined].filter(v => v) as string[],
                 devName: devName,
                 pathName: d?.PathName || d.DevName,
                 star: d.DefaultStarGrade as 1 | 2 | 3,
@@ -76,22 +84,83 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
         }
 
         const unkownWebKeys = Object.keys(aliasStudentNameWeb);
-        if (unkownWebKeys.length) await sendToAdmin(`别名链接失败部分: ${unkownWebKeys.join()}`);
+        if (unkownWebKeys.length) await sendToAdmin(`web别名链接失败部分: ${unkownWebKeys.join()}`);
+        const unkownLocalKeys = Object.keys(aliasStudentNameWeb);
+        if (unkownLocalKeys.length) await sendToAdmin(`local别名链接失败部分: ${unkownLocalKeys.join()}`);
 
         global.studentInfo = _studentInfo;
         fs.writeFileSync(config.studentInfo, stringifyFormat(_studentInfo));
-        return "net ok";
     }
 
     if (fs.existsSync(config.studentInfo)) {
         global.studentInfo = JSON.parse(fs.readFileSync(config.studentInfo).toString());
-        return "local ok";
+        updateSearchPinyin();
+        return `${type} ok`;
     } else return reloadStudentInfo("net");
 }
 
 export function findStudentInfo(name: string): StudentInfo | null {
     for (const id in studentInfo) if (studentInfo[id].name.includes(fixName(name))) return studentInfo[id];
     return null;
+}
+
+function updateSearchPinyin() {
+    searchPinyin.length = 0;
+    searchPinyin.push(...Object.values(studentInfo).map(v => uniqBy(
+        v.name.map(exName => ({ id: String(v.id), name: exName, pinyin: toPinyin(exName) }))
+            .filter(s => !/^(ch)?\d{4,5}$/.exec(s.pinyin)) // 去除id类型
+            .filter(s => /^[a-z0-9]+$/.exec(s.pinyin)) // 去除特殊字符
+            .filter(s => s.pinyin != s.name)
+        , "pinyin")
+    ).flat());
+}
+
+export function sutdentNameFuzzySearch(source: string, limit = 4): SearchResultScore[] {
+    source = source.replace(
+        /[\u3002\uff1f\uff01\uff0c\u3001\uff1b\uff1a\u201c\u201d\u2018\u2019\uff08\uff09\u300a\u300b\u3008\u3009\u3010\u3011\u300e\u300f\u300c\u300d\ufe43\ufe44\u3014\u3015\u2026\u2014\uff5e\ufe4f\uffe5]/g,
+        ""
+    ).replace(/[.,/#!$%^&*;:{}=\-_`~\(\)]/g, "").replace(/\s{2,}/g, " ").trim();
+    const sourceCut = jieba.cut(source);
+    const searchResult: SearchResultScore[] = uniqBy(searchPinyin
+        .map((item) => {
+            // 拼音一致加1分
+            let score = sourceCut.map((ch) => {
+                let score = 0;
+                if (PinyinMatch.match(item.name, toPinyin(ch))) {
+                    score++;
+                }
+                if (PinyinMatch.match(source, item.pinyin)) {
+                    score++;
+                }
+                return score;
+            }).reduce((p, c) => p + c, 0);
+            // 字一样加5分
+            score += [...(new Set(item.name.split("")))].map((ch) => {
+                if (PinyinMatch.match(source, toPinyin(ch))) {
+                    return Number(5);
+                } else {
+                    return Number(0);
+                }
+            }).reduce((p, c) => p + c, 0);
+            // 减去长度绝对值
+            score -= Math.abs(item.name.length - source.length);
+            // 加上分数加成
+            return { ...item, score };
+        })
+        .filter(item => item.score > 0)
+        .sort((a, b) => b.score - a.score), "id");
+    const maxScore = searchResult[0]?.score || -1;
+    const maxScoreLength = searchResult.findIndex(v => v.score == maxScore) + 1;
+    return searchResult.slice(0, Math.max(maxScoreLength, limit)).map(v => ({ ...v, name: studentInfo[v.id].name[0], }));
+}
+
+export function toPinyin(han: string): string {
+    // 去掉标点符号
+    const hanR = han.replace(
+        /[\u3002\uff1f\uff01\uff0c\u3001\uff1b\uff1a\u201c\u201d\u2018\u2019\uff08\uff09\u300a\u300b\u3008\u3009\u3010\u3011\u300e\u300f\u300c\u300d\ufe43\ufe44\u3014\u3015\u2026\u2014\uff5e\ufe4f\uffe5]/g,
+        ""
+    ).replace(/[.,/#!$%^&*;:{}=\-_`~\(\)]/g, "").replace(/\s{2,}/g, " ");
+    return pinyin(hanR, { style: "normal" }).flat(1).join("");
 }
 
 namespace CharacterExcelTable {
@@ -179,14 +248,4 @@ namespace CharacterExcelTable {
         AnimationSSR: string;
         EnterStrategyAnimationName: string;
     }
-}
-
-interface StudentInfo {
-    id: number;
-    releaseStatus: [boolean, boolean, boolean];
-    name: string[];
-    pathName: string;
-    devName: string;
-    star: 1 | 2 | 3;
-    limitedType: number;
 }
