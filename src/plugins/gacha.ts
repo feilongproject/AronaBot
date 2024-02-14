@@ -1,5 +1,6 @@
 import fs from "fs";
 import sharp from "sharp";
+import crypto from "crypto";
 import fetch from "node-fetch";
 import format from "date-format";
 import { IMessageDIRECT, IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
@@ -39,39 +40,41 @@ export async function gachaImage(msg: IMessageGUILD | IMessageGROUP) {
     const setting = await settingUserConfig(msg.author.id, "GET", ["server", "analyzeHide"]);
     const o = cTime(setting.server == "jp" ? "jp" : "global", 10, adminId.includes(msg.author.id) ? Number(msg.content.match(/\d$/)) as 1 | 2 | 3 : undefined);
     const analyze = setting.analyzeHide == "true" ? null : await analyzeRandData(setting.server == "jp" ? "jp" : "global", msg.author.id, o);
-    const imageName = await buildImage(o);
-    if (devEnv) log.debug(imageName);
+
+    const imageName = `${msg.author.id}-${new Date().getTime()}-${crypto.randomInt(0xffffff).toString(16).padStart(6, "0")}.png`;
+    const imageOutputPath = `${config.imagesOut}/gacha-${imageName}`;
+    const startTime = new Date().getTime();
+    const imageBuffer: Buffer = await buildImage(o);
+    const endTime = new Date().getTime();
+    if (devEnv) log.debug("start time:", startTime, "end time:", endTime, "total:", endTime - startTime);
+    if (devEnv) log.debug(imageOutputPath);
+
+    fs.writeFileSync(imageOutputPath, imageBuffer);
+    await cosPutObject({ Key: `gacha/${imageName}`, Body: imageBuffer, ContentLength: imageBuffer.length, });
 
     const sendContent = (msg instanceof IMessageGROUP ? "" : `<@${msg.author.id}> `) + `(${setting.server == "jp" ? "日服" : "国际服"}卡池)` +
         (analyze ? "\n" + [analyze.today_gacha, analyze.total_gacha, analyze.gacha_analyze].join("\n") : "");
 
     return msg.sendMarkdown({
-        markdownNameId: "common",
-        params: {
-            desc1: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)\r`
+        params_omnipotent: {
+            v1: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)\r`
                 + (analyze ? `${analyze?.today_gacha}\r${analyze?.total_gacha}\r${analyze?.gacha_analyze}` : ""),
-            link1: "\u200b](https://ip.arona.schale.top/p/233",
-            img1: `img #1700px #980px](https://ip.arona.schale.top/p/gacha/${imageName}`,
-            img2: "img #-1px #1px](  ",
-            link2: "\u200b](https://ip.arona.schale.top/p/233",
-            link3: "\u200b](https://ip.arona.schale.top/p/233",
-            link4: "\u200b](https://ip.arona.schale.top/p/233",
-            link5: "\u200b](https://ip.arona.schale.top/p/233",
-            link6: "\u200b](https://ip.arona.schale.top/p/233",
+            v2: `![img #1700px #980px]`,
+            v3: `(${cosUrl(`gacha/${imageName}`)})`,
         },
         keyboardNameId: "gacha",
         // markdown 部分
 
         content: sendContent,
-        imageUrl: `https://ip.arona.schale.top/p/gacha/${imageName}`,
+        imageUrl: cosUrl(`gacha/${imageName}`),
         // fallback 部分
 
     }).catch(err => {
         log.error(err);
         return msg.sendMsgExRef({
             content: `发送消息时出现了错误 <@${adminId[0]}>`
-                + `\nimageName: ${imageName?.replaceAll(".", ",")}`
-                + `\n${JSON.stringify(err).replaceAll(".", ",")}`,
+                + `\nimageName: ${imageName}`
+                + `\n${stringifyFormat(err).replaceAll(".", ",")}`,
         });
     });
 }
@@ -101,13 +104,11 @@ function cTime(server: "global" | "jp", times: 1 | 10, testStar?: 1 | 2 | 3): Ga
     return ret;
 }
 
-async function buildImage(characterNames: GachaPools): Promise<string | null> {
+async function buildImage(characterNames: GachaPools): Promise<Buffer> {
     const starPos = [0, 90, 50, 30];
-    if (characterNames.length != 10) return null;
+    if (characterNames.length != 10) throw new Error("characterNames.length != 10");
 
     botStatus.imageRenderNum++;
-    const outName = `${new Date().getTime()}.png`;
-    var tmpOutPath = `${config.imagesOut}/${outName}`;
     var files: { input: string, top: number, left: number, }[] = [];
     for (const [i, value] of characterNames.entries()) {
         var x = ((i) % 5);
@@ -124,9 +125,7 @@ async function buildImage(characterNames: GachaPools): Promise<string | null> {
     return sharp(config.images.mainBg)
         .composite(files)
         .png({ compressionLevel: 6, quality: 5, })
-        .toFile(tmpOutPath).then(() => {
-            return outName;
-        });
+        .toBuffer();
 }
 
 async function analyzeRandData(server: "global" | "jp", uid: string, data: GachaPools) {
@@ -153,9 +152,9 @@ async function analyzeRandData(server: "global" | "jp", uid: string, data: Gacha
     for (const __a of gachaData.all) _a.push(Number(__a));
 
     return {
-        today_gacha: `今日${_t[1] + _t[2] + _t[3]}发，共有一星${_t[1]}个，二星${_t[2]}个，三星${_t[3]}个`,
-        total_gacha: `累计${_a[1] + _a[2] + _a[3]}发，共有一星${_a[1]}个，二星${_a[2]}个，三星${_a[3]}个`,
-        gacha_analyze: `今日出货概率${((_t[3] / (_t[1] + _t[2] + _t[3])) * 100).toFixed(2)}%，` +
+        today_gacha: `今日${_t[1] + _t[2] + _t[3]}发,共有★${_t[1]},★★${_t[2]},★★★${_t[3]}`,
+        total_gacha: `累计${_a[1] + _a[2] + _a[3]}发,共有★${_a[1]},★★${_a[2]},★★★${_a[3]}`,
+        gacha_analyze: `今日出货概率${((_t[3] / (_t[1] + _t[2] + _t[3])) * 100).toFixed(2)}% ` +
             `累计出货概率${((_a[3] / (_a[1] + _a[2] + _a[3])) * 100).toFixed(2)}%`
     }
 }

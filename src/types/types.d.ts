@@ -1,5 +1,6 @@
 import log4js from "log4js";
 import { Browser } from "puppeteer";
+import COS from "cos-nodejs-sdk-v5";
 import { PoolConnection } from "mariadb";
 import { RedisClientType } from "@redis/client";
 import { IChannel, IMember, IUser, createOpenAPI, createWebsocket, IOpenAPI, AvailableIntentsEventsEnum } from "qq-bot-sdk";
@@ -27,6 +28,7 @@ declare global {
     var studentInfo: Record<string, StudentInfo>;
     var botType: BotTypes;
     var allowMarkdown: boolean;
+    var cos: COS;
 
     type BotTypes = keyof typeof config.bots;
 
@@ -37,6 +39,10 @@ declare global {
     var stringifyFormat: (d: any) => string;
     var sleep: (time: number) => Promise<any>;
     var fixName: (name: string) => string;
+
+    var cosUrl: (key: string) => string;
+    var cosPutObject: (params: CosPutObjectParams) => Promise<COS.PutObjectResult>;
+    type CosPutObjectParams = Omit<COS.PutObjectParams, keyof Omit<COS.ObjectParams, "Key">>;
 
     // 结巴分词后判断与source的相关性
     interface SearchResultScore extends SearchPinyin {

@@ -1,7 +1,7 @@
 import fs from "fs";
 import fetch from "node-fetch";
 import FormData from 'form-data';
-import { Ark, GMessageRec, IMember, IMessage, IUser, MessageAttachment, MessageKeyboard, MessageReference } from "qq-bot-sdk";
+import { Ark, GMessageRec, IMember, IMessage, IUser, MessageAttachment, MessageKeyboard, MessageReference, MessageMarkdown } from "qq-bot-sdk";
 import { callWithRetry, pushToDB } from "./common";
 import config from '../../config/config';
 
@@ -72,19 +72,15 @@ class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
         }).then(res => ({ ...res.data, traceId: res.headers["x-tps-trace-id"], }));
     }
 
-    async sendMarkdown(options: Partial<SendOption.Channel> & Partial<SendOption.MarkdownOrgin> & SendOption.MarkdownPublic) {
+    async sendMarkdown(options: Partial<SendOption.Channel> & SendOption.MarkdownPublic) {
         options.guildId = options.guildId || this.guild_id;
         options.eventId = await redis.get(`lastestEventId:${meId}:${options.guildId}`) || undefined;
-        const { markdownNameId, eventId, keyboardNameId, } = options;
-
-        const mdTemplateId = options.templateId || await redis.hGet(`config:md:${markdownNameId}`, meId);
+        if (botType == "PlanaBot" || !options.eventId) return this.sendMsgEx(options);
         if (devEnv) log.debug("options.eventId:", options.eventId);
-        if (!mdTemplateId || !eventId || !allowMarkdown) return this.sendMsgEx(options);
 
-        const kbTemplateId = await redis.hGet(`config:kb:${keyboardNameId}`, meId);
-        const _options = { templateId: mdTemplateId, keyboardId: kbTemplateId };
-        if (botType == "PlanaBot") return this.sendMsgEx(options);
-        return callWithRetry(this._sendMarkdown, [{ ...options, ..._options }]).catch(err => this.sendMsgEx(options));
+        const markdownConfig = await getMarkdown(options);
+        if (!markdownConfig) return this.sendMsgEx(options);
+        return callWithRetry(this._sendMarkdown, [{ ...options, ...markdownConfig, }]).catch(err => this.sendMsgEx(options));
     }
 
     private _sendMarkdown = async (options: Partial<SendOption.Channel> & SendOption.MarkdownOrgin) => {
@@ -96,13 +92,8 @@ class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
             },
             body: JSON.stringify({
                 event_id: options.eventId,
-                markdown: {
-                    custom_template_id: options.templateId,
-                    params: Object.entries(options.params).map(([key, value]) => {
-                        return { key, values: [value] };
-                    }),
-                },
-                keyboard: { id: options.keyboardId },
+                markdown: options.markdown,
+                keyboard: options.keyboard,
             }),
         }).then(async res => {
             const json = await res.json();
@@ -302,35 +293,26 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
     }
 
     async sendMarkdown(options: Partial<SendOption.Group> & Partial<SendOption.MarkdownOrgin> & SendOption.MarkdownPublic): Promise<RetryResult<GMessageRec>> {
+        this.seq++;
         options.groupId = options.groupId || this.group_id;
         options.msgId = options.msgId || this.id;
-        const { markdownNameId, keyboardNameId, } = options;
-        const mdTemplateId = options.templateId || await redis.hGet(`config:md:${markdownNameId}`, meId);
-        if (!mdTemplateId || !allowMarkdown) return this.sendMsgEx(options);
 
-        const kbTemplateId = await redis.hGet(`config:kb:${keyboardNameId}`, meId);
-        const _options = { templateId: mdTemplateId, keyboardId: kbTemplateId };
-        return callWithRetry(this._sendMarkdown, [{ ...options, ..._options }]).catch(err => this.sendMsgEx(options));
+        const markdownConfig = await getMarkdown(options, true);
+        if (!markdownConfig || !allowMarkdown) return this.sendMsgEx(options);
+        return callWithRetry(this._sendMarkdown, [{ ...options, ...markdownConfig }]).catch(err => this.sendMsgEx(options));
     }
 
     private _sendMarkdown = async (options: Partial<SendOption.Group> & SendOption.MarkdownOrgin) => {
-        const { groupId, msgId } = options;
+        const { groupId, msgId, markdown, keyboard } = options;
         if (!groupId) throw "groupId not set";
         // debugger;
         return client.groupApi.postMessage(groupId, {
             msg_id: msgId,
             msg_type: 2,
             content: " ",
-            ...{
-                markdown: {
-                    custom_template_id: options.templateId,
-                    params: Object.entries(options.params).map(([key, value]) => {
-                        return { key, values: [value] };
-                    }),
-                },
-                keyboard: options.keyboard ? { ...options.keyboard } : (options.keyboardId ? { id: options.keyboardId } : undefined),
-            },
-            msg_seq: this.seq++,
+            markdown: markdown,
+            keyboard: keyboard,
+            msg_seq: this.seq,
         }).then(res => {
             (res.data as any)["x-tps-trace-id"] = res.headers["x-tps-trace-id"];
             return res.data;
@@ -350,6 +332,27 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
 //     }
 // }
 
+async function getMarkdown(options: SendOption.MarkdownPublic, kbCustom = false): Promise<SendOption.MarkdownOrgin | null> {
+    const markdownNameId = Object.keys(options).find(v => v.startsWith("params_")) as `params_${string}` | undefined;
+    const markdownId = options.templateId || await redis.hGet(`config:md:${markdownNameId?.replace(/^params_/, "")}`, meId);
+    if (!markdownId) return null;
+
+    options.params = options.params || options[markdownNameId!];
+    for (let i = 1; i <= 100; i++) {
+        options.params[`v${i}`] = options.params[`v${i}`] || "\u200b";
+    }
+    const keyboardContent = (options.keyboardNameId ? (await import("../../data/keyboardMap")).default[options.keyboardNameId] : undefined) || options.keyboard?.content;
+    return {
+        markdown: {
+            custom_template_id: markdownId,
+            params: Object.entries(options.params)?.map(([key, value]) => ({ key, values: [value] })),
+        },
+        keyboard: {
+            id: (keyboardContent && kbCustom) ? undefined : options.keyboardId || options.keyboard?.id || await redis.hGet(`config:kb:${options.keyboardNameId}`, meId),
+            content: keyboardContent,
+        },
+    };
+}
 
 namespace SendOption {
     export interface Channel {
@@ -363,21 +366,20 @@ namespace SendOption {
         eventId?: string;
         guildId?: string;
         channelId: string;
-        markdown: MarkdownPublic;
-        ark: Ark;
+        ark?: Ark;
     }
 
-    export interface MarkdownPublic {
-        markdownNameId: string;
-        params: Record<string, string>;
+    export interface MarkdownPublic extends MarkdownParams {
         keyboardNameId?: string;
+        templateId?: string;
+        keyboardId?: string;
         keyboard?: MessageKeyboard;
+        params?: Record<string, string>;
     }
+    export type MarkdownParams = Record<`params_${string}`, Record<string, string>>;
 
     export interface MarkdownOrgin {
-        templateId: string;
-        params: Record<string, string>;
-        keyboardId?: string;
+        markdown: Required<Omit<MessageMarkdown, "content">>;
         keyboard?: MessageKeyboard;
     }
 
@@ -394,7 +396,6 @@ namespace SendOption {
         msgId?: string;
         eventId?: string;
         groupId: string;
-        markdown: MarkdownPublic;
         ark: Ark;
     }
 }

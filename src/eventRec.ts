@@ -15,7 +15,6 @@ async function executeChannel(msg: IMessageDIRECT | IMessageGUILD) {
 
         const opt = await findOpts(msg);
         if (!opt) return;
-        if (typeof opt == "string") return msg.sendMsgExRef({ content: opt });
         if (await isBan(msg)) return;
         if (await redis.sIsMember(`ban:opt:guild`, `${opt.path}:${opt.keyChild}:${msg.guild_id}`))
             return msg.sendMsgExRef({ content: `命令 ${opt.path} ${opt.keyChild} 在该频道未启用` });
@@ -40,7 +39,7 @@ async function executeChannel(msg: IMessageDIRECT | IMessageGUILD) {
             content: msg.content,
         });
     } catch (err) {
-        await mailerError(msg, err instanceof Error ? err : new Error(JSON.stringify(err)))
+        await mailerError(msg, err instanceof Error ? err : new Error(stringifyFormat(err)))
             .catch(err => log.error(err));
     }
 }
@@ -121,9 +120,9 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
         case AvailableIntentsEventsEnum.GUILD_MESSAGES:
         case AvailableIntentsEventsEnum.PUBLIC_GUILD_MESSAGES: {
             const data = event.msg as any as IntentMessage.GUILD_MESSAGES__body;
-            // if (devEnv) log.debug(data);
             if (!['AT_MESSAGE_CREATE', 'MESSAGE_CREATE'].includes(event.eventType)) return;
             if (global.devEnv && !adminId.includes(data.author.id)) return;
+            if (devEnv) log.debug(event);
             const msg = new IMessageGUILD(data);
             msg.content = msg.content.replaceAll("@彩奈", "<@!5671091699016759820>");
             if (botType == "AronaBot") import("./plugins/AvalonSystem").then(e => e.avalonSystem(msg)).catch(err => log.error(err));
@@ -134,6 +133,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             if (event.eventType != 'DIRECT_MESSAGE_CREATE') return;
             const data = event.msg as any as IntentMessage.DIRECT_MESSAGE__body;
             if (global.devEnv && !adminId.includes(data.author.id)) return;
+            if (devEnv) log.debug(event);
             const msg = new IMessageDIRECT(data);
             await global.redis.hSet(`directUid->Gid:${meId}`, msg.author.id, msg.guild_id);
             return executeChannel(msg).then(() => import("./plugins/admin").then(e => e.directToAdmin(msg))).catch(err => log.error(err));
@@ -143,7 +143,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             if (event.eventType == IntentEventType.GROUP_AT_MESSAGE_CREATE) {
                 const data = event.msg as any as IntentMessage.GROUP_MESSAGE_body;
                 if (devEnv && !adminId.includes(data.author.id)) return;
-                if (devEnv) log.debug(data);
+                if (devEnv) log.debug(event);
                 const msg = new IMessageGROUP(data);
                 return executeChat(msg);
             } else if ([IntentEventType.GROUP_DEL_ROBOT, IntentEventType.GROUP_ADD_ROBOT].includes(event.eventType)) {

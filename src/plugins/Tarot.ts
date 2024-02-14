@@ -18,7 +18,6 @@ export async function todayTarot(msg: IMessageGUILD | IMessageGROUP) {
 
     const has = await redis.hGet(`Tarot:${nowDay}`, msg.author.id);
     const notHas = `${crypto.randomInt(0, 21 + 1)}:${crypto.randomInt(0, 2) == 1 ? "u" : "d"}`;
-    await redis.hSet(`Tarot:${nowDay}`, msg.author.id, has || notHas);
     const [num, type] = (has || notHas).split(":");
     const desc: Tarot = JSON.parse(fs.readFileSync(`${config.images.Tarot}/Tarot.json`).toString())[Number(num)];
     const atMsg = msg instanceof IMessageGROUP ? "" : `『<@${msg.author.id}>』`;
@@ -33,8 +32,8 @@ export async function todayTarot(msg: IMessageGUILD | IMessageGROUP) {
             + `\n${desc.name}(${type == "d" ? "逆位" : "正位"})`
             + `\n${type == "d" ? desc.downDesc : desc.upDesc}`,
         // imagePath: `${config.images.Tarot}/${num}_${type}.png`,
-        imageUrl: `https://cdn.arona.schale.top/images/Tarot/${num}_${type}.png`,
-    });
+        imageUrl: cosUrl(`Tarot/${num}_${type}.png`),
+    }).then(() => redis.hSet(`Tarot:${nowDay}`, msg.author.id, has || notHas));
 }
 
 

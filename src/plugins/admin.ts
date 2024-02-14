@@ -1,9 +1,11 @@
 import os from "os";
+import fs from "fs";
 import qr from "qr-image";
 import Excel from "exceljs";
 import child_process from "child_process";
 import { sendToAdmin, timeConver } from "../libs/common";
 import { IMessageDIRECT, IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
+import config from "../../config/config";
 
 
 export async function updateEventId(event?: IntentMessage.GUILD_MEMBERS) {
@@ -54,7 +56,7 @@ export async function ping(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP) 
 export async function hotLoad(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP) {
     if (!adminId.includes(msg.author.id)) return !(msg instanceof IMessageGUILD) ? msg.sendMsgEx({ content: "无权限调用" }) : undefined;
     // if (devEnv) return;
-    const times = /^\/?热(加载|更新)(-?\d+)$/.exec(msg.content)![2];
+    const times = /\/?热(加载|更新)(?<times>-?\d+)$/.exec(msg.content)?.groups?.times;
     hotLoadStatus = Number(times);
     return msg.sendMsgEx({ content: `已${msg.content}` });
 }
@@ -117,11 +119,10 @@ export async function reloadStudentData(msg: IMessageDIRECT) {
 export async function dumpChatRecord(msg: IMessageDIRECT) {
     if (!adminId.includes(msg.author.id)) return;
 
-    const exec = /dump\s*(\d+)/.exec(msg.content)!!;
-    const aid = exec[1];
+    const aid = /dump\s*(?<aid>\d+)/.exec(msg.content)?.groups?.aid;
     if (!aid) return msg.sendMsgEx({ content: `未指定id` });
-    const saveFileName = `${aid}-${new Date().getTime()}.xlsx`;
-    return mariadb.query("SELECT * FROM `guildMessage` WHERE `aid` = (?) ORDER BY `guildMessage`.`ts` ASC", aid).then(datas => {
+    const fileName = `${aid}-${new Date().getTime()}.xlsx`;
+    const _fileBuffer = await mariadb.query("SELECT * FROM `guildMessage` WHERE `aid` = (?) ORDER BY `guildMessage`.`ts` ASC", aid).then(datas => {
         const { meta } = datas;
 
         // const sheetData: any[][] = [];
@@ -141,14 +142,14 @@ export async function dumpChatRecord(msg: IMessageDIRECT) {
         }));
         worksheet.columns = columnsMap;
         for (const data of datas) worksheet.addRow(data);
-        return workbook.xlsx.writeFile(`${_path}/log/record/${saveFileName}`);
-    }).then(() => msg.sendMsgEx({
-        imageFile: qr.imageSync(`https://ip.arona.schale.top/p/record/${saveFileName}`),
-        content: `用户 ${aid} 日志已转存\n`
-            + saveFileName
-        // + `ip。arona。schale。top/p/record/${saveFileName}`,
-        // + "https://ip,arona,schale,top/p/record/15874984758683127001-1682781508632.xlsx"
-    })).catch(err => {
-        log.error(err);
+        return workbook.xlsx.writeBuffer();
+    });
+    const fileBuffer = Buffer.from(_fileBuffer);
+    fs.writeFileSync(`${config.imagesOut}/${fileName}`, fileBuffer);
+    await cosPutObject({ Key: `record/${fileName}`, Body: fileBuffer, ContentLength: fileBuffer.length, });
+
+    return msg.sendMsgEx({
+        imageFile: qr.imageSync(cosUrl(`record/${fileName}`)),
+        content: `用户 ${aid} 日志已转存\n${fileName}`,
     });
 }

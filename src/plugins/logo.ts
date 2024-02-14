@@ -66,14 +66,16 @@ export async function baLogo(msg: IMessageGUILD | IMessageGROUP) {
         ).join("\n")
     ));
 
-    const fileName = `${md5(textL)}-${md5(textR)}.png`;
-    const saveFilePath = `${config.imagesOut}/${fileName}`;
+    const imageName = `${md5(textL)}-${md5(textR)}.png`;
+    const saveFilePath = `${config.imagesOut}/${imageName}`;
+    const imageBuffer = await generate(textL, textR);
+    await cosPutObject({ Key: `balogo/${imageName}`, Body: imageBuffer, ContentLength: imageBuffer.length, });
+    fs.writeFileSync(saveFilePath, imageBuffer);
     if (devEnv) log.debug(saveFilePath);
-    if (!fs.existsSync(saveFilePath)) fs.writeFileSync(saveFilePath, await generate(textL, textR), { encoding: "binary" });
 
     return msg.sendMsgEx({
         content: msg instanceof IMessageGROUP ? "" : `<@${msg.author.id}>`,
-        imageUrl: `https://ip.arona.schale.top/p/gacha/${fileName}`,
+        imageUrl: cosUrl(`balogo/${imageName}`),
     });
 }
 

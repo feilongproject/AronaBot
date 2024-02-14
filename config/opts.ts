@@ -89,7 +89,7 @@ export default {
             ban: {
                 reg: "^(un)?ban1?",
                 fnc: "ban",
-                type: [MessageType.DIRECT],
+                type: [MessageType.GUILD, MessageType.DIRECT],
                 describe: "对某用户/群聊/频道执行封禁"
             }
         },
@@ -300,6 +300,7 @@ export default {
                 fnc: "baLogo",
                 type: [MessageType.GUILD, MessageType.GROUP],
                 describe: "生成ba特色的logo",
+                channelAllows: ["all"],
                 export: "/balogo <左文本> <右文本>"
             }
         }

@@ -8,7 +8,7 @@ import { IMessageDIRECT, IMessageGUILD, MessageType } from "../libs/IMessageEx";
 
 const browserCkFile = `${_path}/data/ck.json`;
 const dynamicPushFilePath = `${_path}/data/dynamicPush.json`;
-export const userAgent = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36 Edg/120.0.0.0";
+export const userAgent = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Mobile Safari/537.36 Edg/121.0.0.0";
 
 export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT) {
     // if (!devEnv) return;
@@ -179,7 +179,7 @@ async function checkUser(biliUserId: string, cookies: string): Promise<BiliDynam
 async function screenshot(biliDynamicId: string, pubTs: string, quality = 60): Promise<Buffer | undefined> {
 
     if (!global.browser || !browser.isConnected()) global.browser = await puppeteer.launch({
-        headless: true,
+        headless: "new",
         args: ['--no-sandbox'],
     });
 

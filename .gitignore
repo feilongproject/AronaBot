@@ -22,3 +22,4 @@ nodemon.test.json
 data/accuseCharacters/*
 data/images/*
 data/errorMessageTemaple.html
+data/keyboardMap.ts

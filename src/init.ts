@@ -1,4 +1,5 @@
 import chokidar from "chokidar";
+import COS from "cos-nodejs-sdk-v5";
 import { createPool } from 'mariadb';
 import { createClient } from 'redis';
 import schedule from "node-schedule";
@@ -42,7 +43,7 @@ export async function init() {
                 hotLoadStatus--;
                 log.mark(`${hotloadConfig.type} 正在进行热更新`);
                 delete require.cache[filepath];
-                return sendToAdmin(`${devEnv} ${hotloadConfig.type} 正在进行热更新 ${hotLoadStatus}`);
+                if (!devEnv) return sendToAdmin(`${devEnv} ${hotloadConfig.type} 正在进行热更新 ${hotLoadStatus}`);
             }
         });
     }
@@ -58,6 +59,9 @@ export async function init() {
         log.error(`初始化: redis 数据库连接失败，正在退出程序\n${err}`);
         process.exit();
     });
+
+    log.info(`初始化: 正在连接腾讯 COS`);
+    global.cos = new COS(config.cos);
 
     if (config.bots[botType].allowMariadb && !devEnv) global.mariadb = await createPool({
         ...config.mariadb,
@@ -163,6 +167,10 @@ Date.prototype.toDBString = function () {
 global.stringifyFormat = (obj: any) => JSON.stringify(obj, undefined, "    ");
 global.sleep = (ms: number) => new Promise(resovle => { setTimeout(resovle, ms) });
 global.fixName = (name: string) => name.replace("（", "(").replace("）", ")").toLowerCase().replaceAll(" ", "");
+global.cosPutObject = async (params: CosPutObjectParams) => cos.putObject({ ...config.cos, ...params, })
+// global.cosUrl = (key: string) => `https://${config.cos.Bucket}.cos.${config.cos.Region}.myqcloud.com/${key}`;
+// global.cosUrl = (key: string) => `https://${config.cos.Bucket}.cos-website.${config.cos.Region}.myqcloud.com/${key}`;
+global.cosUrl = (key: string) => `${config.cosUrl}/${key}`;
 
 (global as any).btoa = null;
 (global as any).atob = null;

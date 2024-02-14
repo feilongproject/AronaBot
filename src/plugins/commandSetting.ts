@@ -73,8 +73,7 @@ export async function commandSetting(msg: IMessageGUILD | IMessageGROUP) {
     }
 
     return msg.sendMarkdown({
-        markdownNameId: "common",
-        params: {
+        params_common: {
             desc1: `<@${msg.author.id}> ${optStr}`
                 + `\r当前卡池选择: ${status.server == "jp" ? "日服" : "国际服"}卡池`
                 + `\r抽卡分析显示状态: ${status.analyzeHide == "true" ? "隐藏" : "显示"}`

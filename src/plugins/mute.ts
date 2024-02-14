@@ -28,6 +28,7 @@ export async function mute(msg: IMessageGUILD) {
     if (msg.author.id == muteMember.id) return msg.sendMsgExRef({ content: "禁止禁言自己" });
     if (muteTime && cmdMatch.del && !msg.message_reference) return msg.sendMsgExRef({ content: `未找到需要撤回消息` });
     if (muteTime > 60 * 60 * 24 * 30) return msg.sendMsgExRef({ content: `你要不看看你在干什么` });
+    if (muteTime && muteTime < 60 * 60 * 1) return msg.sendMsgExRef({ content: `你在...干什么？` });
 
     const alart = await client.guildApi.guildMember(msg.guild_id, muteMember.id).then(res => {
         const { data } = res;

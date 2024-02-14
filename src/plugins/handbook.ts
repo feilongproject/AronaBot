@@ -51,7 +51,7 @@ const handbookMatches: HandbookMatches.Root = {
 }
 
 export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP) {
-    const forceGuildType = ("guild_id" in msg && ["16392937652181489481"].includes(msg.guild_id)) ? "cn" : undefined;
+    const forceGuildType = ("guild_id" in msg && ["16392937652181489481"].includes(msg.guild_id)) ? HandbookMatches.Type.cn : undefined;
     const hbMatched = await matchHandbook(msg, forceGuildType).catch(err => stringifyFormat(err));
     if (devEnv) log.debug(msg.content, hbMatched);
     if (typeof hbMatched == "string") return msg.sendMsgEx({ content: `未找到对应攻略数据，${hbMatched}` });
@@ -72,8 +72,7 @@ export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessag
     }
 
     return msg.sendMarkdown({
-        markdownNameId: "common",
-        params: {
+        params_common: {
             desc1: at_user + (hbMatched.fuzzy ? "" : `\r${needUpdateMessage}\r攻略制作: ${handbookAuthor}\r`),
             // + (lastestImage?.info ? `${lastestImage.info}\r` : ""), // sb腾讯，'type:business, code:30, msg:["[[图片] [少女]]","[[少女] [图片]]"]'
             img1: `img #${lastestImage?.width || -1}px #${lastestImage?.height || 1}px](${lastestImage?.url || "  "}`,
@@ -105,12 +104,12 @@ function mdCommandLink(showDesc: string, command: string, enter = true) {
     return `${showDesc}](mqqapi://aio/inlinecmd?command=${encodeURI(command)}&reply=false&enter=${enter}`;
 }
 
-async function matchHandbook(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP, _hbType?: string): Promise<HandbookMatched | string> {
+async function matchHandbook(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP, forceType?: HandbookMatches.Type): Promise<HandbookMatched | string> {
     const content = msg.content.replaceAll(/<@!?\d+>/g, "").trim();
     const [hbMatchedType, hbMatchedName] = Object.entries(handbookMatches.names).find(([k, v]) => v.reg.test(content)) || [];
     if (!hbMatchedType || !hbMatchedName) return "未匹配到攻略类型";
 
-    const hbType: HandbookMatches.Type | undefined = _hbType ||
+    const hbType: HandbookMatches.Type | undefined = forceType ||
         (hbMatchedName.has.includes(HandbookMatches.Type.all) ? // 角评只有all
             HandbookMatches.Type.all :
             ((Object.entries(handbookMatches.types).find(([_, v]) => v.test(content)) || [])[0]) as any);
@@ -123,7 +122,10 @@ async function matchHandbook(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP
     } else {
         if (ret.type && !ret.has.includes(ret.type)) return `暂未支持「${ret.type}」类型${ret.desc}`;
         const customType = (await settingUserConfig(msg.author.id, "GET", ["server"])).server as HandbookMatches.Type;
-        if (customType) {
+        if (forceType) {
+            ret.default = false;
+            ret.type = forceType;
+        } else if (customType) {
             ret.default = false;
             ret.type = ret.has.includes(customType) ? customType : HandbookMatches.Type.global;
         } else ret.type = HandbookMatches.Type.global;
@@ -326,8 +328,7 @@ export async function searchHandbook(msg: IMessageGUILD | IMessageDIRECT | IMess
 
     const imageUrl = `https://arona.cdn.diyigemt.com/image${resultData.data[0].path}?hash=${resultData.data[0].hash}`;
     if (resultData.data.length == 1) return msg.sendMarkdown({
-        markdownNameId: "common",
-        params: {
+        params_common: {
             desc: `<@${msg.author.id}>`
                 + `\r数据来源: diyigemt`,
             link1: "\u200b](https://ip.arona.schale.top/p/233",
