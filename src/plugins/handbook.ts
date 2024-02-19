@@ -1,5 +1,4 @@
 import fs from "fs";
-import RE2 from "re2";
 import fetch from "node-fetch";
 import format from "date-format";
 import * as cheerio from "cheerio";
@@ -15,6 +14,7 @@ const updateTimeMessage = `图片更新时间：`;
 
 const serverMap: Record<string, string> = { jp: "日服", global: "国际服", cn: "国服", all: "" };
 const provideMap: Record<string, string> = { jp: "夜猫", global: "夜猫", cn: "朝夕desu", all: "夜猫" };
+const fuzzyLimit = 6;
 
 const handbookMatches: HandbookMatches.Root = {
     names: {
@@ -63,22 +63,20 @@ export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessag
         + `${hbMatched.desc} == ${hbMatched.default ? noSetServerMessage : ""}`;
     const handbookAuthor = provideMap[hbMatched.type] || hbMatched.name == "studentEvaluation" ? provideMap.jp : undefined;
 
-    const markdownLink: Record<`link${number}`, string> = { link1: lastestImage?.infoUrl ? `🔗详情点我](${lastestImage.infoUrl}` : undefined as any, };
-    for (const [iv, fuzzy] of (hbMatched.fuzzy || []).entries()) {
-        markdownLink[`link${iv + 2}`] = mdCommandLink(`「${fuzzy.name}」`, `角评 ${fuzzy.name}`);
-    }
-    for (let iv = 1; iv <= 6; iv++) {
-        if (!markdownLink[`link${iv}`]) markdownLink[`link${iv}`] = "\u200b](https://ip.arona.schale.top/p/233";
-    }
-
     return msg.sendMarkdown({
-        params_common: {
-            desc1: at_user + (hbMatched.fuzzy ? "" : `\r${needUpdateMessage}\r攻略制作: ${handbookAuthor}\r`),
+        params_omnipotent: {
+            v1: at_user + (hbMatched.fuzzy ? "" : `\r${needUpdateMessage}\r攻略制作: ${handbookAuthor}\r`),
             // + (lastestImage?.info ? `${lastestImage.info}\r` : ""), // sb腾讯，'type:business, code:30, msg:["[[图片] [少女]]","[[少女] [图片]]"]'
-            img1: `img #${lastestImage?.width || -1}px #${lastestImage?.height || 1}px](${lastestImage?.url || "  "}`,
-            desc2: `\r${lastestImage?.updateTime || (hbMatched.fuzzy ? "当前为模糊搜索，请从以下搜素结果中选择(若点击未发送请更新QQ至新版):\r" : "")}`,
-            img2: "img #-1px #1px](  ",
-            ...markdownLink,
+            v2: `![img #${lastestImage?.width || -1}px #${lastestImage?.height || 1}px]`,
+            v3: `(${lastestImage?.url || "  "})`,
+            v4: `\r${lastestImage?.updateTime || (hbMatched.fuzzy ? "当前为模糊搜索，请从以下搜素结果中选择(若点击无效果请更新QQ至新版):\r" : "")}`,
+            v5: lastestImage?.infoUrl ? `[🔗详情点我]` : "",
+            v6: lastestImage?.infoUrl ? `(${lastestImage.infoUrl})` : "",
+            ...Object.fromEntries((hbMatched.fuzzy || [])
+                .map(fuzzy => mdCmdLink(`「${fuzzy.name}」`, `角评 ${fuzzy.name}`))
+                .flat()
+                .map((v, i) => [`v${i + 1 + 7}`, v])
+                .slice(0, -1)),
         },
         keyboardNameId: "handbook",
         // markdown 部分
@@ -99,9 +97,9 @@ export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessag
 
 }
 
-function mdCommandLink(showDesc: string, command: string, enter = true) {
+function mdCmdLink(showDesc: string, command: string, enter = true) {
     command = command.replace(/\(/g, "（").replace(/\)/g, "）");
-    return `${showDesc}](mqqapi://aio/inlinecmd?command=${encodeURI(command)}&reply=false&enter=${enter}`;
+    return [`[${showDesc}]`, `(mqqapi://aio/inlinecmd?command=${encodeURI(command)}&reply=false&enter=${enter})`, "\r"];
 }
 
 async function matchHandbook(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP, forceType?: HandbookMatches.Type): Promise<HandbookMatched | string> {
@@ -150,7 +148,7 @@ export async function getLastestImage(name: string, type = "all"): Promise<Handb
 
 export async function handbookUpdate(msg: IMessageGUILD) {
     if (!adminId.includes(msg.author.id)) return;
-    const matched = new RE2("^/?hbupdate(?P<imageId>\\d+)?\\s+(?P<name>\\S+)\\s+(?P<type>\\S+)\\s+(?P<url>(https?://)?\\S+)\\s?(?P<desc>.+)?").exec(msg.content);
+    const matched = /^\/?hbupdate(?<imageId>\d+)?\s+(?<name>\S+)\s+(?<type>\S+)\s+(?<url>(https?:\/\/)?\S+)\s?(?<desc>.+)?/.exec(msg.content);
     // log.debug(matched?.groups);
     if (!matched || !matched.groups) return msg.sendMsgExRef({
         content: `命令错误，命令格式：` +
@@ -373,7 +371,7 @@ async function studentEvaluation(content: string): Promise<{ type: HandbookMatch
     if (!notNameList.includes(studentName)) notNameList.push(studentName);
     fs.writeFileSync(config.studentNameAlias, stringifyFormat(notNameList));
 
-    const fuzzySearch = await import("./studentInfo").then(m => m.sutdentNameFuzzySearch(studentName));
+    const fuzzySearch = await import("./studentInfo").then(m => m.sutdentNameFuzzySearch(studentName, fuzzyLimit));
 
     await sendToAdmin(`未找到『${studentName}』数据 ${pushType}\n${fuzzySearch.map(v => `${v.id}(${v.name}): ${v.pinyin}-${v.score}`).join("\n")}`)
         .catch(err => log.error("handbookMatches.studentEvaluation", err));
