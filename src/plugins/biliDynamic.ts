@@ -4,6 +4,7 @@ import * as puppeteer from "puppeteer";
 import { readFileSync, writeFileSync } from "fs";
 import { pushToDB, searchDB, sendToAdmin } from "../libs/common";
 import { IMessageDIRECT, IMessageGUILD, MessageType } from "../libs/IMessageEx";
+import config from "../../config/config";
 
 
 const browserCkFile = `${_path}/data/ck.json`;
@@ -35,20 +36,16 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT) {
             log.info(`${bUser.name}(${bUser.id})的动态更新了: ${item.id_str}`);
 
             try {
-                let imageBuffer = await screenshot(item.id_str, item.modules.module_author.pub_ts.toString(), 60);
-                const imageSharp = sharp(imageBuffer);
-                const metadata = await imageSharp.metadata();
-                var imageHeight = metadata.height;
-
-                while (imageBuffer && imageBuffer.length >= 4 * 1024 * 1024) {
-                    imageHeight = imageHeight ? Math.floor(imageHeight * 0.8) : undefined;
-                    imageBuffer = await imageSharp.resize(metadata.width, imageHeight, {
-                        position: "top",
-                    }).toBuffer();
+                const imageBuffer = await screenshot(item.id_str, item.modules.module_author.pub_ts.toString(), 60);
+                if (!imageBuffer) {
+                    sendToAdmin(`screenshot(${item.id_str}) not return buff`);
+                    continue;
                 }
+                const imageKey = `${item.id_str}-${new Date().getTime()}.png`;
+                writeFileSync(`${config.imagesOut}/bili-${imageKey}`, imageBuffer);
+                if (devEnv) log.debug(`${config.imagesOut}/bili-${imageKey}`);
+                await cosPutObject({ Key: `biliDynamic/${imageKey}`, Body: imageBuffer });
 
-                // const fileName = `bili-${item.id_str}.png`;
-                // writeFileSync(`${config.imagesOut}/${fileName}`, imageBuffer);
 
                 if (imageBuffer) for (const cId in bUser.channels) {
                     const msg = new IMessageGUILD({ id: await redis.get(`lastestMsgId:${botType}`), } as any, false);
@@ -57,7 +54,7 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT) {
                         await msg.sendMsgEx({
                             channelId: cId,
                             sendType: MessageType.GUILD,
-                            imageFile: imageBuffer,
+                            imageUrl: cosUrl(`biliDynamic/${imageKey}`),
                             content: `https://t.bilibili.com/${item.id_str}`,
                         });
                         continue;
@@ -65,7 +62,7 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT) {
                     await msg.sendMsgEx({
                         channelId: cId,
                         sendType: MessageType.GUILD,
-                        imageFile: imageBuffer,
+                        imageUrl: cosUrl(`biliDynamic/${imageKey}`),
                         content: `${devEnv ? "dev " : ""}${bUser.name} 更新了一条动态\nhttps://t.bilibili.com/${item.id_str}`,
                     });
                 } else {
@@ -178,7 +175,7 @@ async function checkUser(biliUserId: string, cookies: string): Promise<BiliDynam
 
 async function screenshot(biliDynamicId: string, pubTs: string, quality = 60): Promise<Buffer | undefined> {
 
-    if (!global.browser || !browser.isConnected()) global.browser = await puppeteer.launch({
+    if (!global.browser || !browser.connected) global.browser = await puppeteer.launch({
         headless: "new",
         args: ['--no-sandbox'],
     });
@@ -189,7 +186,7 @@ async function screenshot(biliDynamicId: string, pubTs: string, quality = 60): P
     await page.setUserAgent(userAgent);
     await page.setViewport({
         width: 700,
-        height: 480,
+        height: 1500,
         deviceScaleFactor: 5,
     });
     await page.goto(`https://t.bilibili.com/${biliDynamicId}`, {
@@ -223,11 +220,9 @@ async function screenshot(biliDynamicId: string, pubTs: string, quality = 60): P
     //     quality: 70,
     //     encoding: "binary",
     // }) as Promise<Buffer>);
-    const pic = await (await page.$("#app > div"))?.screenshot({
-        type: "jpeg",
-        quality,
+    const pic = await (await page.$("#app > div > div"))?.screenshot({
+        type: "png",
         encoding: "binary",
-        // fullPage: true,
     }) as Buffer | null;
 
     writeFileSync(browserCkFile, stringifyFormat(await page.cookies()));
