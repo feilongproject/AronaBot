@@ -341,15 +341,16 @@ async function getMarkdown(options: SendOption.MarkdownPublic, kbCustom = false)
     for (let i = 1; i <= 100; i++) {
         options.params[`v${i}`] = options.params[`v${i}`] || "\u200b";
     }
-    const keyboardContent = (options.keyboardNameId ? (await import("../../data/keyboardMap")).default[options.keyboardNameId] : undefined) || options.keyboard?.content;
+    const kbId = options.keyboardId || options.keyboard?.id || await redis.hGet(`config:kb:${options.keyboardNameId}`, meId);
+    const kbContent = (options.keyboardNameId ? (await import("../../data/keyboardMap")).default[options.keyboardNameId] : undefined) || options.keyboard?.content;
     return {
         markdown: {
             custom_template_id: markdownId,
             params: Object.entries(options.params)?.map(([key, value]) => ({ key, values: [value] })),
         },
         keyboard: {
-            id: (keyboardContent && kbCustom) ? undefined : options.keyboardId || options.keyboard?.id || await redis.hGet(`config:kb:${options.keyboardNameId}`, meId),
-            content: keyboardContent,
+            id: kbCustom ? undefined : kbId,
+            content: kbCustom ? kbContent : undefined,
         },
     };
 }
