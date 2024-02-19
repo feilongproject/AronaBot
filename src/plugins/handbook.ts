@@ -142,7 +142,7 @@ export async function getLastestImage(name: string, type = "all"): Promise<Handb
         info: imageInfo || "",
         infoUrl: infoUrl || "",
         updateTime: updateTimeMessage + (updateTime || "未知"),
-        url: await redis.hGet(`handbook`, `baseUrl`) + `/${name}/${type}.png!HandbookImageCompress?expired=${updateTime}`,
+        url: cosUrl(`handbook/${name}/${type}.png`) + `?expired=${updateTime}`,
     };
 }
 
@@ -240,13 +240,15 @@ export async function handbookUpdate(msg: IMessageGUILD) {
             + `\ndesc: ${imageDesc || ""}`
             + `\nimageTurnUrl: ${imageTurnUrl}`).replaceAll(".", ",")
     });
+    const imageKey = `${imageName}/${imageType}.png`;
 
     await redis.hSet("handbook:cache", `${imageName}:${imageType}`, format.asString(new Date()));
     await redis.hSet("handbook:info", `${imageName}:${imageType}`, imageDesc || "");
     await redis.hSet("handbook:infoUrl", `${imageName}:${imageType}`, imageTurnUrl || "");
-    await fetch(imageUrl.startsWith("http") ? imageUrl : `https://${imageUrl}`)
-        .then(res => res.buffer())
-        .then(buff => fs.writeFileSync(`${config.handbookRoot}/${imageName}/${imageType}.png`, buff));
+    const imageBuff = await fetch(imageUrl.startsWith("http") ? imageUrl : `https://${imageUrl}`)
+        .then(res => res.buffer());
+    fs.writeFileSync(`${config.handbookRoot}/${imageKey}`, imageBuff);
+    cosPutObject({ Key: `handbook/${imageKey}`, Body: imageBuff });
 
     const lastestImage = await getLastestImage(imageName, imageType);
     if (devEnv) log.debug(lastestImage);
