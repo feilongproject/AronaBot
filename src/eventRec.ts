@@ -50,7 +50,6 @@ async function executeChat(msg: IMessageGROUP) {
         if (!opt) return;
         if (adminId.includes(msg.author.id) && !devEnv && (await redis.get("devEnv"))) return;
         if (await isBan(msg)) return;
-        if (typeof opt == "string") return msg.sendMsgEx({ content: opt });
         if (global.devEnv) log.debug(`${_path}/src/plugins/${opt.path}:${opt.fnc}`);
 
         const plugin = await import(`./plugins/${opt.path}.ts`);
@@ -66,7 +65,7 @@ async function executeChat(msg: IMessageGROUP) {
 
 export async function mailerError(msg: any, err: Error) {
     log.error(err);
-    // if (devEnv) return;
+    if (devEnv) return;
 
     const user = await redis.hGet("config", "sendMail:user");
     const pass = await redis.hGet("config", "sendMail:pass");
@@ -125,7 +124,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             if (devEnv) log.debug(event);
             const msg = new IMessageGUILD(data);
             msg.content = msg.content.replaceAll("@彩奈", "<@!5671091699016759820>");
-            if (botType == "AronaBot") import("./plugins/AvalonSystem").then(e => e.avalonSystem(msg)).catch(err => log.error(err));
+            if (botType == "AronaBot") import("./plugins/AvalonSystem").then(e => e.avalonSystem(msg)).catch(err => mailerError(data, err));
             return executeChannel(msg);
         }
 
