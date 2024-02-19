@@ -49,12 +49,9 @@ export async function init() {
     }
 
     log.info(`初始化: 正在连接数据库`);
-    global.redis = createClient({
-        socket: { host: "127.0.0.1", port: 6379, },
-        database: 0,
-    });
-    await global.redis.connect().then(() => {
-        log.info(`初始化: redis 数据库连接成功`);
+    global.redis = createClient(config.redis);
+    await global.redis.connect().then(() => redis.ping()).then(pong => {
+        log.info(`初始化: redis 数据库连接成功 ${pong}`);
     }).catch(err => {
         log.error(`初始化: redis 数据库连接失败，正在退出程序\n${err}`);
         process.exit();
@@ -63,13 +60,10 @@ export async function init() {
     log.info(`初始化: 正在连接腾讯 COS`);
     global.cos = new COS(config.cos);
 
-    if (config.bots[botType].allowMariadb && !devEnv) global.mariadb = await createPool({
+    if (config.bots[botType].allowMariadb) global.mariadb = await createPool({
         ...config.mariadb,
         database: botType,
-    }).getConnection().then(conn => {
-        log.info(`初始化: mariadb 数据库连接成功`);
-        return conn;
-    }).catch(err => {
+    }).getConnection().catch(err => {
         log.error(`初始化: mariadb 数据库连接失败，正在退出程序\n${err}`);
         process.exit();
     });
