@@ -338,12 +338,13 @@ async function getMarkdown(options: SendOption.MarkdownPublic, kbCustom = false)
     if (!markdownId) return null;
 
     options.params = options.params || options[markdownNameId!];
+    if (markdownNameId) options[markdownNameId] = undefined as any;
     for (let i = 1; i <= 100; i++) {
         options.params[`v${i}`] = options.params[`v${i}`] || "\u200b";
     }
     const kbId = options.keyboardId || options.keyboard?.id || await redis.hGet(`config:kb:${options.keyboardNameId}`, meId);
     const kbContent = (options.keyboardNameId ? (await import("../../data/keyboardMap")).default[options.keyboardNameId] : undefined) || options.keyboard?.content;
-    return {
+    const ret = {
         markdown: {
             custom_template_id: markdownId,
             params: Object.entries(options.params)?.map(([key, value]) => ({ key, values: [value] })),
@@ -353,6 +354,8 @@ async function getMarkdown(options: SendOption.MarkdownPublic, kbCustom = false)
             content: kbCustom ? kbContent : undefined,
         },
     };
+    if (!ret.keyboard.id && !ret.keyboard.content) ret.keyboard = undefined as any;
+    return ret;
 }
 
 namespace SendOption {
