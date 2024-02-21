@@ -220,6 +220,12 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
         }
 
         case AvailableIntentsEventsEnum.FORUMS_EVENT: {
+            const { eventId, msg } = event as IntentMessage.FORUMS_EVENT;
+            const aid = msg.author_id;
+            const uidMatch = /:(?<uid>\d+)_/.exec(eventId)?.groups;
+            if (!aid || !uidMatch || !uidMatch.uid || uidMatch.uid == "0") return;
+
+            await redis.hSet("guild:aid->uid", aid, uidMatch.uid);
             break;
 
     }
