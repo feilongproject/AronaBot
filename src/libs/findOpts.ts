@@ -4,18 +4,14 @@ export async function findOpts(msg: IMessageGUILD | IMessageDIRECT | IMessageGRO
     if (!msg.content) return null;
 
     const configOpt = (await import("../../config/opts")).default;
-    const commandFathers: {
-        [keyFather: string]: {
-            [keyChild: string]: {
-                reg: string;
-                fnc: string;
-                channelAllows?: string[];
-                data?: string;
-                type: string[],
-                describe: string;
-            }
-        }
-    } = configOpt.command;
+    const commandFathers: Record<string, Record<string, {
+        reg: string;
+        fnc: string;
+        channelAllows?: string[];
+        data?: string;
+        type: string[],
+        describe: string;
+    }>> = configOpt.command;
     const channelAllows: {
         [allowKeys: string]: {
             id: string;

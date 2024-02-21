@@ -160,7 +160,7 @@ Date.prototype.toDBString = function () {
 
 global.stringifyFormat = (obj: any) => JSON.stringify(obj, undefined, "    ");
 global.sleep = (ms: number) => new Promise(resovle => { setTimeout(resovle, ms) });
-global.fixName = (name: string) => name.replace("（", "(").replace("）", ")").toLowerCase().replaceAll(" ", "");
+global.fixName = (name: string) => name.replace("（", "(").replace("）", ")").toLowerCase().replaceAll(" ", "").replace(/(国际?服|日服)/g, "");
 global.cosPutObject = async (params: CosPutObjectParams) => cos.putObject({ ...config.cos, ...params, })
 // global.cosUrl = (key: string) => `https://${config.cos.Bucket}.cos.${config.cos.Region}.myqcloud.com/${key}`;
 // global.cosUrl = (key: string) => `https://${config.cos.Bucket}.cos-website.${config.cos.Region}.myqcloud.com/${key}`;

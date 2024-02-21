@@ -53,10 +53,10 @@ const handbookMatches: HandbookMatches.Root = {
 export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP) {
     const forceGuildType = ("guild_id" in msg && ["16392937652181489481"].includes(msg.guild_id)) ? HandbookMatches.Type.cn : undefined;
     const hbMatched = await matchHandbook(msg, forceGuildType).catch(err => stringifyFormat(err));
-    if (devEnv) log.debug(msg.content, hbMatched);
     if (typeof hbMatched == "string") return msg.sendMsgEx({ content: `未找到对应攻略数据，${hbMatched}` });
     const lastestImage = hbMatched.fuzzy ? undefined : await getLastestImage(hbMatched.name, hbMatched.type);
     const filePath = `${config.handbookRoot}/${hbMatched.name}/${hbMatched.type}.png`;
+    if (devEnv) log.debug(msg.content, hbMatched, lastestImage);
 
     const at_user = (msg instanceof IMessageGROUP ? `` : `<@${msg.author.id}> `)
         + `\u200b \u200b == ${serverMap[hbMatched.type] ?? hbMatched.nameDesc ?? hbMatched.type}`
@@ -141,7 +141,7 @@ export async function getLastestImage(name: string, type = "all"): Promise<Handb
         width: size.width || 400,
         info: imageInfo || "",
         infoUrl: infoUrl || "",
-        updateTime: updateTimeMessage + (updateTime || "未知"),
+        updateTime: updateTimeMessage + (updateTime ? format.asString(new Date(Number(updateTime) || updateTime)) : "未知"),
         url: cosUrl(`handbook/${name}/${type}.png`) + `?expired=${updateTime}`,
     };
 }
@@ -242,7 +242,7 @@ export async function handbookUpdate(msg: IMessageGUILD) {
     });
     const imageKey = `${imageName}/${imageType}.png`;
 
-    await redis.hSet("handbook:cache", `${imageName}:${imageType}`, format.asString(new Date()));
+    await redis.hSet("handbook:cache", `${imageName}:${imageType}`, new Date().getTime());
     await redis.hSet("handbook:info", `${imageName}:${imageType}`, imageDesc || "");
     await redis.hSet("handbook:infoUrl", `${imageName}:${imageType}`, imageTurnUrl || "");
     const imageBuff = await fetch(imageUrl.startsWith("http") ? imageUrl : `https://${imageUrl}`)
