@@ -38,7 +38,8 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT) {
             try {
                 const imageBuffer = await screenshot(item.id_str, item.modules.module_author.pub_ts.toString(), 60);
                 if (!imageBuffer) {
-                    sendToAdmin(`screenshot(${item.id_str}) not return buff`);
+                    log.error(`screenshot(${item.id_str}) not return buff, div not found`);
+                    await sendToAdmin(`screenshot(${item.id_str}) not return buff, div not found`);
                     continue;
                 }
                 const imageKey = `${item.id_str}-${new Date().getTime()}.png`;
@@ -47,7 +48,7 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT) {
                 await cosPutObject({ Key: `biliDynamic/${imageKey}`, Body: imageBuffer });
 
 
-                if (imageBuffer) for (const cId in bUser.channels) {
+                for (const cId in bUser.channels) {
                     const msg = new IMessageGUILD({ id: await redis.get(`lastestMsgId:${botType}`), } as any, false);
                     if (cId == "544252608") {
                         if (item.type == "DYNAMIC_TYPE_FORWARD") continue;
@@ -65,8 +66,6 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT) {
                         imageUrl: cosUrl(`biliDynamic/${imageKey}`),
                         content: `${devEnv ? "dev " : ""}${bUser.name} 更新了一条动态\nhttps://t.bilibili.com/${item.id_str}`,
                     });
-                } else {
-                    await sendToAdmin(`${bUser.name} ${item.id_str} 发送失败，${imageBuffer === undefined ? "div未找到" : "图片过大"}`).catch(err => { });
                 }
 
                 await pushToDB("biliMessage", {
