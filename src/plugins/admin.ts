@@ -44,7 +44,7 @@ export async function status(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP
 }
 export async function dmsMe(msg: IMessageGUILD) {
     const dmsInfo = await client.directMessageApi.createDirectMessage({ source_guild_id: msg.guild_id, recipient_id: msg.author.id });
-    return client.directMessageApi.postDirectMessage(dmsInfo.data.guild_id, { content: "pong" });
+    return client.directMessageApi.postDirectMessage(dmsInfo.data.guild_id, { content: "pong", msg_id: msg.id, });
 }
 
 export async function ping(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP) {
@@ -107,7 +107,7 @@ export async function directToAdmin(msg: IMessageDIRECT) {
 
 export async function reloadStudentData(msg: IMessageDIRECT) {
     if (!adminId.includes(msg.author.id)) return;
-    const type = /^学生数据(网络|本地)重加载$/.exec(msg.content)![1];
+    const type = /学生数据(网络|本地)重加载/.exec(msg.content)![1];
     return import("./studentInfo").then(module => module.reloadStudentInfo(type == "网络" ? "net" : "local"))
         .then(r => msg.sendMsgExRef({ content: `已从${type}重加载资源并保存\n${r}` }))
         .catch(err => {
