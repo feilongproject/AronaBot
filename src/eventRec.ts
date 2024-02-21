@@ -227,7 +227,20 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
 
             await redis.hSet("guild:aid->uid", aid, uidMatch.uid);
             break;
+        }
+        case AvailableIntentsEventsEnum.INTERACTION: {
+            // if (devEnv) log.debug(event);
+            // const { msg } = event as IntentMessage.INTERACTION;
 
+            // await client.interactionApi.putInteraction(msg.id, { code: 0 }).then(data => {
+            //     log.debug(data.data);
+            // }).catch(err => {
+            //     log.error(err);
+            // }); //  0成功,1操作失败,2操作频繁,3重复操作,4没有权限,5仅管理员操作
+
+
+            break;
+        }
     }
 }
 
