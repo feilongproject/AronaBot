@@ -1,8 +1,7 @@
 import format from "date-format";
 import { IUser } from "qq-bot-sdk";
-import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 import { sendToAdmin, timeConver } from "../libs/common";
-import RE2 from "re2";
+import { IMessageDIRECT, IMessageGUILD } from "../libs/IMessageEx";
 
 
 const execMap = [
@@ -16,7 +15,7 @@ export async function mute(msg: IMessageGUILD) {
     const allowRoles = [...await redis.sMembers(`allowRoles:mute:${msg.guild_id}`), "4", "2",];
     if (!roles.filter(v => allowRoles.includes(v)).length) return;
 
-    const timeMatch = new RE2("(?P<muteTime>\\d+)((?P<m>分钟?|m)|(?P<h>小?时|h)|(?P<d>天|d))").match(msg.content)?.groups;
+    const timeMatch = /(?<muteTime>\d+)((?<m>分钟?|m)|(?<h>小?时|h)|(?<d>天|d))/.exec(msg.content)?.groups;
     if (!timeMatch) return msg.sendMsgExRef({ content: `未指定禁言时间` });
 
     const muteTime = Number(timeMatch.muteTime) * (timeMatch.m ? 60 : (timeMatch.h ? 60 * 60 : 60 * 60 * 24));
@@ -98,7 +97,7 @@ export async function mute(msg: IMessageGUILD) {
 }
 
 export async function ban(msg: IMessageDIRECT) {
-    const match = RE2("^(?P<isUnBan>un)?ban(?P<isForce>f)?\\s+(?P<banType>group|guild|user)\\s+(?P<banId>\\S+)\\s+(?P<banDesc>\\S+)$").exec(msg.content);
+    const match = /^(?<isUnBan>un)?ban(?<isForce>f)?\s+(?<banType>group|guild|user)\s+(?<banId>\S+)\s+(?<banDesc>\S+)$/.exec(msg.content);
     if (!match || !match.groups) return msg.sendMsgEx({
         content: `指令错误, 格式: \n` +
             `(un)ban (group|guild|user) <id> <原因>`
