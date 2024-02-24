@@ -359,6 +359,7 @@ async function getMarkdown(options: SendOption.MarkdownPublic, kbCustom = false)
     }
     const kbId = options.keyboardId || options.keyboard?.id || await redis.hGet(`config:kb:${options.keyboardNameId}`, meId);
     const kbContent = (options.keyboardNameId ? (await import("../../data/keyboardMap")).default[options.keyboardNameId] : undefined) || options.keyboard?.content;
+    kbCustom = !!kbContent && kbCustom;
     const ret = {
         markdown: {
             custom_template_id: markdownId,
