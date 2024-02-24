@@ -224,6 +224,21 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
 
         if (!register) return;
         log.info(`群聊[${this.group_id}](${this.author.id}): ${this.content}`);
+        this.pushToDB();
+    }
+
+    async pushToDB() {
+        const attachments: string[] = [];
+        if (this.attachments)
+            for (const path of this.attachments) attachments.push(path.url);
+        return pushToDB("groupMessage", {
+            id: this.id,
+            aid: this.author.id,
+            content: this.content,
+            gid: this.group_id,
+            ts: this.timestamp,
+            attachments: attachments.join(","),
+        });
     }
 
     async sendMsgExRef(options: Partial<SendOption.Group>) {
