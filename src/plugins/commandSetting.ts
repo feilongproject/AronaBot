@@ -73,24 +73,16 @@ export async function commandSetting(msg: IMessageGUILD | IMessageGROUP) {
     }
 
     return msg.sendMarkdown({
-        params_common: {
-            desc1: `<@${msg.author.id}> ${optStr}`
-                + `\r当前卡池选择: ${status.server == "jp" ? "日服" : "国际服"}卡池`
-                + `\r抽卡分析显示状态: ${status.analyzeHide == "true" ? "隐藏" : "显示"}`
-                + "\r注: 使用按钮可以快速设置",
-            link1: "\u200b](https://ip.arona.schale.top/p/233",
-            img1: "img #-1px #1px](  ",
-            img2: "img #-1px #1px](  ",
-            link2: "\u200b](https://ip.arona.schale.top/p/233",
-            link3: "\u200b](https://ip.arona.schale.top/p/233",
-            link4: "\u200b](https://ip.arona.schale.top/p/233",
-            link5: "\u200b](https://ip.arona.schale.top/p/233",
-            link6: "\u200b](https://ip.arona.schale.top/p/233",
+        params_omnipotent: {
+            v1: (msg instanceof IMessageGROUP ? "" : `<@${msg.author.id}> `) + optStr,
+            v2: `\r当前卡池选择: ${status.server == "jp" ? "日服" : "国际服"}卡池`,
+            v3: `\r抽卡分析显示状态: ${status.analyzeHide == "true" ? "隐藏" : "显示"}`,
+            v4: "\r注: 使用按钮可以快速设置",
         },
-        keyboardNameId: "handbook",
+        keyboardNameId: "gacha",
         // markdown 部分
 
-        content: (msg instanceof IMessageGROUP ? "" : `<@${msg.author.id}> `) + `${optStr}`
+        content: (msg instanceof IMessageGROUP ? "" : `<@${msg.author.id}> `) + optStr
             + `\n当前卡池选择: ${status.server == "jp" ? "日服" : "国际服"}卡池`
             + `\n抽卡分析显示状态: ${status.analyzeHide == "true" ? "隐藏" : "显示"}`
             + `\n注: 以下子命令须在本命令后加空格使用`
