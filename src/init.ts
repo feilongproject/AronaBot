@@ -41,9 +41,10 @@ export async function init() {
             if (!devEnv && !hotLoadStatus) return;
             if (require.cache[filepath]) {
                 hotLoadStatus--;
-                log.mark(`${hotloadConfig.type} 正在进行热更新`);
+                const fileD = filepath.replace(_path, "").split(".")[0];
+                log.mark(`${hotloadConfig.type} ${fileD} 正在进行热更新`);
                 delete require.cache[filepath];
-                if (!devEnv) return sendToAdmin(`${devEnv} ${hotloadConfig.type} 正在进行热更新 ${hotLoadStatus}`);
+                if (!devEnv) return sendToAdmin(`${devEnv} ${hotloadConfig.type} ${fileD} 正在进行热更新 ${hotLoadStatus}`);
             }
         });
     }
