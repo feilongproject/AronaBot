@@ -96,8 +96,8 @@ export async function mute(msg: IMessageGUILD) {
 
 }
 
-export async function ban(msg: IMessageDIRECT) {
-    const match = /^(?<isUnBan>un)?ban(?<isForce>f)?\s+(?<banType>group|guild|user)\s+(?<banId>\S+)\s+(?<banDesc>\S+)$/.exec(msg.content);
+export async function ban(msg: IMessageGUILD | IMessageDIRECT) {
+    const match = /^(?<isUnBan>un)?ban(?<isForce>f)?\s+(?<banType>group|guild|user)\s+(?<banId>\S+)(\s+(?<banDesc>\S+))?$/.exec(msg.content);
     if (!match || !match.groups) return msg.sendMsgEx({
         content: `指令错误, 格式: \n` +
             `(un)ban (group|guild|user) <id> <原因>`
@@ -112,6 +112,6 @@ export async function ban(msg: IMessageDIRECT) {
         content: `已${isUnBan || ""}ban ${result} ${(isForce && isExist) ? "(force)" : ""}`
             + `\n类型: ${banType}`
             + `\nid: ${banId}`
-            + `\n理由: ${banDesc}`,
+            + (isUnBan ? "" : `\n理由: ${banDesc}`),
     });
 }
