@@ -8,7 +8,10 @@
             "name": "Attach TS",
             "type": "node",
             "request": "attach",
-            "processId": "${command:PickProcess}"
+            "processId": "${command:PickProcess}",
+            "env":{
+                "DISPLAY":"localhost:10.0"
+            }
         }
     ]
 }
