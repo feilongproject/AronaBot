@@ -58,7 +58,7 @@ export async function hotLoad(msg: IMessageGUILD | IMessageDIRECT | IMessageGROU
     // if (devEnv) return;
     const times = /\/?热(加载|更新)(?<times>-?\d+)$/.exec(msg.content)?.groups?.times;
     hotLoadStatus = Number(times);
-    return msg.sendMsgEx({ content: `已${msg.content}` });
+    return msg.sendMsgEx({ content: `${devEnv} 已${msg.content}` });
 }
 
 export async function restart(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP) {

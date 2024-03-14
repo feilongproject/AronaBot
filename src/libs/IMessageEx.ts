@@ -296,11 +296,11 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
         const redisKey = `fileInfo:cache:${fUrl}`;
         const fileInfo = await redis.get(redisKey);
         if (fileInfo && !force) return fileInfo;
-        if (fUrl.includes("cdn.arona.schale.top") && !fileInfo) await fetch(fUrl).then(res => res.buffer()).then(buff => { });
-        if (!new URL(fUrl).pathname.startsWith("/p/gacha/")) log.mark(`资源 ${fUrl} 获取中, 存在: ${!!fileInfo}`);
+        // if (fUrl.includes("cdn.arona.schale.top") && !fileInfo) await fetch(fUrl).then(res => res.buffer()).then(buff => { });
+        // if (!new URL(fUrl).pathname.startsWith("/p/gacha/")) log.mark(`资源 ${fUrl} 获取中, 存在: ${!!fileInfo}`);
         const fileRes = await client.groupApi.postFile(groupId, {
             file_type: fileType,
-            url: fUrl + (fUrl.endsWith("/random") ? `?rat=111&ts=${new Date().getTime()}` : ""),
+            url: fUrl,
             srv_send_msg: false,
         }).then(res => res.data);
         if (!force) await redis.setEx(redisKey, 60 * 60 * 24 * 5, fileRes.file_info);
