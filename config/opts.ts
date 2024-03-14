@@ -3,6 +3,15 @@ import { MessageType } from "../src/libs/IMessageEx";
 export default {
     desc: "命令总览json,按照顺序进行匹配",
     command: {
+        test: {
+            test: {
+                reg: "test",
+                fnc: "test",
+                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP],
+                channelAllows: ["all"],
+                describe: "测试测试测试测试（确信）"
+            }
+        },
         help: {
             help: {
                 reg: "^/?(help|menu|帮助|菜单)$",
