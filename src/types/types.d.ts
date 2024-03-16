@@ -1,8 +1,8 @@
 import log4js from "log4js";
 import { Browser } from "puppeteer";
 import COS from "cos-nodejs-sdk-v5";
+import { RedisClientType } from "redis";
 import { PoolConnection } from "mariadb";
-import { RedisClientType } from "@redis/client";
 import { IChannel, IMember, IUser, createOpenAPI, createWebsocket, IOpenAPI, AvailableIntentsEventsEnum } from "qq-bot-sdk";
 import config from "../../config/config";
 

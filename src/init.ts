@@ -4,7 +4,6 @@ import { createPool } from 'mariadb';
 import { createClient } from 'redis';
 import schedule from "node-schedule";
 import { IChannel, IGuild, createOpenAPI, createWebsocket } from "qq-bot-sdk";
-import _log from './libs/logger';
 import { sendToAdmin } from './libs/common';
 import config from '../config/config';
 
@@ -14,7 +13,6 @@ export async function init() {
     console.log(`机器人准备运行，正在初始化`);
 
     global.adminId = ["7681074728704576201", "15874984758683127001", "2975E2CA5AE779F1899A0AED2D4FA9FD"];
-    global.log = _log;
     global.botStatus = {
         startTime: new Date(),
         msgSendNum: 0,
@@ -22,10 +20,9 @@ export async function init() {
     }
     global.hotLoadStatus = 0;
 
-    if (process.argv.includes("--dev")) {
-        global.devEnv = true;
-        log.mark("当前环境处于开发环境，请注意！");
-    } else global.devEnv = false;
+    global.devEnv = process.argv.includes("--dev");
+    global.log = (await import("./libs/logger")).default;
+    if (devEnv) log.mark("当前环境处于开发环境，请注意！");
 
     global.botType = Object.keys(config.bots).find(v => process.argv.includes(v)) as BotTypes;
     if (!botType) {
