@@ -5,7 +5,14 @@ const log = log4js.configure({
             type: "console",
             layout: {
                 type: "pattern",
-                pattern: "%[[%d]%f [%p]%] %m"
+                /**
+                 * %s call stack
+                 * %C class name
+                 * %M method or function name
+                 * %A method or function alias
+                 * %F fully qualified caller name
+                 */
+                pattern: devEnv ? "%[[%r] [%f:%l:%o:%F] [%p]%] %m" : "%[[%r] [%f:%l:%o] [%p]%] %m",
             }
         }
     },
@@ -18,15 +25,14 @@ const log = log4js.configure({
     },
 }).getLogger();
 
-log.setParseCallStackFunction((error: Error) => {
-    if (!devEnv && error.stack?.split("\n")[3].match(/at Logger\.<computed> \[as (.*?)\]/)![1] != "error") return;
-    if (!devEnv && error.name != "Error") return;
-    const stacklines = error.stack!.split("\n").splice(4);
-    const lineMatch = /at (?:(.+)\s+\()?(?:(.+?):(\d+)(?::(\d+))?|([^)]+))\)?/.exec(stacklines[0]);
-    /* istanbul ignore else: failsafe */
-    if (lineMatch && lineMatch.length === 6) {
-        const filepath = lineMatch[2].replace(_path, "");
-        return { fileName: ` [${["/", "\\"].includes(filepath[0]) ? filepath.slice(1) : filepath}:${lineMatch[3]}:${lineMatch[4]}]` };
-    }
+log.setParseCallStackFunction((error: Error, linesToSkip: number) => {
+    const lineMatch = /at (?:(?<method>.+)\s+\()?(?:(?<path>.+?):(?<line>\d+)(?::(?<col>\d+))?|([^)]+))\)?/.exec(error.stack!.split("\n")[linesToSkip])?.groups;
+    if (!lineMatch) return;
+    return {
+        fileName: lineMatch.path.replace(_path, "").replace(/^[\/\\]/, ""),
+        lineNumber: Number(lineMatch.line),
+        columnNumber: Number(lineMatch.col),
+        callerName: lineMatch.method,
+    } as any as log4js.CallStack;
 });
 export default log
