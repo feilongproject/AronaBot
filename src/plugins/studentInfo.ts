@@ -19,8 +19,12 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
 
     const _studentInfo: Record<string, StudentInfo> = {};
     if (type == "net") {
-        const [netStudentsSchaleDB, netStudentsElectricgoat, aliasStudentNameWeb] = await Promise.all([
+        const [nStudentsDBcn, nStudentsDBzh, nStudentsElectricgoat, aStudentNameWeb] = await Promise.all([
             fetch("https://raw.gh.schale.top/lonqie/SchaleDB/main/data/cn/students.min.json", {
+                timeout: 30 * 1000,
+            }).then(res => res.json()).then((json: StudentInfoNet[]) => json.map(v => ({ ...v, Name: fixName(v.Name) }))).catch(err => log.error(err)),
+
+            fetch("https://raw.gh.schale.top/lonqie/SchaleDB/main/data/zh/students.min.json", {
                 timeout: 30 * 1000,
             }).then(res => res.json()).then((json: StudentInfoNet[]) => json.map(v => ({ ...v, Name: fixName(v.Name) }))).catch(err => log.error(err)),
 
@@ -37,14 +41,16 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
                 return json;
             }).catch(err => log.error(err)),
         ]);
-        if (!netStudentsSchaleDB) throw `can't fetch json:netStudentsSchaleDB`;
-        if (!netStudentsElectricgoat) throw `can't fetch json:netStudentsElectricgoat`;
-        if (!aliasStudentNameWeb) throw `can't fetch json:aliasStudentNameWeb`;
+        if (!nStudentsDBcn) throw `can't fetch json:netStudentsSchaleDBcn`;
+        if (!nStudentsDBzh) throw `can't fetch json:netStudentsSchaleDBzh`;
+        if (!nStudentsElectricgoat) throw `can't fetch json:netStudentsElectricgoat`;
+        if (!aStudentNameWeb) throw `can't fetch json:aliasStudentNameWeb`;
 
         const aliasStudentNameLocal: Record<string, string[]> = JSON.parse(fs.readFileSync(config.aliasStudentNameLocal, { encoding: "utf8" }));
 
-        for (const _ of netStudentsElectricgoat) {
-            const __ = netStudentsSchaleDB.find(v => v.Id == _.Id);
+        for (const _ of nStudentsElectricgoat) {
+            const __ = nStudentsDBzh.find(v => v.Id == _.Id);
+            const cnName = nStudentsDBcn.find(v => v.Id == _.Id)?.Name;
             const d = { ..._, ...__, };
 
             if (!__) await sendToAdmin(`SchaleDB未更新: ${d.Id}-${d.DevName}`);
@@ -52,7 +58,7 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
             _studentInfo[d.Id] = {
                 id: d.Id,
                 releaseStatus: d.IsReleased || [false, false, false],
-                name: [d.Name, fixName(d.DevName), String(d.Id), d.PathName ? fixName(d.PathName) : undefined].filter(v => v) as string[],
+                name: [d.Name, cnName, fixName(d.DevName), String(d.Id), d.PathName ? fixName(d.PathName) : undefined].filter(v => v) as string[],
                 devName: devName,
                 pathName: d?.PathName || d.DevName,
                 star: d.DefaultStarGrade as 1 | 2 | 3,
@@ -61,12 +67,12 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
 
             const nameAlis = () => {
                 for (const _ of _studentInfo[d.Id].name) {
-                    const webHas = aliasStudentNameWeb[_];
+                    const webHas = aStudentNameWeb[_];
                     const localHas: string[] | undefined = aliasStudentNameLocal[_];
 
                     if (webHas) {
                         _studentInfo[d.Id].name.push(...webHas.filter(v => !v.includes("老婆"))); // 去除私货
-                        delete aliasStudentNameWeb[_];
+                        delete aStudentNameWeb[_];
                     }
 
                     if (localHas) {
@@ -83,9 +89,9 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
                 throw `not found png file in local: Student_Portrait_${devName}`;
         }
 
-        const unkownWebKeys = Object.keys(aliasStudentNameWeb);
+        const unkownWebKeys = Object.keys(aStudentNameWeb);
         if (unkownWebKeys.length) await sendToAdmin(`web别名链接失败部分: ${unkownWebKeys.join()}`);
-        const unkownLocalKeys = Object.keys(aliasStudentNameWeb);
+        const unkownLocalKeys = Object.keys(aStudentNameWeb);
         if (unkownLocalKeys.length) await sendToAdmin(`local别名链接失败部分: ${unkownLocalKeys.join()}`);
 
         global.studentInfo = _studentInfo;

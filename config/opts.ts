@@ -111,7 +111,7 @@ export default {
                 export: "/单抽出奇迹 \n/十连大保底"
             },
             gachaImage: {
-                reg: "^/?十连保底图",
+                reg: "^/?十连(保底图)?",
                 fnc: "gachaImage",
                 type: [MessageType.GUILD, MessageType.GROUP],
                 describe: "以图片形式展示抽卡结果",

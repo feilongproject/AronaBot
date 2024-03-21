@@ -1,4 +1,4 @@
-node_modules
+node_modules*
 dist
 config/config.ts
 log
@@ -24,3 +24,4 @@ data/images/*
 data/errorMessageTemaple.html
 data/keyboardMap.ts
 src/plugins/test.ts
+src/plugins/gameInfo.ts

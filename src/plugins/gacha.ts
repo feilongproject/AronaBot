@@ -166,7 +166,7 @@ export async function reloadGachaData(msg: IMessageDIRECT) {
         .then(r => msg.sendMsgExRef({ content: `已从${type}重加载资源并保存\n${r}\n${analyzeLocalDate().join("\n")}` }))
         .catch(err => {
             log.error(err);
-            return msg.sendMsgExRef({ content: `${type}获取资源错误: ${err}` });
+            return msg.sendMsgExRef({ content: `${type}获取资源错误: ${JSON.stringify(err)}` });
         });
 }
 
@@ -193,7 +193,7 @@ function analyzeLocalDate() {
             );
         } else sendStr.push(`> 无pickup`);
     }
-    return sendStr;
+    return sendStr.map(v => v.replaceAll("幼女", "幼-"));
 }
 
 async function gachaReload(type: "net" | "local") {
