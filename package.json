@@ -32,12 +32,12 @@
         "@types/ws": "^8.5.3"
     },
     "dependencies": {
+        "@napi-rs/canvas": "^0.1.51",
         "@node-rs/jieba": "^1.9.2",
         "@u4/opencv4nodejs": "^6.5.2",
         "adm-zip": "^0.5.10",
         "baidu-aip-sdk": "^4.16.13",
         "base64-js": "^1.5.1",
-        "canvas": "^2.11.2",
         "cheerio": "^1.0.0-rc.12",
         "chokidar": "^3.5.3",
         "console-png": "^1.2.1",

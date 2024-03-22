@@ -1,14 +1,14 @@
 import fs from "fs";
 import md5 from "md5";
 import { contentCensor as AipContentCensorClient } from "baidu-aip-sdk";
-import { createCanvas, Canvas, registerFont, DOMMatrix, loadImage, } from "canvas";
+import { createCanvas, Canvas, GlobalFonts, DOMMatrix, loadImage } from "@napi-rs/canvas";
 import { sendToAdmin } from "../libs/common";
 import { IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 import config from "../../config/config";
 
 
-registerFont(`${config.fontRoot}/GlowSansSC-Normal-Heavy.otf`, { family: "Glow Sans SC", weight: "Heavy" });
-registerFont(`${config.fontRoot}/RoGSanSrfStd-Bd.otf`, { family: "Ro GSan Serif Std" });
+GlobalFonts.registerFromPath(`${config.fontRoot}/GlowSansSC-Normal-Heavy.otf`, "GlowSansSC");
+GlobalFonts.registerFromPath(`${config.fontRoot}/RoGSanSrfStd-Bd.ttf`, "RoGSanSerifStd");
 
 export async function baLogo(msg: IMessageGUILD | IMessageGROUP) {
     // log.debug(msg.content);
@@ -59,7 +59,7 @@ export async function baLogo(msg: IMessageGUILD | IMessageGROUP) {
                     `-->${i}.k: ${pos.keyword}\n`
                     + `-->${i}.l: ${pos.label}\n`
                     + `-->${i}.p: ${pos.positions.join("|")}`).join("\n")}`
-                + `modelHitPositions:\n`
+                + `\n->modelHitPositions:\n`
                 + `${hit.modelHitPositions.map((pos, i) =>
                     `-->${i}: ${pos}\n`).join("\n")}`
             ).join("\n")}`
@@ -97,7 +97,7 @@ async function generate(textL: string, textR: string, transparentBg = false) {
     const canvas = createCanvas(canvasWidth, canvasHeight);
     const c = canvas.getContext('2d');
 
-    const font = `${fontSize}px 'Ro GSan Serif Std', 'Glow Sans SC', sans-serif`;
+    const font = `${fontSize}px 'RoGSanSerifStd', 'GlowSansSC', sans-serif`;
     c.font = font;
 
     // extend canvas
@@ -198,5 +198,5 @@ async function generate(textL: string, textR: string, transparentBg = false) {
         );
     }
 
-    return outputCanvas.toBuffer();
+    return outputCanvas.toBuffer("image/jpeg");
 }
