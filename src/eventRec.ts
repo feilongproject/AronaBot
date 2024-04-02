@@ -1,3 +1,4 @@
+import fetch from "node-fetch";
 import nodemailer from "nodemailer";
 import { readFileSync, writeFileSync } from "fs";
 import { AvailableIntentsEventsEnum, IChannel, IGuild } from "qq-bot-sdk";

@@ -7,7 +7,8 @@
         "dev:AronaBot": "clear && nodemon AronaBot",
         "dev:PlanaBot": "clear && nodemon PlanaBot",
         "dev:TestBot": "clear && nodemon TestBot",
-        "start": "ts-node src/index.ts",
+        "start:AronaBot": "ts-node src/index.ts AronaBot",
+        "start:PlanaBot": "ts-node src/index.ts PlanaBot",
         "test": "clear && nodemon --config nodemon.test.json"
     },
     "keywords": [],

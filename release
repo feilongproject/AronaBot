@@ -1,3 +1,12 @@
 #!/usr/bin/bash
 cd /root/RemoteDir/qbot/AronaBot
-/root/.nvm/versions/node/v18.19.0/bin/node node_modules/ts-node/dist/bin.js src/index.ts $1 > "log/$1_$(date +%F--%H:%M:%S).log" 2>&1 & 
+
+# export $HOME="/root"
+
+# bash /root/.zshrc
+
+# echo $NVM_DIR/nvm.sh >>0.log
+
+# echo $PATH
+
+/root/.nvm/versions/node/v18.19.0/bin/node /root/.nvm/versions/node/v18.19.0/bin/pnpm run start:$1 >"log/$1_$(date +%F--%H:%M:%S).log" 2>&1 &

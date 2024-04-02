@@ -1,3 +1,4 @@
+import fetch from "node-fetch";
 import { UpdateRoleRes } from "qq-bot-sdk";
 import { sendToAdmin } from "../libs/common";
 import { IMessageGUILD } from "../libs/IMessageEx";

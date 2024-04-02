@@ -1,4 +1,4 @@
-import sharp from "sharp";
+/// <reference lib="dom" />
 import fetch from "node-fetch";
 import * as puppeteer from "puppeteer";
 import { readFileSync, writeFileSync } from "fs";
