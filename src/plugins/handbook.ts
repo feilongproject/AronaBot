@@ -64,20 +64,19 @@ export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessag
     const handbookAuthor = provideMap[hbMatched.type] || hbMatched.name == "studentEvaluation" ? provideMap.jp : undefined;
 
     return msg.sendMarkdown({
-        params_omnipotent: {
-            v1: at_user + (hbMatched.fuzzy ? "" : `\r${needUpdateMessage}\r攻略制作: ${handbookAuthor}\r`),
+        params_omnipotent: [
+            at_user + (hbMatched.fuzzy ? "" : `\r${needUpdateMessage}\r攻略制作: ${handbookAuthor}\r`),
             // + (lastestImage?.info ? `${lastestImage.info}\r` : ""), // sb腾讯，'type:business, code:30, msg:["[[图片] [少女]]","[[少女] [图片]]"]'
-            v2: `![img #${lastestImage?.width || -1}px #${lastestImage?.height || 1}px]`,
-            v3: `(${lastestImage?.url || "  "})`,
-            v4: `\r${lastestImage?.updateTime || (hbMatched.fuzzy ? "当前为模糊搜索，请从以下搜素结果中选择(若点击无效果请更新QQ至新版):\r" : "")}`,
-            v5: lastestImage?.infoUrl ? `[🔗详情点我]` : "",
-            v6: lastestImage?.infoUrl ? `(${lastestImage.infoUrl})` : "",
-            ...Object.fromEntries((hbMatched.fuzzy || [])
+            `![img #${lastestImage?.width || -1}px #${lastestImage?.height || 1}px]`,
+            `(${lastestImage?.url || "  "})`,
+            `\r${lastestImage?.updateTime || (hbMatched.fuzzy ? "当前为模糊搜索，请从以下搜素结果中选择(若点击无效果请更新QQ至新版):\r" : "")}`,
+            lastestImage?.infoUrl ? `[🔗详情点我]` : "",
+            lastestImage?.infoUrl ? `(${lastestImage.infoUrl})` : "",
+            ...(hbMatched.fuzzy || [])
                 .map(fuzzy => mdCmdLink(`「${fuzzy.name}」`, `角评 ${fuzzy.name}`))
                 .flat()
-                .map((v, i) => [`v${i + 1 + 7}`, v])
-                .slice(0, -1)),
-        },
+                .slice(0, -1),
+        ],
         keyboardNameId: "handbook",
         // markdown 部分
 
@@ -330,14 +329,14 @@ export async function searchHandbook(msg: IMessageGUILD | IMessageDIRECT | IMess
 
     const imageUrl = `https://arona.cdn.diyigemt.com/image${resultData.data[0].path}?hash=${resultData.data[0].hash}`;
     if (resultData.data.length == 1) return msg.sendMarkdown({
-        params_common: {
-            desc: `<@${msg.author.id}>`
-                + `\r数据来源: diyigemt`,
-            link1: "\u200b](https://ip.arona.schale.top/p/233",
-            img1: `img #1920px #1080px](${imageUrl}`,
-            // img1_status: `\r${lastestImage.updateTime}`,
-            img2: "img #-1px #1px](  ",
-        },
+        params_omnipotent: [
+            `<@${msg.author.id}>`,
+            `\r数据来源: diyigemt`,
+            `!`,
+            `[img #1920px #1080px]`,
+            `(${imageUrl})`,
+
+        ],
         keyboardNameId: "handbook",
         // markdown 部分
 

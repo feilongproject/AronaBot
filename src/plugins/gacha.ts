@@ -56,12 +56,12 @@ export async function gachaImage(msg: IMessageGUILD | IMessageGROUP) {
         (analyze ? "\n" + [analyze.today_gacha, analyze.total_gacha, analyze.gacha_analyze].join("\n") : "");
 
     return msg.sendMarkdown({
-        params_omnipotent: {
-            v1: `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)\r`
-                + (analyze ? `${analyze?.today_gacha}\r${analyze?.total_gacha}\r${analyze?.gacha_analyze}` : ""),
-            v2: `![img #1700px #980px]`,
-            v3: `(${cosUrl(`gacha/${imageName}`)})`,
-        },
+        params_omnipotent: [
+            `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)\r`
+            + (analyze ? `${analyze?.today_gacha}\r${analyze?.total_gacha}\r${analyze?.gacha_analyze}` : ""),
+            `![img #1700px #980px]`,
+            `(${cosUrl(`gacha/${imageName}`)})`,
+        ],
         keyboardNameId: "gacha",
         // markdown 部分
 

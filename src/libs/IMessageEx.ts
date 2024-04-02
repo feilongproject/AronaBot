@@ -354,8 +354,9 @@ async function getMarkdown(options: SendOption.MarkdownPublic, kbCustom = false)
 
     options.params = options.params || options[markdownNameId!];
     if (markdownNameId) options[markdownNameId] = undefined as any;
-    for (let i = 1; i <= 100; i++) {
-        options.params[`v${i}`] = options.params[`v${i}`] || "\u200b";
+    if (!options.params.length) options.params = [];
+    for (let i = 0; i < mdParamLength; i++) {
+        options.params[i] = options.params[i] || "\u200b";
     }
     const kbId = options.keyboardId || options.keyboard?.id || await redis.hGet(`config:kb:${options.keyboardNameId}`, meId);
     const kbContent = (options.keyboardNameId ? (await import("../../data/keyboardMap")).default[options.keyboardNameId] : undefined) || options.keyboard?.content;
@@ -363,7 +364,7 @@ async function getMarkdown(options: SendOption.MarkdownPublic, kbCustom = false)
     const ret = {
         markdown: {
             custom_template_id: markdownId,
-            params: Object.entries(options.params)?.map(([key, value]) => ({ key, values: [value] })),
+            params: options.params.map((value, i) => ({ key: `v${i + 1}`, values: [value] })),
         },
         keyboard: {
             id: kbCustom ? undefined : kbId,
@@ -394,9 +395,9 @@ namespace SendOption {
         templateId?: string;
         keyboardId?: string;
         keyboard?: MessageKeyboard;
-        params?: Record<string, string>;
+        params?: string[];
     }
-    export type MarkdownParams = Record<`params_${string}`, Record<string, string>>;
+    export type MarkdownParams = Record<`params_${string}`, string[]>;
 
     export interface MarkdownOrgin {
         markdown: Required<Omit<MessageMarkdown, "content">>;
@@ -407,6 +408,7 @@ namespace SendOption {
         // ref?: boolean;
         msgType: 0 | 1 | 2 | 3 | 4 | 7;// 0: 文本 1: 图文混排 2: markdown 3: ark 4: embed 7: media
         imageFile?: Buffer;
+        fileInfo?: string;
         imagePath?: string;
         imageUrl?: string;
         fileUrl?: string;

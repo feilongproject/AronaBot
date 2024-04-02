@@ -29,6 +29,7 @@ declare global {
     var botType: BotTypes;
     var allowMarkdown: boolean;
     var cos: COS;
+    var mdParamLength: number;
 
     type BotTypes = keyof typeof config.bots;
 

@@ -73,12 +73,12 @@ export async function commandSetting(msg: IMessageGUILD | IMessageGROUP) {
     }
 
     return msg.sendMarkdown({
-        params_omnipotent: {
-            v1: (msg instanceof IMessageGROUP ? "" : `<@${msg.author.id}> `) + optStr,
-            v2: `\r当前卡池选择: ${status.server == "jp" ? "日服" : "国际服"}卡池`,
-            v3: `\r抽卡分析显示状态: ${status.analyzeHide == "true" ? "隐藏" : "显示"}`,
-            v4: "\r注: 使用按钮可以快速设置",
-        },
+        params_omnipotent: [
+            (msg instanceof IMessageGROUP ? "" : `<@${msg.author.id}> `) + optStr,
+            `\r当前卡池选择: ${status.server == "jp" ? "日服" : "国际服"}卡池`,
+            `\r抽卡分析显示状态: ${status.analyzeHide == "true" ? "隐藏" : "显示"}`,
+            "\r注: 使用按钮可以快速设置",
+        ],
         keyboardNameId: "gacha",
         // markdown 部分
 
