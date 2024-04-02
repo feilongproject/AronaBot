@@ -68,12 +68,12 @@ export async function mailerError(msg: any, err: Error) {
     log.error(err);
     if (devEnv) return;
 
+    const host = await redis.hGet("config", "sendMail:host");
     const user = await redis.hGet("config", "sendMail:user");
     const pass = await redis.hGet("config", "sendMail:pass");
     const to = await redis.hGet("config", "sendMail:to");
-    if (!user || !pass || !to) return;
+    if (!host || !user || !pass || !to) return;
 
-    const from = `"${botType}" <${user}>`;
     const html = readFileSync(config.errorMessageTemaple).toString()
         .replace("%message%", stringifyFormat(msg))
         .replace("%errorName%", err.name)
@@ -83,13 +83,14 @@ export async function mailerError(msg: any, err: Error) {
     // writeFileSync("/tmp/html/index.html", html);
 
     const transporter = nodemailer.createTransport({
-        host: 'smtp-mail.outlook.com',
-        port: 587,
+        host,
+        port: 465,
+        secure: true,
         auth: { user, pass },
     });
     return transporter.sendMail({
         subject: `エラー発生。${err.message}`.slice(0, 60),
-        from, to, html,
+        from: `"${botType}" <${user}>`, to, html,
     }).catch(err => log.error(err));
 }
 

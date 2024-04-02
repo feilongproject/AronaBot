@@ -13,6 +13,7 @@ export const userAgent = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/5
 
 export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT) {
     // if (!devEnv) return;
+    msg?.sendMsgEx({ content: "checking" });
 
     const cookies = await getCookie().catch(err => {
         log.error(err);
@@ -35,6 +36,7 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT) {
             if (searchResult && searchResult[0]?.msgId == item.id_str) continue;
             log.info(`${bUser.name}(${bUser.id})的动态更新了: ${item.id_str}`);
 
+            const imageKey = `${item.id_str}-${new Date().getTime()}.png`;
             try {
                 const imageBuffer = await screenshot(item.id_str, item.modules.module_author.pub_ts.toString(), 60);
                 if (!imageBuffer) {
@@ -42,11 +44,9 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT) {
                     await sendToAdmin(`screenshot(${item.id_str}) not return buff, div not found`);
                     continue;
                 }
-                const imageKey = `${item.id_str}-${new Date().getTime()}.png`;
                 writeFileSync(`${config.imagesOut}/bili-${imageKey}`, imageBuffer);
                 if (devEnv) log.debug(`${config.imagesOut}/bili-${imageKey}`);
                 await cosPutObject({ Key: `biliDynamic/${imageKey}`, Body: imageBuffer });
-
 
                 for (const cId in bUser.channels) {
                     const msg = new IMessageGUILD({ id: await redis.get(`lastestMsgId:${botType}`), } as any, false);
@@ -82,7 +82,7 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT) {
             } catch (err) {
                 log.error(err);
                 await import("../eventRec").then(m => m.mailerError(item, err instanceof Error ? err : new Error(stringifyFormat(err))).catch(err => { }));
-                await sendToAdmin(`${bUser.name} ${item.id_str} 发送失败\n${stringifyFormat(err).replaceAll(".", ",")}`).catch(err => { });
+                await sendToAdmin(`${bUser.name} ${item.id_str} 发送失败\n${cosUrl(`biliDynamic/${imageKey}`)}\n${stringifyFormat(err)}`.replaceAll(".", ",")).catch(err => { });
             }
 
             await sleep(5 * 1000);
@@ -172,7 +172,7 @@ async function checkUser(biliUserId: string, cookies: string): Promise<BiliDynam
     });
 }
 
-async function screenshot(biliDynamicId: string, pubTs: string, quality = 60): Promise<Buffer | undefined> {
+async function screenshot(biliDynamicId: string, pubTs: string, quality = 50): Promise<Buffer | undefined> {
 
     if (!global.browser || !browser.connected) global.browser = await puppeteer.launch({
         headless: "new",
@@ -220,8 +220,9 @@ async function screenshot(biliDynamicId: string, pubTs: string, quality = 60): P
     //     encoding: "binary",
     // }) as Promise<Buffer>);
     const pic = await (await page.$("#app > div > div"))?.screenshot({
-        type: "png",
+        type: "jpeg",
         encoding: "binary",
+        quality,
     }) as Buffer | null;
 
     writeFileSync(browserCkFile, stringifyFormat(await page.cookies()));
