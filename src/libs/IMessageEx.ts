@@ -258,15 +258,15 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
         const fileMap = [[], ["png", "jpg", "jpeg"], ["mp4"], ["slik"]];
         options.fileType = fileMap.findIndex(v => v.find(i => uT.startsWith(i))) as any || undefined;
         if ((options.fileType as number) == -1) options.fileType = undefined;
-        if (options.fileType || options.fileUrl || options.imageUrl) options.msgType = 7;
+        if (options.fileType || options.fileInfo || options.fileUrl || options.imageUrl) options.msgType = 7;
         if ((options.fileUrl || options.imageUrl)?.endsWith("/random")) options.fileType = 1;
         return callWithRetry(this._sendMsgEx, [options]) as any;
     }
 
     private _sendMsgEx = async (options: Partial<SendOption.Group>) => {
-        const { content, groupId, msgType, msgId, ark } = options;
+        const { content, groupId, msgType, msgId, ark, } = options;
         if (!groupId) throw "not has groupId";
-        const fileInfo = msgType == 7 ? await this._sendFile(options, (options.fileUrl || options.imageUrl)?.endsWith("/random")) : null;
+        const fileInfo = options.fileInfo || (msgType == 7 ? await this._sendFile(options, (options.fileUrl || options.imageUrl)?.endsWith("/random")) : null);
         return client.groupApi.postMessage(groupId, {
             content: content ? ("\n" + content) : "",
             msg_type: msgType || 0,
