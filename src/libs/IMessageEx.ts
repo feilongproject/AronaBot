@@ -73,7 +73,8 @@ class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
     }
 
     async sendMarkdown(options: Partial<SendOption.Channel> & SendOption.MarkdownPublic) {
-        options.guildId = options.guildId || this.guild_id;
+        options.channelId = options.channelId || this.channel_id;
+        options.guildId = options.guildId || this.guild_id || options.channelId ? (Object.entries(saveGuildsTree).find(([_, cList]) => cList.channels[options.channelId!])?.[0]) : undefined;
         options.eventId = await redis.get(`lastestEventId:${meId}:${options.guildId}`) || undefined;
         if (botType == "PlanaBot" || !options.eventId) return this.sendMsgEx(options);
         if (devEnv) log.debug("options.eventId:", options.eventId);
@@ -303,7 +304,7 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
             url: fUrl,
             srv_send_msg: false,
         }).then(res => res.data);
-        if (!force) await redis.setEx(redisKey, 60 * 60 * 24 * 5, fileRes.file_info);
+        if (!force) await redis.setEx(redisKey, 60 * 60 * 24, fileRes.file_info);
         return fileRes.file_info;
     }
 
