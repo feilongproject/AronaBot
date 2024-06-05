@@ -23,7 +23,12 @@ export async function init() {
 
     global.devEnv = process.argv.includes("--dev");
     global.log = (await import("./libs/logger")).default;
-    if (devEnv) log.mark("当前环境处于开发环境，请注意！");
+    if (devEnv) {
+        log.mark("当前环境处于开发环境，请注意！");
+        setTimeout(() => {
+            process.exit();
+        }, 1000 * 60 * 60);
+    }
 
     global.botType = Object.keys(config.bots).find(v => process.argv.includes(v)) as BotTypes;
     if (!botType) {
@@ -160,9 +165,9 @@ Date.prototype.toDBString = function () {
 global.stringifyFormat = (obj: any) => JSON.stringify(obj, undefined, "    ");
 global.sleep = (ms: number) => new Promise(resovle => { setTimeout(resovle, ms) });
 global.fixName = (name: string) => name.replace("（", "(").replace("）", ")").toLowerCase().replaceAll(" ", "").replace(/(国际?服|日服)/g, "");
-global.cosPutObject = async (params: CosPutObjectParams) => cos.putObject({ ...config.cos, ...params, })
+global.cosPutObject = async (params: CosPutObjectParams) => cos.putObject({ ...config.cos, ...params, });
 // global.cosUrl = (key: string) => `https://${config.cos.Bucket}.cos.${config.cos.Region}.myqcloud.com/${key}`;
 // global.cosUrl = (key: string) => `https://${config.cos.Bucket}.cos-website.${config.cos.Region}.myqcloud.com/${key}`;
-global.cosUrl = (key: string) => `${config.cosUrl}/${key}!Image3500K`;
+global.cosUrl = (key: string, fix = "!Image3500K") => `${config.cosUrl}/${key}${fix || ""}`;
 (global as any).btoa = null;
 (global as any).atob = null;
