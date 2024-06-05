@@ -67,7 +67,7 @@
         "progress-stream": "^2.0.0",
         "protobufjs": "^7.2.6",
         "protobufjs-cli": "^1.1.2",
-        "puppeteer": "^21.5.0",
+        "puppeteer": "^22.6.5",
         "pymport": "^1.5.0",
         "python-shell": "^5.0.0",
         "python-struct": "^1.1.3",
