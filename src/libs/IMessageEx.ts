@@ -294,7 +294,7 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
         if (!fUrl) throw "neither imageUrl nor fileUrl";
         if (!fileType) throw "not has fileType";
 
-        const redisKey = `fileInfo:cache:${fUrl}`;
+        const redisKey = `fileInfo:cache:${groupId}:${fUrl}`.replace(/https?:\/\//, "");
         const fileInfo = await redis.get(redisKey);
         if (fileInfo && !force) return fileInfo;
         // if (fUrl.includes("cdn.arona.schale.top") && !fileInfo) await fetch(fUrl).then(res => res.buffer()).then(buff => { });
@@ -319,7 +319,7 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
     }
 
     private _sendMarkdown = async (options: Partial<SendOption.Group> & SendOption.MarkdownOrgin) => {
-        const { groupId, msgId, markdown, keyboard } = options;
+        const { groupId, msgId, markdown, keyboard, eventId, } = options;
         if (!groupId) throw "groupId not set";
         // debugger;
         return client.groupApi.postMessage(groupId, {
@@ -329,8 +329,9 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
             markdown: markdown,
             keyboard: keyboard,
             msg_seq: this.seq,
+            event_id: eventId,
         }).then(res => {
-            (res.data as any)["x-tps-trace-id"] = res.headers["x-tps-trace-id"];
+            (res.data as Record<string, any>)["x-tps-trace-id"] = res.headers["x-tps-trace-id"];
             return res.data;
         });
     }

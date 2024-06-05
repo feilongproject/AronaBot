@@ -267,7 +267,7 @@ export default {
             mainCheck: {
                 reg: "^/?check$",
                 fnc: "mainCheck",
-                type: [MessageType.GUILD, MessageType.DIRECT],
+                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP],
                 describe: "手动检查一次推送"
             }
         },

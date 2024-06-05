@@ -8,6 +8,7 @@ import { pushToDB, sendToAdmin } from "./libs/common";
 import { IMessageGROUP, IMessageDIRECT, IMessageGUILD } from "./libs/IMessageEx";
 import config from "../config/config";
 
+
 async function executeChannel(msg: IMessageDIRECT | IMessageGUILD) {
     try {
         global.redis.set(`lastestMsgId:${botType}`, msg.id, { EX: 4 * 60 });
@@ -231,8 +232,26 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             break;
         }
         case AvailableIntentsEventsEnum.INTERACTION: {
-            // if (devEnv) log.debug(event);
-            // const { msg } = event as IntentMessage.INTERACTION;
+            if (await redis.get("devEnv") && !devEnv) return;
+
+            const { msg } = event as IntentMessage.INTERACTION;
+            // if (devEnv) log.debug(event, msg.data);
+            if (!("group_openid" in msg)) return;
+
+            const { button_id: buttonId } = msg.data.resolved;
+            const [authKey = "", commandKey = ""] = buttonId.split(":");
+            if (authKey != config.dynamicPush.authKey) return;
+
+            const interaction = await import('./plugins/interaction');
+            const func = interaction.commandMap[commandKey];
+            if (func) await func(event as IntentMessage.INTERACTION).catch(async (err: Error) => {
+                try {
+                    return await mailerError(event, err);
+                } catch (err_1) {
+                    return log.error(err_1);
+                }
+            });
+
 
             // await client.interactionApi.putInteraction(msg.id, { code: 0 }).then(data => {
             //     log.debug(data.data);

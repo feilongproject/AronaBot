@@ -6,6 +6,7 @@ import imageSize from "image-size";
 import { sendToAdmin, settingUserConfig } from "../libs/common";
 import { IMessageDIRECT, IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 import config from "../../config/config";
+import { BiliDynamic } from "../types/Dynamic";
 
 const noSetServerMessage = `\r(未指定/未设置服务器, 默认使用国际服)`;
 const getErrorMessage = `发送时出现了一些问题<@${adminId[0]}>\n这可能是因为腾讯获取图片出错导致, 请稍后重试\n`;
@@ -190,9 +191,9 @@ export async function handbookUpdate(msg: IMessageGUILD) {
             const descUrl = /((https?:\/\/)?\S+)\s*/.exec(desc)![1];
             await fetch(descUrl.startsWith("https://") ? descUrl : "https://" + descUrl).then(res => {
                 const matchDynamicId = (/https:\/\/t.bilibili.com\/(\d+)/.exec(res.url) || [])[1];
-                if (matchDynamicId) return biliDynamicInfo(matchDynamicId);
+                if (matchDynamicId) return (import("./biliDynamic").then(module => module.getDynamicInfo(matchDynamicId)));
                 else throw `未知的url: ${res.url}`;
-            }).then((data: BiliDynamic.Info) => {
+            }).then((data: BiliDynamic.InfoRoot) => {
                 if (data.data.item.modules.module_dynamic.major.type == BiliDynamic.MajorTypeEnum.MAJOR_TYPE_ARTICLE) {
                     const article = data.data.item.modules.module_dynamic.major.article!;
                     const cvId = /cv(\d+)/.exec(article.jump_url)![1];
@@ -216,9 +217,9 @@ export async function handbookUpdate(msg: IMessageGUILD) {
             imageUrl = await fetch(url.startsWith("https://") ? url : "https://" + url).then(res => {
                 // log.debug(res.url);
                 const matchDynamicId = (/https:\/\/t.bilibili.com\/(\d+)/.exec(res.url) || [])[1];
-                if (matchDynamicId) return biliDynamicInfo(matchDynamicId);
+                if (matchDynamicId) return import("./biliDynamic").then(module => module.getDynamicInfo(matchDynamicId));
                 else throw `未知的url: ${res.url}`;
-            }).then((data: BiliDynamic.Info) => {
+            }).then((data: BiliDynamic.InfoRoot) => {
                 const draw = data.data.item.modules.module_dynamic.major.draw;
                 // log.debug(draw);
                 if (!draw) throw `未找到指定动态中的图片`;
@@ -350,17 +351,6 @@ export async function searchHandbook(msg: IMessageGUILD | IMessageDIRECT | IMess
             resultData.data.map((v, i) => `第${i + 1} 搜索结果: ${v.name}`).join("\n"),
     });
 
-}
-
-async function biliDynamicInfo(dynamicId: string): Promise<BiliDynamic.Info> {
-    const { getCookie, userAgent } = await import("./biliDynamic");
-    return fetch(`https://api.bilibili.com/x/polymer/web-dynamic/v1/detail?id=${dynamicId}`, {
-        headers: {
-            "User-Agent": userAgent,// userAgent,
-            "Cookie": await getCookie(), //`SESSDATA=feilongproject.com;${cookies}`,
-            "accept-language": "en,zh-CN;q=0.9,zh;q=0.8",
-        }
-    }).then(res => res.json());
 }
 
 async function studentEvaluation(content: string): Promise<{ type: HandbookMatches.Type; desc: string; fuzzy?: SearchPinyin[]; }> {

@@ -4156,10 +4156,10 @@ python-struct@^1.1.3:
   dependencies:
     long "^4.0.0"
 
-qq-bot-sdk@^1.4.1:
-  version "1.4.1"
-  resolved "https://registry.npmmirror.com/qq-bot-sdk/-/qq-bot-sdk-1.4.1.tgz#b9971f2e2a29ee37cf9108db83014b77de298912"
-  integrity sha512-/m3shQt7/O/vARXuuwuMpf2j/TxgRrgIMpX/de3+9t23dCIWQErBWkPodkIk8qf7af2GOptvGt9Qe/AwcNwWgg==
+qq-bot-sdk@1.5.0:
+  version "1.5.0"
+  resolved "https://registry.npmjs.org/qq-bot-sdk/-/qq-bot-sdk-1.5.0.tgz#edd8ebd073b809512964cd99149457950b0ee5c8"
+  integrity sha512-fOYoO+uoyeBek/xVdKK6dleS3FxKVihYYcGVnr46XraZPB+xL1ri0kmoQ6vLQujLjtHGXq74ufCFV5IiXelUVg==
   dependencies:
     axios "0.24.0"
     loglevel "^1.8.0"
