@@ -4,7 +4,7 @@ import qr from "qr-image";
 import Excel from "exceljs";
 import child_process from "child_process";
 import { sendToAdmin, timeConver } from "../libs/common";
-import { IMessageDIRECT, IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
+import { IMessageC2C, IMessageDIRECT, IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 import config from "../../config/config";
 
 
@@ -47,8 +47,8 @@ export async function dmsMe(msg: IMessageGUILD) {
     return client.directMessageApi.postDirectMessage(dmsInfo.data.guild_id, { content: "pong", msg_id: msg.id, });
 }
 
-export async function ping(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP) {
-    if (!adminId.includes(msg.author.id)) return;
+export async function ping(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
+    // if (!adminId.includes(msg.author.id)) return;
     // log.debug(msg);
     return msg.sendMsgEx({ content: await global.redis.ping() });
 }

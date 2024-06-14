@@ -226,27 +226,16 @@ declare global {
             group_openid: string;
         }
 
-        // type C2C_MESSAGE = EventRespose<C2C_MESSAGE_body>;
-        // type C2C_MESSAGE_body = MessageChatCommon & {
-        //     attachments: [];
-        // }
-
-        type CHAT_MESSAGE = EventRespose<CHAT_MESSAGE_body>;
-        type CHAT_MESSAGE_body = MessageChatCommon;
+        type C2C_MESSAGE = EventRespose<C2C_MESSAGE_body>;
+        type C2C_MESSAGE_body = MessageChatCommon;
 
         interface MessageChatCommon {
             id: string;
-            attachments: {
-                content_type: string;
-                filename: string;
-                height: number;
-                size: number;
-                url: string;
-                width: number;
-            }[];
+            attachments?: Attachment[];
             author: {
                 id: string;
-                member_openid: string;
+                member_openid?: string;
+                user_openid?: string;
             };
             content: string;
             timestamp: string;
@@ -256,6 +245,15 @@ declare global {
             group_openid: string;
             op_member_openid: string;
             timestamp: number;
+        }
+
+        interface Attachment {
+            content_type: string;
+            filename: string;
+            size: number;
+            url: string;
+            height?: number;
+            width?: number;
         }
     }
 
@@ -277,9 +275,6 @@ declare global {
         GUILD_MEMBER_REMOVE = "GUILD_MEMBER_REMOVE",
         MESSAGE_REACTION_ADD = "MESSAGE_REACTION_ADD",
         MESSAGE_REACTION_REMOVE = "MESSAGE_REACTION_REMOVE",
-        GROUP_ADD_ROBOT = "GROUP_ADD_ROBOT",
-        GROUP_DEL_ROBOT = "GROUP_DEL_ROBOT",
-        GROUP_AT_MESSAGE_CREATE = "GROUP_AT_MESSAGE_CREATE",
         GUILD_CREATE = "GUILD_CREATE",
         GUILD_UPDATE = "GUILD_UPDATE",
         GUILD_DELETE = "GUILD_DELETE",
@@ -287,6 +282,11 @@ declare global {
         CHANNEL_UPDATE = "CHANNEL_UPDATE",
         CHANNEL_DELETE = "CHANNEL_DELETE",
         FORUM_POST_CREATE = "FORUM_POST_CREATE",
+
+        GROUP_ADD_ROBOT = "GROUP_ADD_ROBOT",
+        GROUP_DEL_ROBOT = "GROUP_DEL_ROBOT",
+        GROUP_AT_MESSAGE_CREATE = "GROUP_AT_MESSAGE_CREATE",
+        C2C_MESSAGE_CREATE = "C2C_MESSAGE_CREATE",
     }
 
     interface StudentInfoNet {

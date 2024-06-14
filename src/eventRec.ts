@@ -5,7 +5,7 @@ import { AvailableIntentsEventsEnum, IChannel, IGuild } from "qq-bot-sdk";
 import { loadGuildTree } from "./init";
 import { findOpts } from "./libs/findOpts";
 import { pushToDB, sendToAdmin } from "./libs/common";
-import { IMessageGROUP, IMessageDIRECT, IMessageGUILD } from "./libs/IMessageEx";
+import { IMessageGROUP, IMessageDIRECT, IMessageGUILD, IMessageC2C } from "./libs/IMessageEx";
 import config from "../config/config";
 
 
@@ -46,7 +46,7 @@ async function executeChannel(msg: IMessageDIRECT | IMessageGUILD) {
     }
 }
 
-async function executeChat(msg: IMessageGROUP) {
+async function executeChat(msg: IMessageGROUP | IMessageC2C) {
     try {
         const opt = await findOpts(msg);
         if (!opt) return;
@@ -95,7 +95,7 @@ export async function mailerError(msg: any, err: Error) {
     }).catch(err => log.error(err));
 }
 
-async function isBan(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP): Promise<boolean> {
+async function isBan(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C): Promise<boolean> {
     const t = msg instanceof IMessageGROUP ? "群聊" : (msg instanceof IMessageGUILD ? "频道" : "私聊");
     const isUserBan = await redis.hGet(`ban:use:user`, msg.author.id);
     const isGroupBan = msg instanceof IMessageGROUP ? await redis.hGet(`ban:use:group`, msg.group_id) : undefined;
@@ -105,15 +105,15 @@ async function isBan(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP): Promi
         await msg.sendMsgEx({ content: `因「${isUserBan || isGroupBan || isGuildBan}」行为，禁止使用该命令` }).catch(err => log.error(err));
         await sendToAdmin(
             `被封禁${t}检测到使用命令行为\n`
-            + (msg instanceof IMessageGROUP ? `用户: ${msg.author.id}` : `用户: ${msg.author.username} (${msg.author.id})`) + "\n"
-            + (msg instanceof IMessageGROUP ? `群聊: ${msg.group_id}` : `${"channelName" in msg ? `子频道: ${msg.channelName}` : ">私聊<"} (${msg.channel_id})`)
+            + ((msg instanceof IMessageGROUP || msg instanceof IMessageC2C) ? `用户: ${msg.author.id}` : `用户: ${msg.author.username} (${msg.author.id})`) + "\n"
+            + (msg instanceof IMessageC2C ? `消息列表: ${msg.author.id}` : msg instanceof IMessageGROUP ? `群聊: ${msg.group_id}` : `${"channelName" in msg ? `子频道: ${msg.channelName}` : ">私聊<"} (${msg.channel_id})`)
         ).catch(err => log.error(err));
         return true;
     }
     return false;
 }
 
-type PluginFnc = (msg: IMessageDIRECT | IMessageGUILD | IMessageGROUP, data?: string | number) => Promise<any>
+type PluginFnc = (msg: IMessageDIRECT | IMessageGUILD | IMessageGROUP | IMessageC2C, data?: string | number) => Promise<any>
 
 
 
@@ -141,12 +141,19 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             return executeChannel(msg).then(() => import("./plugins/admin").then(e => e.directToAdmin(msg))).catch(err => log.error(err));
         }
 
-        case AvailableIntentsEventsEnum.GROUP: {
+        case AvailableIntentsEventsEnum.GROUP_AND_C2C_EVENT: {
+            if (devEnv) log.debug(stringifyFormat(event));
             if (event.eventType == IntentEventType.GROUP_AT_MESSAGE_CREATE) {
                 const data = event.msg as any as IntentMessage.GROUP_MESSAGE_body;
                 if (devEnv && !adminId.includes(data.author.id)) return;
-                if (devEnv) log.debug(event);
+                // if (devEnv) log.debug(event);
                 const msg = new IMessageGROUP(data);
+                return executeChat(msg);
+            } else if (event.eventType == IntentEventType.C2C_MESSAGE_CREATE) {
+                const data = event.msg as any as IntentMessage.C2C_MESSAGE_body;
+                if (devEnv && !adminId.includes(data.author.id)) return;
+
+                const msg = new IMessageC2C(data);
                 return executeChat(msg);
             } else if ([IntentEventType.GROUP_DEL_ROBOT, IntentEventType.GROUP_ADD_ROBOT].includes(event.eventType)) {
                 const data = event.msg as IntentMessage.GROUP_ROBOT;

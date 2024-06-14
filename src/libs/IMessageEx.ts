@@ -196,61 +196,49 @@ export class IMessageDIRECT extends IMessageChannelCommon implements IntentMessa
 
 class IMessageChatCommon implements IntentMessage.MessageChatCommon {
     id: string;
-    author: { id: string; member_openid: string; };
+    author: { id: string; member_openid?: string; user_openid?: string; };
     content: string;
     timestamp: string;
     messageType: MessageType;
-    attachments: { content_type: string; filename: string; height: number; size: number; url: string; width: number; }[];
+    attachments: IntentMessage.Attachment[];
+    _atta: string;
+    seq = 1;
+    sendToId?: string;
 
-    constructor(msg: IntentMessage.MessageChatCommon, meaasgeType: MessageType) {
+    constructor(msg: IntentMessage.MessageChatCommon & Partial<{ group_id: string; group_openid: string; }>, meaasgeType: MessageType) {
         this.id = msg.id;
         this.author = msg.author;
         this.content = msg.content;
         this.timestamp = msg.timestamp;
         this.messageType = meaasgeType;
-        this.attachments = msg.attachments;
-    }
-}
-
-export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.GROUP_MESSAGE_body {
-    group_id: string;
-    group_openid: string;
-    seq: number;
-
-    constructor(msg: IntentMessage.GROUP_MESSAGE_body, register = true) {
-        super(msg, MessageType.GROUP);
-        this.group_id = msg.group_id;
-        this.group_openid = msg.group_openid;
-        this.seq = Number((Math.random() * 10000).toFixed());
-
-        if (!register) return;
-        log.info(`群聊[${this.group_id}](${this.author.id}): ${this.content}`);
-        this.pushToDB();
+        this.attachments = msg.attachments || [];
+        this._atta = this.attachments.length ? `[图片${this.attachments.length + "张"}]` : "";
+        this.sendToId = this.messageType == MessageType.GROUP ? (msg.group_id || msg.group_openid) : (msg.author.id || msg.author.user_openid);
     }
 
-    async pushToDB() {
+    async pushToDB(another: Record<string, string>) {
         const attachments: string[] = [];
         if (this.attachments)
             for (const path of this.attachments) attachments.push(path.url);
-        return pushToDB("groupMessage", {
+        return pushToDB(this.messageType == MessageType.GROUP ? "groupMessage" : "c2cMessage", {
             id: this.id,
             aid: this.author.id,
             content: this.content,
-            gid: this.group_id,
             ts: this.timestamp,
             attachments: attachments.join(","),
+            ...another,
         });
     }
 
-    async sendMsgExRef(options: Partial<SendOption.Group>) {
+    async sendMsgExRef(options: Partial<SendOption.Chat>) {
         // option.ref = true;
         return this.sendMsgEx(options);
     }
 
-    async sendMsgEx(options: Partial<SendOption.Group>) {
+    async sendMsgEx(options: Partial<SendOption.Chat>) {
         global.botStatus.msgSendNum++;
         options.msgId = options.msgId || this.id || undefined;
-        options.groupId = options.groupId || this.group_id;
+        options.sendToId = options.sendToId || this.sendToId;
         options.msgType = options.msgType || (options.ark ? 3 : 0);
         // option.guildId = option.guildId || this.guild_id;
         // option.channelId = option.channelId || this.channel_id;
@@ -264,11 +252,25 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
         return callWithRetry(this._sendMsgEx, [options]) as any;
     }
 
-    private _sendMsgEx = async (options: Partial<SendOption.Group>) => {
-        const { content, groupId, msgType, msgId, ark, } = options;
-        if (!groupId) throw "not has groupId";
+    private _sendMsgEx = async (options: Partial<SendOption.Chat>) => {
+        const { content, sendToId, msgType, msgId, ark, } = options;
+        if (!sendToId) throw "not has sendToId";
         const fileInfo = options.fileInfo || (msgType == 7 ? await this._sendFile(options, (options.fileUrl || options.imageUrl)?.endsWith("/random")) : null);
-        return client.groupApi.postMessage(groupId, {
+        // return 
+        if (this.messageType == MessageType.GROUP) return client.groupApi.postMessage(sendToId, {
+            content: content ? ("\n" + content) : "",
+            msg_type: msgType || 0,
+            msg_id: msgId,
+            media: (msgType == 7 && fileInfo) ? {
+                file_info: fileInfo,
+            } : undefined,
+            msg_seq: this.seq++,
+            ark,
+        }).then(res => {
+            (res.data as any)["x-tps-trace-id"] = res.headers["x-tps-trace-id"];
+            return res.data;
+        });
+        else return client.c2cApi.postMessage(sendToId, {
             content: content ? ("\n" + content) : "",
             msg_type: msgType || 0,
             msg_id: msgId,
@@ -283,23 +285,23 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
         });
     }
 
-    async sendFile(options: Partial<SendOption.Group>, force = false) {
+    async sendFile(options: Partial<SendOption.Chat>, force = false) {
         return callWithRetry(this._sendFile, [options, force]);
     }
 
-    private _sendFile = async (options: Partial<SendOption.Group>, force = false): Promise<string> => {
-        const { imageUrl, fileUrl, groupId, fileType } = options;
+    private _sendFile = async (options: Partial<SendOption.Chat>, force = false): Promise<string> => {
+        const { imageUrl, fileUrl, sendToId, fileType } = options;
         const fUrl = imageUrl || fileUrl;
-        if (!groupId) throw "not has groupId";
+        if (!sendToId) throw "not has sendToId";
         if (!fUrl) throw "neither imageUrl nor fileUrl";
         if (!fileType) throw "not has fileType";
 
-        const redisKey = `fileInfo:cache:${groupId}:${fUrl}`.replace(/https?:\/\//, "");
+        const redisKey = `fileInfo:cache:${sendToId}:${fUrl}`.replace(/https?:\/\//, "");
         const fileInfo = await redis.get(redisKey);
         if (fileInfo && !force) return fileInfo;
         // if (fUrl.includes("cdn.arona.schale.top") && !fileInfo) await fetch(fUrl).then(res => res.buffer()).then(buff => { });
         // if (!new URL(fUrl).pathname.startsWith("/p/gacha/")) log.mark(`资源 ${fUrl} 获取中, 存在: ${!!fileInfo}`);
-        const fileRes = await client.groupApi.postFile(groupId, {
+        const fileRes = await (this.messageType == MessageType.GROUP ? client.groupApi.postFile : client.c2cApi.postFile)(sendToId, {
             file_type: fileType,
             url: fUrl,
             srv_send_msg: false,
@@ -308,9 +310,9 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
         return fileRes.file_info;
     }
 
-    async sendMarkdown(options: Partial<SendOption.Group> & Partial<SendOption.MarkdownOrgin> & SendOption.MarkdownPublic): Promise<RetryResult<GMessageRec>> {
+    async sendMarkdown(options: Partial<SendOption.Chat> & Partial<SendOption.MarkdownOrgin> & SendOption.MarkdownPublic): Promise<RetryResult<GMessageRec>> {
         this.seq++;
-        options.groupId = options.groupId || this.group_id;
+        options.sendToId = options.sendToId || this.sendToId;
         options.msgId = options.msgId || this.id;
 
         const markdownConfig = await getMarkdown(options, true);
@@ -318,11 +320,11 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
         return callWithRetry(this._sendMarkdown, [{ ...options, ...markdownConfig }]).catch(err => this.sendMsgEx(options));
     }
 
-    private _sendMarkdown = async (options: Partial<SendOption.Group> & SendOption.MarkdownOrgin) => {
-        const { groupId, msgId, markdown, keyboard, eventId, } = options;
-        if (!groupId) throw "groupId not set";
+    private _sendMarkdown = async (options: Partial<SendOption.Chat> & SendOption.MarkdownOrgin) => {
+        const { sendToId, msgId, markdown, keyboard, eventId, } = options;
+        if (!sendToId) throw "sendToId not set";
         // debugger;
-        return client.groupApi.postMessage(groupId, {
+        return (this.messageType == MessageType.GROUP ? client.groupApi.postMessage : client.c2cApi.postMessage)(sendToId, {
             msg_id: msgId,
             msg_type: 2,
             content: " ",
@@ -337,17 +339,37 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
     }
 }
 
-// export class IMessageC2C extends IMessageChatCommon implements IntentMessage.C2C_MESSAGE_body {
-//     attachments;
+export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.GROUP_MESSAGE_body {
+    group_id: string;
+    group_openid: string;
+    author: { id: string; member_openid: string; };
 
-//     constructor(msg: IntentMessage.C2C_MESSAGE_body, register = true) {
-//         super(msg, MessageType.FRIEND);
-//         this.attachments = msg.attachments;
+    constructor(msg: IntentMessage.GROUP_MESSAGE_body, register = true) {
+        super(msg, MessageType.GROUP);
+        this.author = msg.author as any;
+        this.group_id = msg.group_id;
+        this.group_openid = msg.group_openid;
 
-//         if (!register) return;
-//         log.info(`私聊`);
-//     }
-// }
+        if (!register) return;
+        log.info(`群聊[${this.group_id}](${this.author.id}): ${this.content}`);
+        this.pushToDB({ gid: this.group_id });
+    }
+}
+
+export class IMessageC2C extends IMessageChatCommon implements IntentMessage.C2C_MESSAGE_body {
+    author: { id: string; user_openid: string; };
+
+    constructor(msg: IntentMessage.C2C_MESSAGE_body, register = true) {
+        super(msg, MessageType.FRIEND);
+        this.author = msg.author as any;
+        // this.attachments = msg.attachments;
+
+        if (!register) return;
+
+        log.info(`私聊(${this.author.id})${this._atta}: ${this.content}`);
+        this.pushToDB({});
+    }
+}
 
 async function getMarkdown(options: SendOption.MarkdownPublic, kbCustom = false): Promise<SendOption.MarkdownOrgin | null> {
     const markdownNameId = Object.keys(options).find(v => v.startsWith("params_")) as `params_${string}` | undefined;
@@ -406,7 +428,7 @@ namespace SendOption {
         keyboard?: MessageKeyboard;
     }
 
-    export interface Group {
+    export interface Chat {
         // ref?: boolean;
         msgType: 0 | 1 | 2 | 3 | 4 | 7;// 0: 文本 1: 图文混排 2: markdown 3: ark 4: embed 7: media
         imageFile?: Buffer;
@@ -419,8 +441,9 @@ namespace SendOption {
         // sendType: MessageType;
         msgId?: string;
         eventId?: string;
-        groupId: string;
         ark: Ark;
+
+        sendToId?: string;
     }
 }
 

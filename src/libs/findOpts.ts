@@ -1,6 +1,6 @@
-import { IMessageGUILD, IMessageDIRECT, IMessageGROUP, MessageType } from "./IMessageEx";
+import { IMessageGUILD, IMessageDIRECT, IMessageGROUP, IMessageC2C, MessageType } from "./IMessageEx";
 
-export async function findOpts(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP): Promise<{ path: string; fnc: string; keyChild: string; data?: string } | null> {
+export async function findOpts(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C): Promise<{ path: string; fnc: string; keyChild: string; data?: string } | null> {
     if (!msg.content) return null;
 
     const configOpt = (await import("../../config/opts")).default;
@@ -27,7 +27,7 @@ export async function findOpts(msg: IMessageGUILD | IMessageDIRECT | IMessageGRO
             if ((typeof opt == "function") || !opt.type.includes(msg.messageType)) continue;
             if (!RegExp(opt.reg).test(msg.content.replace(/<@!\d*>/g, "").trim())) continue;
 
-            if (msg instanceof IMessageGROUP) {
+            if (msg instanceof IMessageGROUP || msg instanceof IMessageC2C) {
                 return { path: keyFather, keyChild, ...opt };
             }
 

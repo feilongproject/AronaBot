@@ -12,7 +12,9 @@ export async function init() {
 
     console.log(`机器人准备运行，正在初始化`);
 
-    global.adminId = ["7681074728704576201", "15874984758683127001", "2975E2CA5AE779F1899A0AED2D4FA9FD", "21EE2355F1D4106219EC134842203DF6"];
+    global.adminId = ["7681074728704576201", "15874984758683127001", "2975E2CA5AE779F1899A0AED2D4FA9FD",
+        "21EE2355F1D4106219EC134842203DF6",
+        "D8893EE07438D29FC12B776139EBEC6D"];
     global.botStatus = {
         startTime: new Date(),
         msgSendNum: 0,

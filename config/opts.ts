@@ -40,7 +40,7 @@ export default {
             ping: {
                 reg: "^/?ping",
                 fnc: "ping",
-                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP],
+                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
                 channelAllows: ["all"],
                 describe: "检测redis数据库是否正常"
             },
