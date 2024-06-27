@@ -32,6 +32,7 @@ async function dynamicPush(event: IntentMessage.INTERACTION) {
         type: v[0] == "G" ? MessageType.GROUP : MessageType.GUILD,
         id: v.substring(1),
         name: v.substring(1),
+        enable: true,
     })) : undefined;
 
     if (await redis.hExists(`biliMessage:idPushed:${dynamicId}`, groupTrueId)) { debugger; return; }

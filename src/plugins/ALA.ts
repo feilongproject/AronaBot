@@ -1,11 +1,11 @@
 import sharp from "sharp";
 import { writeFileSync } from "fs";
-import { IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
+import { IMessageC2C, IMessageDIRECT, IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 import config from "../../config/config";
 
 const allowLen = 20;
 
-export async function generateALA(msg: IMessageGUILD | IMessageGROUP) {
+export async function generateALA(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
 
     const alaQueue = buildALA(msg.content.replace(/\/?奥利奥/, "").replace(`<@!${meId}>`, "").trim());
     const authLen = Number(await redis.hGet(`pay:ALALimit`, msg.author.id)) || 0;

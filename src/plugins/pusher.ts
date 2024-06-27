@@ -6,7 +6,9 @@ import { IMessageDIRECT } from "../libs/IMessageEx";
 
 export async function updateGithubVersion(msg?: IMessageDIRECT) {
     if (!devEnv && await redis.exists("push:ghUpdate")) return;
+    if (msg && !adminId.includes(msg.author.id)) return;
 
+    await msg?.sendMsgEx({ content: "updating" });
     const queue: Promise<GithubBranchInfobar | undefined>[] = [];
     const proxyHosts = ["https://gh.schale.top", "https://github.com"];
     for (const host of proxyHosts) {

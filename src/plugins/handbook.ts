@@ -4,7 +4,7 @@ import format from "date-format";
 import * as cheerio from "cheerio";
 import imageSize from "image-size";
 import { sendToAdmin, settingUserConfig } from "../libs/common";
-import { IMessageDIRECT, IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
+import { IMessageC2C, IMessageDIRECT, IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 import config from "../../config/config";
 import { BiliDynamic } from "../types/Dynamic";
 
@@ -17,7 +17,7 @@ const serverMap: Record<string, string> = { jp: "日服", global: "国际服", c
 const provideMap: Record<string, string> = { jp: "夜猫", global: "夜猫", cn: "朝夕desu", all: "夜猫" };
 const fuzzyLimit = 6;
 
-const handbookMatches: HandbookMatches.Root = {
+export const handbookMatches: HandbookMatches.Root = {
     names: {
         totalAssault: {
             reg: /^\/?总力战一图流/,
@@ -51,7 +51,7 @@ const handbookMatches: HandbookMatches.Root = {
     },
 }
 
-export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP) {
+export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
     const forceGuildType = ("guild_id" in msg && ["16392937652181489481"].includes(msg.guild_id)) ? HandbookMatches.Type.CN : undefined;
     const hbMatched = await matchHandbook(msg, forceGuildType).catch(err => stringifyFormat(err));
     if (typeof hbMatched == "string") return msg.sendMsgEx({ content: `未找到对应攻略数据，${hbMatched}` });
@@ -102,7 +102,7 @@ function mdCmdLink(showDesc: string, command: string, enter = true) {
     return [`[${showDesc}]`, `(mqqapi://aio/inlinecmd?command=${encodeURI(command)}&reply=false&enter=${enter})`, "\r"];
 }
 
-async function matchHandbook(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP, forceType?: HandbookMatches.Type): Promise<HandbookMatched | string> {
+async function matchHandbook(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C, forceType?: HandbookMatches.Type): Promise<HandbookMatched | string> {
     const content = msg.content.replaceAll(/<@!?\d+>/g, "").trim();
     const [hbMatchedType, hbMatchedName] = Object.entries(handbookMatches.names).find(([k, v]) => v.reg.test(content)) || [];
     if (!hbMatchedType || !hbMatchedName) return "未匹配到攻略类型";
@@ -148,7 +148,7 @@ export async function getLastestImage(name: string, type = "all"): Promise<Handb
     };
 }
 
-export async function handbookUpdate(msg: IMessageGUILD) {
+export async function handbookUpdate(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
     if (!adminId.includes(msg.author.id)) return;
     const matched = /^\/?hbupdate(?<imageId>\d+)?\s+(?<name>\S+)\s+(?<type>\S+)\s+(?<url>(https?:\/\/)?\S+)\s?(?<desc>.+)?/.exec(msg.content);
     // log.debug(matched?.groups);
@@ -267,7 +267,7 @@ export async function handbookUpdate(msg: IMessageGUILD) {
     });
 }
 
-export async function activityStrategyPush(msg: IMessageGUILD | IMessageDIRECT) {
+export async function activityStrategyPush(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
     if (!adminId.includes(msg.author.id)) return;
     const reg = /攻略(发布|更新)\s*(cv(\d+))?\s*(\d+)?/.exec(msg.content)!;
     const cv = Number(reg[3]);
@@ -319,7 +319,7 @@ export async function activityStrategyPush(msg: IMessageGUILD | IMessageDIRECT) 
         .catch(err => msg.sendMsgEx({ content: `获取出错\n${err}` }));
 }
 
-export async function searchHandbook(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP) {
+export async function searchHandbook(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
     const matched = /\/?((查询|搜索)攻略|攻略(查询|搜索))\s*(?<searchKey>.+)$/.exec(msg.content)?.groups;
     const { searchKey } = matched || {};
     if (!(searchKey || "").trim()) return msg.sendMsgExRef({

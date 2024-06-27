@@ -3,18 +3,18 @@ import fetch from "node-fetch";
 import imageSize from "image-size";
 import * as puppeteer from "puppeteer";
 import { readFileSync, writeFileSync } from "fs";
-import { sendToAdmin } from "../libs/common";
-import { IMessageDIRECT, IMessageGROUP, IMessageGUILD, MessageType } from "../libs/IMessageEx";
 import { BiliDynamic, DynamicPushList, BiliUserCard } from "../types/Dynamic";
+import { sendToAdmin } from "../libs/common";
+import { IMessageC2C, IMessageDIRECT, IMessageGROUP, IMessageGUILD, MessageType } from "../libs/IMessageEx";
 import config from "../../config/config";
 
 
 const browserCkFile = `${_path}/data/ck.json`;
 const dynamicPushFilePath = `${_path}/data/dynamicPush.ts`;
-const userAgent = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Mobile Safari/537.36 Edg/121.0.0.0";
+const userAgent = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36 Edg/126.0.0.0";
 
 
-export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT | IMessageGROUP) {
+export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
     if (await redis.get("devEnv") && !devEnv) return;
 
     msg?.sendMsgEx({ content: "checking" });

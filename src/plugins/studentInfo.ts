@@ -29,7 +29,7 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
             }).then(res => res.json()).then((json: StudentInfoNet[]) => json.map(v => ({ ...v, Name: fixName(v.Name) }))).catch(err => log.error(err)),
 
             fetch(`https://raw.gh.schale.top/electricgoat/ba-data/jp/Excel/CharacterExcelTable.json`, {
-                timeout: 30 * 1000,
+                timeout: 60 * 1000,
             }).then(res => res.json()).then((characterExcelTable: CharacterExcelTable.Root) => {
                 return characterExcelTable.DataList.filter(v => v.TacticEntityType == "Student" && v.ProductionStep == "Release" && v.IsPlayableCharacter);
             }).catch(err => log.error(err)),

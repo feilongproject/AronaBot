@@ -10,7 +10,7 @@ import config from "../../config/config";
 
 export async function updateEventId(event?: IntentMessage.GUILD_MEMBERS) {
     const opUserId = "15874984758683127001";
-    if (devEnv) log.debug(event?.eventId);
+    // if (devEnv) log.debug(event?.eventId);
     if (event?.msg.user.id == opUserId) {
         return redis.setEx(`lastestEventId:${meId}:${event.msg.guild_id}`, 60 * 4, event.eventId);
     }
@@ -28,7 +28,7 @@ export async function updateEventId(event?: IntentMessage.GUILD_MEMBERS) {
     }
 }
 
-export async function status(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP) {
+export async function status(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
     if (!adminId.includes(msg.author.id)) return;
     const content = `------状态------` +
         `\n系统版本：${child_process.execSync("lsb_release -d").toString().split(/(\t|\n)/)[2]}` +
@@ -53,7 +53,7 @@ export async function ping(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP |
     return msg.sendMsgEx({ content: await global.redis.ping() });
 }
 
-export async function hotLoad(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP) {
+export async function hotLoad(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
     if (!adminId.includes(msg.author.id)) return !(msg instanceof IMessageGUILD) ? msg.sendMsgEx({ content: "无权限调用" }) : undefined;
     // if (devEnv) return;
     const times = /\/?热(加载|更新)(?<times>-?\d+)$/.exec(msg.content)?.groups?.times;
@@ -61,7 +61,7 @@ export async function hotLoad(msg: IMessageGUILD | IMessageDIRECT | IMessageGROU
     return msg.sendMsgEx({ content: `${devEnv} 已${msg.content}` });
 }
 
-export async function restart(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP) {
+export async function restart(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
     if (!adminId.includes(msg.author.id)) return;
     await redis.set(`isRestart:${meId}`, "T");
     await msg.sendMsgEx({ content: "开始重启" });
@@ -105,7 +105,7 @@ export async function directToAdmin(msg: IMessageDIRECT) {
     });
 }
 
-export async function reloadStudentData(msg: IMessageDIRECT) {
+export async function reloadStudentData(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
     if (!adminId.includes(msg.author.id)) return;
     const type = /学生数据(网络|本地)重加载/.exec(msg.content)![1];
     return import("./studentInfo").then(module => module.reloadStudentInfo(type == "网络" ? "net" : "local"))
@@ -116,7 +116,7 @@ export async function reloadStudentData(msg: IMessageDIRECT) {
         });
 }
 
-export async function dumpChatRecord(msg: IMessageDIRECT) {
+export async function dumpChatRecord(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
     if (!adminId.includes(msg.author.id)) return;
 
     const aid = /dump\s*(?<aid>\d+)/.exec(msg.content)?.groups?.aid;

@@ -3,14 +3,14 @@ import md5 from "md5";
 import { contentCensor as AipContentCensorClient } from "baidu-aip-sdk";
 import { createCanvas, Canvas, GlobalFonts, DOMMatrix, loadImage } from "@napi-rs/canvas";
 import { sendToAdmin } from "../libs/common";
-import { IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
+import { IMessageC2C, IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 import config from "../../config/config";
 
 
 GlobalFonts.registerFromPath(`${config.fontRoot}/GlowSansSC-Normal-Heavy.otf`, "GlowSansSC");
 GlobalFonts.registerFromPath(`${config.fontRoot}/RoGSanSrfStd-Bd.ttf`, "RoGSanSerifStd");
 
-export async function baLogo(msg: IMessageGUILD | IMessageGROUP) {
+export async function baLogo(msg: IMessageGUILD | IMessageGROUP | IMessageC2C) {
     // log.debug(msg.content);
     const match = /\/?[Bb][Aa][-_]?[Ll][Oo][Gg][Oo]\s+(?<textL>\S+)\s+(?<textR>\S+)/.exec(msg.content);
     if (!match?.groups) return msg.sendMsgExRef({
@@ -23,7 +23,7 @@ export async function baLogo(msg: IMessageGUILD | IMessageGROUP) {
     const client = new AipContentCensorClient(config.baiduCensoring.APP_ID, config.baiduCensoring.API_KEY, config.baiduCensoring.SECRET_KEY);
     const result = await client.textCensorUserDefined(`${textL}\n${textR}\n${textL}${textR}`, {
         userId: msg.author.id,
-        userIp: "guild_id" in msg ? msg.guild_id : msg.group_id,
+        userIp: msg instanceof IMessageGUILD ? msg.guild_id : (msg instanceof IMessageGROUP ? msg.group_id : "C2C"),
     });
     // log.debug(result);
 
@@ -37,7 +37,7 @@ export async function baLogo(msg: IMessageGUILD | IMessageGROUP) {
 
     if (result.data?.find(v => v.subType == 3)) {
         if (msg instanceof IMessageGROUP) await redis.hSet(`ban:use:group`, msg.group_id, "群聊中有人存在使用机器人发布政治敏感消息");
-        else await redis.hSet(`ban:use:guild`, msg.guild_id, "频道中存在使用机器人发布政治敏感消息");
+        else if (msg instanceof IMessageGUILD) await redis.hSet(`ban:use:guild`, msg.guild_id, "频道中存在使用机器人发布政治敏感消息");
         await redis.hSet(`ban:use:user`, msg.author.id, "历史中存在使用机器人发布政治敏感消息");
     }
 
@@ -45,10 +45,10 @@ export async function baLogo(msg: IMessageGUILD | IMessageGROUP) {
         content: (msg instanceof IMessageGROUP ? "" : `<@${adminId[0]}>`) + `检测词组违规:\n` + result.data!.map(v => v.msg).join(`\n`),
     }).then(() => sendToAdmin(
         `balogo检测到违禁词\n`
-        + (msg instanceof IMessageGROUP ? `用户: ${msg.author.id}` : `用户: ${msg.author.username} (${msg.author.id})`) + "\n"
-        + (msg instanceof IMessageGROUP ? `群聊: ${msg.group_id}` : `子频道: ${msg.channelName} (${msg.channel_id})`)
+        + ((msg instanceof IMessageGROUP || msg instanceof IMessageC2C) ? `用户: ${msg.author.id}` : `用户: ${msg.author.username} (${msg.author.id})`) + "\n"
+        + (msg instanceof IMessageC2C ? "" : (msg instanceof IMessageGROUP ? `群聊: ${msg.group_id}` : `子频道: ${msg.channelName} (${msg.channel_id})`))
         + `\n违规原因: ${result.conclusionType} ${result.conclusion}\n`
-        + result.data!.map((d, i) =>
+        + result.data?.map((d, i) =>
             `\nindex: ${i}\n`
             + `type: ${d.type}-${d.subType} ${d.msg}\n`
             + `hits:\n`

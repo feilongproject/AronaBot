@@ -1,13 +1,15 @@
 import fetch from "node-fetch";
 import format from "date-format";
 import { readFileSync } from "fs";
-import { IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
+import { IMessageC2C, IMessageDIRECT, IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 
 
-export async function baServerStatus(msg: IMessageGUILD | IMessageGROUP) {
+export async function baServerStatus(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
 
-    const jpStatus: Promise<ServerStatusJP> = fetch("https://d3656gtd9j62z1.cloudfront.net/prod/index.json").then(res => res.json()); // prod-noticeindex.bluearchiveyostar.com
-    const globalStatus: Promise<ServerStatusGlobal> = fetch("https://d13o75oynjs6mz.cloudfront.net/sdk/enterToy.nx", { // https://m-api.nexon.com/sdk/enterToy.nx
+    const jpStatus = fetch("https://d3656gtd9j62z1.cloudfront.net/prod/index.json", {
+    }).then(res => res.json() as Promise<ServerStatusJP>).catch(err => log.error(err)); // prod-noticeindex.bluearchiveyostar.com
+
+    const globalStatus = fetch("https://d13o75oynjs6mz.cloudfront.net/sdk/enterToy.nx", { // https://m-api.nexon.com/sdk/enterToy.nx
         method: "POST",
         headers: {
             // npparams: readFileSync(`${_path}/data/npparams`).toString(),
@@ -15,10 +17,14 @@ export async function baServerStatus(msg: IMessageGUILD | IMessageGROUP) {
             "X-Forwarded-For": "8.8.8.8",
         },
         body: readFileSync(`${_path}/data/getPromotion.nx`),
-    }).then(res => res.json());
-    const cnStatus: Gamekee.Index = await fetch(`https://ba.gamekee.com/v1/wiki/index`, { headers: { "game-alias": "ba" } }).then(res => res.json());
+    }).then(res => res.json() as Promise<ServerStatusGlobal>).catch(err => log.error(err));;
+
+    const cnStatus = await fetch(`https://ba.gamekee.com/v1/wiki/index`, {
+        headers: { "game-alias": "ba" },
+    }).then(res => res.json() as Promise<Gamekee.Index>).catch(err => log.error(err));;
 
     return Promise.all([jpStatus, globalStatus, cnStatus]).then(([jpStatus, globalStatus, cnStatus]) => {
+        if (!jpStatus || !globalStatus || !cnStatus) return msg.sendMsgEx({ content: `网络连接失败，请稍后重试`, });
         // log.debug(json.Maintenance.StartDate)
         const jpEndTime = new Date(jpStatus.Maintenance.EndDate);
         const jpContent = (jpEndTime.getTime() + 1000 * 60 * 60 <= new Date().getTime()) ?

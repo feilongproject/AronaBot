@@ -3,7 +3,7 @@ import fetch from "node-fetch";
 import format from "date-format";
 import { PythonShell } from "python-shell";
 import { sendToAdmin } from "../libs/common";
-import { IMessageGUILD, IMessageDIRECT, MessageType } from "../libs/IMessageEx";
+import { IMessageGUILD, IMessageDIRECT, MessageType, IMessageGROUP, IMessageC2C } from "../libs/IMessageEx";
 import config from "../../config/config";
 
 var isChecking = false;
@@ -183,7 +183,7 @@ async function accuseGachaWapper(srcMsg: IMessageGUILD) {
     return total;
 }
 
-export async function accuseGachaUpdate(msg: IMessageGUILD | IMessageDIRECT) {
+export async function accuseGachaUpdate(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
     if (!adminId.includes(msg.author.id)) return;
     const _dbImageList = await fetch("https://raw.gh.schale.top/lonqie/SchaleDB/main/data/cn/students.min.json")
         .then(res => res.json())

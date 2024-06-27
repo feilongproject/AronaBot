@@ -1,8 +1,8 @@
 import { settingUserConfig } from "../libs/common";
-import { IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
+import { IMessageC2C, IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 
 
-export async function commandSetting(msg: IMessageGUILD | IMessageGROUP) {
+export async function commandSetting(msg: IMessageGUILD | IMessageGROUP | IMessageC2C) {
 
     var optStr: string = "";
     var expCmd: string | null = null;

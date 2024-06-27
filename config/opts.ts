@@ -7,7 +7,7 @@ export default {
             test: {
                 reg: "test",
                 fnc: "test",
-                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP],
+                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
                 channelAllows: ["all"],
                 describe: "测试测试测试测试（确信）"
             }
@@ -25,7 +25,7 @@ export default {
             updateGithubVersion: {
                 reg: "^/?update$",
                 fnc: "updateGithubVersion",
-                type: [MessageType.DIRECT],
+                type: [MessageType.DIRECT, MessageType.FRIEND],
                 describe: "检查SchaleDB镜像仓库是否更新"
             }
         },
@@ -47,7 +47,7 @@ export default {
             status: {
                 reg: "^/?(状态|status)$",
                 fnc: "status",
-                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP],
+                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
                 channelAllows: ["all"],
                 describe: "查询bot与服务器状态",
                 export: "/状态"
@@ -55,28 +55,28 @@ export default {
             hotLoad: {
                 reg: "^/?热(加载|更新)(-?\\d+)$",
                 fnc: "hotLoad",
-                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP],
+                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
                 channelAllows: ["all"],
                 describe: "开启或关闭热加载"
             },
             reloadStudentData: {
                 reg: "^学生数据(网络|本地)重加载$",
                 fnc: "reloadStudentData",
-                type: [MessageType.GUILD, MessageType.DIRECT],
+                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
                 channelAllows: ["all"],
                 describe: "重加载学生数据"
             },
             dumpChatRecord: {
                 reg: "^dump\\s*(\\d+)$",
                 fnc: "dumpChatRecord",
-                type: [MessageType.GUILD, MessageType.DIRECT],
+                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
                 channelAllows: ["all"],
                 describe: "dump发言记录"
             },
             restart: {
                 reg: "^/?(restart|重启)$",
                 fnc: "restart",
-                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP],
+                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
                 describe: "重启机器人"
             },
             sendTopMessage: {
@@ -98,7 +98,7 @@ export default {
             ban: {
                 reg: "^(un)?ban1?",
                 fnc: "ban",
-                type: [MessageType.GUILD, MessageType.DIRECT],
+                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
                 describe: "对某用户/群聊/频道执行封禁"
             }
         },
@@ -106,14 +106,14 @@ export default {
             gachaString: {
                 reg: "^/?(单抽出奇迹|十连大保底)",
                 fnc: "gachaString",
-                type: [MessageType.GUILD, MessageType.GROUP],
+                type: [MessageType.GUILD, MessageType.GROUP, MessageType.FRIEND],
                 describe: "以文本形式展示抽卡结果",
                 export: "/单抽出奇迹 \n/十连大保底"
             },
             gachaImage: {
                 reg: "^/?十连(保底图)?",
                 fnc: "gachaImage",
-                type: [MessageType.GUILD, MessageType.GROUP],
+                type: [MessageType.GUILD, MessageType.GROUP, MessageType.FRIEND],
                 describe: "以图片形式展示抽卡结果",
                 export: "/十连保底图"
             },
@@ -121,7 +121,7 @@ export default {
                 reg: "^抽卡数据(网络|本地)重加载$",
                 fnc: "reloadGachaData",
                 channelAllows: ["all"],
-                type: [MessageType.GUILD, MessageType.DIRECT],
+                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
                 describe: "重加载抽卡数据"
             }
         },
@@ -129,7 +129,7 @@ export default {
             generateALA: {
                 reg: "^/?奥利奥",
                 fnc: "generateALA",
-                type: [MessageType.GUILD, MessageType.GROUP],
+                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
                 describe: "一起合成爱丽丝吧！",
                 export: "/奥利奥 [合成配方]"
             }
@@ -156,7 +156,7 @@ export default {
                 reg: "^/?总力战一图流",
                 fnc: "handbookMain",
                 channelAllows: ["all"],
-                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP],
+                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
                 describe: "总力战一图流",
                 export: "/总力战一图流 [国际服|日服]"
             },
@@ -164,7 +164,7 @@ export default {
                 reg: "^/?(千|万)里眼",
                 fnc: "handbookMain",
                 channelAllows: ["all"],
-                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP],
+                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
                 describe: "获取国际服/国服千里眼",
                 export: "/千里眼"
             },
@@ -172,7 +172,7 @@ export default {
                 reg: "^/?活动攻略",
                 fnc: "handbookMain",
                 channelAllows: ["all"],
-                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP],
+                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
                 describe: "获取当前活动攻略一图流",
                 export: "/活动攻略 [国际服|日服]"
             },
@@ -180,7 +180,7 @@ export default {
                 reg: "^/?(角评|角色评价)",
                 fnc: "handbookMain",
                 channelAllows: ["all"],
-                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP],
+                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
                 describe: "获取指定学生的评价",
                 export: "/角评 [学生名称]"
             },
@@ -188,20 +188,20 @@ export default {
                 reg: "^/?hbupdate",
                 fnc: "handbookUpdate",
                 channelAllows: ["all"],
-                type: [MessageType.GUILD],
+                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
                 describe: "更新攻略中的图片"
             },
             activityStrategyPush: {
                 reg: "攻略(发布|更新)\\s*(cv\\d+)?\\s*(\\d+)?",
                 fnc: "activityStrategyPush",
-                type: [MessageType.GUILD, MessageType.DIRECT],
+                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
                 describe: "进行一个活动攻略的更新"
             },
             searchHandbook: {
                 reg: "^/?((查询|搜索)攻略|攻略(查询|搜索))",
                 fnc: "searchHandbook",
                 channelAllows: ["all"],
-                type: [MessageType.GUILD, MessageType.GROUP],
+                type: [MessageType.GUILD, MessageType.GROUP, MessageType.GROUP, MessageType.FRIEND],
                 describe: "从diyigemt的API中查询攻略",
                 export: "/查询攻略 <攻略名称>"
             }
@@ -211,7 +211,7 @@ export default {
                 reg: "^/?命令设置",
                 fnc: "commandSetting",
                 channelAllows: ["all"],
-                type: [MessageType.GUILD, MessageType.GROUP],
+                type: [MessageType.GUILD, MessageType.GROUP, MessageType.FRIEND],
                 describe: "对使用中的命令进行设置",
                 export: "/命令设置 [设置选项]"
             }
@@ -221,7 +221,7 @@ export default {
                 reg: "^/?服务器状态$",
                 fnc: "baServerStatus",
                 channelAllows: ["all"],
-                type: [MessageType.GUILD, MessageType.GROUP],
+                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
                 describe: "查询ba服务器状态",
                 export: "/服务器状态"
             }
@@ -252,7 +252,7 @@ export default {
                 reg: "^/?举报图库更新$",
                 fnc: "accuseGachaUpdate",
                 channelAllows: ["all"],
-                type: [MessageType.GUILD, MessageType.DIRECT],
+                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
                 describe: "更新晒卡举报图中的图库"
             },
             searchMembers: {
@@ -267,7 +267,7 @@ export default {
             mainCheck: {
                 reg: "^/?check$",
                 fnc: "mainCheck",
-                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP],
+                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
                 describe: "手动检查一次推送"
             }
         },
@@ -298,7 +298,7 @@ export default {
             todayTarot: {
                 reg: "^/?塔罗牌$",
                 fnc: "todayTarot",
-                type: [MessageType.GUILD, MessageType.GROUP],
+                type: [MessageType.GUILD, MessageType.GROUP, MessageType.FRIEND],
                 describe: "抽取今日塔罗牌",
                 export: "/塔罗牌"
             }
@@ -307,7 +307,7 @@ export default {
             baLogo: {
                 reg: "^/?[Bb][Aa][-_]?[Ll][Oo][Gg][Oo]",
                 fnc: "baLogo",
-                type: [MessageType.GUILD, MessageType.GROUP],
+                type: [MessageType.GUILD, MessageType.GROUP, MessageType.FRIEND],
                 describe: "生成ba特色的logo",
                 channelAllows: ["all"],
                 export: "/balogo <左文本> <右文本>"

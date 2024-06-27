@@ -301,11 +301,15 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         if (fileInfo && !force) return fileInfo;
         // if (fUrl.includes("cdn.arona.schale.top") && !fileInfo) await fetch(fUrl).then(res => res.buffer()).then(buff => { });
         // if (!new URL(fUrl).pathname.startsWith("/p/gacha/")) log.mark(`资源 ${fUrl} 获取中, 存在: ${!!fileInfo}`);
-        const fileRes = await (this.messageType == MessageType.GROUP ? client.groupApi.postFile : client.c2cApi.postFile)(sendToId, {
+        const fileRes = await (this.messageType == MessageType.GROUP ? client.groupApi.postFile(sendToId, {
             file_type: fileType,
             url: fUrl,
             srv_send_msg: false,
-        }).then(res => res.data);
+        }).then(res => res.data) : client.c2cApi.postFile(sendToId, {
+            file_type: fileType,
+            url: fUrl,
+            srv_send_msg: false,
+        }).then(res => res.data));
         if (!force) await redis.setEx(redisKey, 60 * 60 * 24, fileRes.file_info);
         return fileRes.file_info;
     }
@@ -324,7 +328,19 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         const { sendToId, msgId, markdown, keyboard, eventId, } = options;
         if (!sendToId) throw "sendToId not set";
         // debugger;
-        return (this.messageType == MessageType.GROUP ? client.groupApi.postMessage : client.c2cApi.postMessage)(sendToId, {
+        if (this.messageType == MessageType.GROUP) return client.groupApi.postMessage(sendToId, {
+            msg_id: msgId,
+            msg_type: 2,
+            content: " ",
+            markdown: markdown,
+            keyboard: keyboard,
+            msg_seq: this.seq,
+            event_id: eventId,
+        }).then(res => {
+            (res.data as Record<string, any>)["x-tps-trace-id"] = res.headers["x-tps-trace-id"];
+            return res.data;
+        });
+        else return client.c2cApi.postMessage(sendToId, {
             msg_id: msgId,
             msg_type: 2,
             content: " ",

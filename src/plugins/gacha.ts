@@ -3,8 +3,8 @@ import sharp from "sharp";
 import crypto from "crypto";
 import fetch from "node-fetch";
 import format from "date-format";
-import { IMessageDIRECT, IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 import { sendToAdmin, settingUserConfig } from "../libs/common";
+import { IMessageC2C, IMessageDIRECT, IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 import config from '../../config/config';
 
 const starString = ["☆☆☆", "★☆☆", "★★☆", "★★★"];
@@ -25,7 +25,10 @@ gachaReload("local").then(d => {
 });
 
 
-export async function gachaString(msg: IMessageGUILD | IMessageGROUP) {
+export async function gachaString(msg: IMessageGUILD | IMessageGROUP | IMessageC2C) {
+    if (msg instanceof IMessageGROUP && ["5138A9AD154BB8E8E6082B5804E6EB35", "FCF53BF26F7CA7908601D0C471C22ADC"].includes(msg.group_id))
+        return msg.sendMsgEx({ content: "暂不支持该群聊使用，请到频道抽卡区使用" });
+
     const setting = await settingUserConfig(msg.author.id, "GET", ["server"]);
     const o = cTime(setting.server == "jp" ? "jp" : "global", /十/.test(msg.content) ? 10 : 1);
     var sendStr: string[] = [
@@ -36,7 +39,10 @@ export async function gachaString(msg: IMessageGUILD | IMessageGROUP) {
     return msg.sendMsgExRef({ content: sendStr.join(`\n`), });
 }
 
-export async function gachaImage(msg: IMessageGUILD | IMessageGROUP) {
+export async function gachaImage(msg: IMessageGUILD | IMessageGROUP | IMessageC2C) {
+    if (msg instanceof IMessageGROUP && ["5138A9AD154BB8E8E6082B5804E6EB35", "FCF53BF26F7CA7908601D0C471C22ADC"].includes(msg.group_id))
+        return msg.sendMsgEx({ content: "暂不支持该群聊使用，请到频道抽卡区使用" });
+
     const setting = await settingUserConfig(msg.author.id, "GET", ["server", "analyzeHide"]);
     const o = cTime(setting.server == "jp" ? "jp" : "global", 10, adminId.includes(msg.author.id) ? Number(msg.content.match(/\d$/)) as 1 | 2 | 3 : undefined);
     const analyze = setting.analyzeHide == "true" ? null : await analyzeRandData(setting.server == "jp" ? "jp" : "global", msg.author.id, o);
@@ -57,7 +63,7 @@ export async function gachaImage(msg: IMessageGUILD | IMessageGROUP) {
 
     return msg.sendMarkdown({
         params_omnipotent: [
-            `<@${msg.author.id}> (${setting.server == "jp" ? "日服" : "国际服"}卡池)\r`
+            (msg instanceof IMessageC2C ? "" : `<@${msg.author.id}> `) + `(${setting.server == "jp" ? "日服" : "国际服"}卡池)\r`
             + (analyze ? `${analyze?.today_gacha}\r${analyze?.total_gacha}\r${analyze?.gacha_analyze}` : ""),
             `![img #1700px #980px]`,
             `(${cosUrl(`gacha/${imageName}`)})`,
@@ -159,7 +165,7 @@ async function analyzeRandData(server: "global" | "jp", uid: string, data: Gacha
     }
 }
 
-export async function reloadGachaData(msg: IMessageDIRECT) {
+export async function reloadGachaData(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
     if (!adminId.includes(msg.author.id)) return;
     const type = /抽卡数据(网络|本地)重加载/.exec(msg.content)![1];
     return gachaReload(type == "网络" ? "net" : "local")
