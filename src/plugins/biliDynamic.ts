@@ -30,33 +30,34 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT | IMessageG
 
     for (const bUser of dynamicPushList) {
         const { id: userId } = bUser;
-        if (!bUser.list.length) continue;
+        if (!bUser.list.length) { await sleep(10 * 1000); continue; }
 
         const dynamicItems = await getUserDynamics(userId, cookies).catch(err => {
             log.error(bUser, userId, err);
             const _err = `api出错: ${bUser.name} ${userId} ${stringifyFormat(err)}`.replaceAll(".", ",");
             return (msg ? msg.sendMsgEx({ content: _err }) : sendToAdmin(_err)).then(() => { });
         }).catch(err => { });
-        if (!dynamicItems) continue;
+        if (!dynamicItems) { await sleep(10 * 1000); continue; }
 
         debugger;
 
+        if (devEnv) await msg?.sendMsgEx({ content: `开始检查 ${bUser.name}(${userId})的动态` });
         log.info(`开始检查 ${bUser.name}(${userId})的动态`);
         for (const item of dynamicItems) { // 检查每个动态
             const { id_str: dynamicId } = item;
             const isAllPushed = await redis.hExists(`biliMessage:allPushed:${userId}`, dynamicId); // 检查该动态是否全部推送完毕
-            if (isAllPushed) continue;
+            if (isAllPushed) { await sleep(10 * 1000); continue; }
 
             const idPushed = await redis.hmGet(`biliMessage:idPushed:${dynamicId}`, bUser.list.map(v => v.id));
-            const notPushedList = bUser.list.filter((_, i) => !idPushed[i]);
+            const notPushedList = bUser.list.filter((_, i) => !idPushed[i]).filter(v => v.enable);
             if (!notPushedList.length) {
                 await redis.hSet(`biliMessage:allPushed:${userId}`, dynamicId, "pushed: " + bUser.list.map(v => v.id).join());
-                continue;
+                await sleep(10 * 1000); continue;
             } // 已经全部推送完毕，进行标记并结束
 
             // debugger;
 
-            if (await redis.exists(`dynamicPushing:${dynamicId}`)) continue;
+            if (await redis.exists(`dynamicPushing:${dynamicId}`)) { await sleep(10 * 1000); continue; }
             await redis.setEx(`dynamicPushing:${dynamicId}`, 60 * 2, "1"); // 开始推送，设置2分钟的锁
 
             const imageKey = `${userId}-${dynamicId}-${new Date().getTime()}.png`;
@@ -81,12 +82,14 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT | IMessageG
                 await import("../eventRec")
                     .then(m => m.mailerError({ bUser, dynamicId, imageKey, notPushedList, idPushed, item, }, new Error(stringifyFormat(err))))
                     .catch(err => log.error(err));
-                continue;
+                await sleep(10 * 1000); continue;
             }
 
             await redis.del("dynamicPushing");
+            await sleep(5 * 1000);
         }
-        await sleep(5 * 1000);
+
+        await sleep(10 * 1000);
     }
 
     delete require.cache[dynamicPushFilePath];
@@ -111,6 +114,8 @@ async function dynamicPush(dynamicId: string, pushInfo: DynamicPushList.PushInfo
                     "b": `${config.dynamicPush.authKey}:dynamicPush`,
                     "d": `${pushInfo.id},${imageKey}`,
                 }),
+            }).then(res => res.text()).then(text => {
+                if (devEnv) log.debug("fetch结果: ", imageKey, text);
             }).catch(async err => {
                 log.error(err);
                 try {
@@ -152,76 +157,12 @@ async function dynamicPush(dynamicId: string, pushInfo: DynamicPushList.PushInfo
     return redis.hSet(`biliMessage:idPushed:${dynamicId}`, pushInfo.id, pushInfo.id);
 }
 
-
-// export async function dynamicPush(dynamicId: string, from: MessageType.GUILD): Promise<void>
-// export async function dynamicPush(dynamicId: string, from: MessageType.GROUP, eventId: string, pushList?: DynamicPushList.PushInfo[]): Promise<void>
-// export async function dynamicPush(dynamicId: string, from: MessageType, eventId?: string, customPushList?: DynamicPushList.PushInfo[]): Promise<void> {
-//     if (from == MessageType.GROUP && !eventId) return;
-
-//     log.info(`(${dynamicId})的动态开始推送, 类型${from}`);
-
-
-//     const imageKey = `${dynamicId}-${new Date().getTime()}.png`;
-//     let imageUrl = "";
-
-//     try {
-//         const dynamicInfo = (await getDynamicInfo(dynamicId)).data.item;
-//         const userId = dynamicInfo.modules.module_author.mid.toString();
-
-//         const pushList = ((await import(dynamicPushFilePath)).pushList as DynamicPushList.Root).find(v => v.id == userId)?.list.filter(v => v.type == from);
-//         if (!pushList) throw (`userName(${userId})的动态(${dynamicId})未找到`);
-//         if (!pushList.length) return;
-
-//         const userCard = await getUserCard(userId);
-//         const userName = userCard.data.card.name;
-
-//         const imageBuffer = await screenshot(dynamicInfo.id_str, dynamicInfo.modules.module_author.pub_ts.toString(), 30);
-//         if (!imageBuffer || !imageBuffer.length) {
-//             log.error(`screenshot(${dynamicInfo.id_str}) not return buff, div not found`);
-//             await sendToAdmin(`screenshot(${dynamicInfo.id_str}) not return buff, div not found`);
-//             return;
-//         }
-//         const { width: imgWidth, height: imgHeight } = imageSize(imageBuffer);
-//         imageUrl = cosUrl(`biliDynamic/${imageKey}`, imageBuffer.length < 4 * 1000 * 1000 ? "" : undefined);
-//         writeFileSync(`${config.imagesOut}/bili-${imageKey}`, imageBuffer);
-//         if (devEnv) log.debug(`${config.imagesOut}/bili-${imageKey}`);
-//         await cosPutObject({ Key: `biliDynamic/${imageKey}`, Body: imageBuffer });
-
-//         for (const pushInfo of customPushList || pushList) {
-
-//         }
-
-//         await pushDB(dynamicInfo);
-//     } catch (err) {
-//         log.error(err);
-//         await import("../eventRec").then(m => m.mailerError({ dynamicId }, err instanceof Error ? err : new Error(stringifyFormat(err))).catch(err => { }));
-//         await sendToAdmin(`${dynamicId} 发送失败\n${imageUrl}\n${stringifyFormat(err)}`.replaceAll(".", ",")).catch(err => { });
-//     }
-
-//     await sleep(5 * 1000);
-// }
-
 export async function getUserCard(userId: string) {
     // https://api.bilibili.com/x/web-interface/card?mid=1
     return fetch(`https://api.bilibili.com/x/web-interface/card?mid=${userId}`, {
 
     }).then(res => res.json() as Promise<BiliUserCard.Root>);
 }
-
-// async function pushDB(item: BiliDynamic.Item) {
-//     return pushToDB("biliMessage", {
-//         msgId: item.id_str,
-//         userId: item.modules.module_author.mid,
-//         userName: item.modules.module_author.name,
-//         pubTs: item.modules.module_author.pub_ts,
-//         type: item.type,
-//         content: item.modules.module_dynamic.desc,
-//         major: item.modules.module_dynamic.major,
-//         origMajor: item.orig?.modules.module_dynamic.major,
-//         origMsgId: item.orig?.id_str,
-//     });
-// }
-
 
 //参考: https://github.com/SocialSisterYi/bilibili-API-collect/issues/686
 export async function getCookie(): Promise<string> {
@@ -297,6 +238,8 @@ async function screenshot(dynamicId: string, pubTs: string, quality = 50): Promi
         await page.reload({ waitUntil: "networkidle0" });
 
     await page.evaluate(() => {
+
+        document.querySelector(`body > div.geetest_panel.geetest_wind`)?.remove();//删除验证码遮罩
         const r = "#app > div > div";
         // document.querySelector(r)?.remove();//删除nav
         document.querySelector(`${r}.opus-nav`)?.remove();//删除nav
