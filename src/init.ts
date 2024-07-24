@@ -54,25 +54,75 @@ export async function init() {
         });
     }
 
-    log.info(`初始化: 正在连接数据库`);
-    global.redis = createClient(config.redis);
-    await global.redis.connect().then(() => redis.ping()).then(pong => {
-        log.info(`初始化: redis 数据库连接成功 ${pong}`);
-    }).catch(err => {
-        log.error(`初始化: redis 数据库连接失败，正在退出程序\n${err}`);
-        process.exit();
-    });
-
     log.info(`初始化: 正在连接腾讯 COS`);
     global.cos = new COS(config.cos);
 
-    if (config.bots[botType].allowMariadb) global.mariadb = await createPool({
-        ...config.mariadb,
-        database: botType,
-    }).getConnection().catch(err => {
-        log.error(`初始化: mariadb 数据库连接失败，正在退出程序\n${err}`);
-        process.exit();
-    });
+    log.info(`初始化: 正在连接数据库`);
+
+    const connectRedis = async (init = true, retry = 0) => {
+        global.redis = createClient(config.redis);
+        await global.redis.connect().then(() => redis.ping()).then(pong => {
+            log.info((init ? "初始化: " : "重连: ") + `redis 数据库连接成功 ${pong}`);
+        }).catch(err => {
+            log.error((init ? "初始化: " : "重连: ") + `redis 数据库连接失败， retry: ${retry}\n`, err);
+            if (retry > 5) process.exit();
+            else return connectMariadb(false, ++retry) as any;
+        });
+
+        redis.on("error", err => {
+            log.error(err);
+        })
+    };
+    await connectRedis();
+    // setInterval(async () => {
+    //     const _ = await redis.ping().catch(err => {
+    //         log.error(err);
+    //     });;
+    //     log.debug(_);
+    // }, 1000 * 5);
+
+    const connectMariadb = async (init = true, retry = 0) => {
+        global.mariadb = await createPool({
+            ...config.mariadb,
+            database: botType,
+        }).getConnection().catch(err => {
+            log.error((init ? "初始化: " : "重连: ") + `mariadb 数据库连接失败, retry: ${retry}\n`, err);
+            if (retry > 5) process.exit();
+            else return connectMariadb(false, ++retry) as any;
+        });
+        mariadb?.on("error", (err) => {
+            log.error("mariadb.error", err);
+            mariadb.end();
+            mariadb.release();
+            connectMariadb(false);
+        });
+        log.info((init ? "初始化: " : "重连: ") + `mariadb 数据库连接成功`);
+    };
+    if (config.bots[botType].allowMariadb) await connectMariadb();
+
+    // setInterval(async () => {
+    //     const _ = await mariadb.query("SHOW DATABASES;").catch(err => {
+    //         // if(err instanceof SqlError)mariadb.isValid
+    //         log.error(err);
+    //     });;
+    //     log.debug(_);
+    // }, 1000 * 5);
+
+    // mariadb.on("end", () => {
+    //     log.error("mariadb end");
+    //     process.exit();
+    // });
+    // setTimeout(async () => {
+    //     await mariadb.end();
+    //     await mariadb.destroy();
+    // }, 5 * 1000);
+    // setTimeout(() => {
+    //     mariadb.query(`SELECT * FROM biliMessage WHERE userId = ?`, "297972654").then(data => {
+    //         log.debug(data);
+    //     }).catch(err => {
+    //         log.error(err);
+    //     });
+    // }, 10 * 1000);
 
     log.info(`初始化: 正在创建 client 与 ws`);
     global.client = createOpenAPI(config.bots[botType]);
