@@ -220,6 +220,7 @@ async function screenshot(dynamicId: string, pubTs: string, quality = 50): Promi
         headless: true,
         // headless: false,
         args: ['--no-sandbox'],
+        protocolTimeout: 240000,
     });
 
     const page = await browser.newPage();
