@@ -13,6 +13,7 @@ export namespace DynamicPushList {
         id: string;
         name: string;
         type: MessageType;
+        enable: boolean;
     }
 }
 
