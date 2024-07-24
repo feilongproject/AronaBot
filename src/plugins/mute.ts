@@ -68,7 +68,10 @@ export async function mute(msg: IMessageGUILD) {
             content: `已对成员<@${muteMember!.id}>的「${await redis.hGet("muteType", cmdMatch.t) || cmdMatch.t}」行为采取禁言${timeConver(muteTime * 1000)}`
                 + `\n注意：若管理随意使用则会采取一定措施`,
         });
-    } else msg.sendMsgExRef({ content: `已解除${await redis.hGet("muteType", cmdMatch.t) || cmdMatch.t}禁言` });
+    } else {
+        // TODO: 加点什么
+        await msg.sendMsgExRef({ content: `已解除${await redis.hGet("muteType", cmdMatch.t) || cmdMatch.t}禁言` });
+    }
     await client.muteApi.muteMember(msg.guild_id, muteMember!.id, { seconds: muteTime.toString() });
 
     const muteMap = await redis.hGetAll(`mute:${muteMember!.id}`);
