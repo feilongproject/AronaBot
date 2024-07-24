@@ -46,7 +46,7 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
         if (!nStudentsElectricgoat) throw `can't fetch json:netStudentsElectricgoat`;
         if (!aStudentNameWeb) throw `can't fetch json:aliasStudentNameWeb`;
 
-        const aliasStudentNameLocal: Record<string, string[]> = JSON.parse(fs.readFileSync(config.aliasStudentNameLocal, { encoding: "utf8" }));
+        const aStudentNameLocal: Record<string, string[]> = JSON.parse(fs.readFileSync(config.aliasStudentNameLocal, { encoding: "utf8" }));
 
         for (const _ of nStudentsElectricgoat) {
             const __ = nStudentsDBzh.find(v => v.Id == _.Id);
@@ -68,7 +68,7 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
             const nameAlis = () => {
                 for (const _ of _studentInfo[d.Id].name) {
                     const webHas = aStudentNameWeb[_];
-                    const localHas: string[] | undefined = aliasStudentNameLocal[_];
+                    const localHas: string[] | undefined = aStudentNameLocal[_];
 
                     if (webHas) {
                         _studentInfo[d.Id].name.push(...webHas.filter(v => !v.includes("老婆"))); // 去除私货
@@ -77,7 +77,7 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
 
                     if (localHas) {
                         _studentInfo[d.Id].name.push(...localHas); // 增加本地别名
-                        delete aliasStudentNameLocal[_];
+                        delete aStudentNameLocal[_];
                     }
                 }
             }
@@ -89,17 +89,39 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
                 throw `not found png file in local: Student_Portrait_${devName}`;
         }
 
+        if (_studentInfo[10098] && _studentInfo[10099]) {
+            _studentInfo[10098].name.join(..._studentInfo[10099].name, 'hoshino_battle');
+            delete _studentInfo[10099];
+            // 保留 hoshino_battle_dealer, 删除 hoshino_battle_tank
+        }
+
         const unkownWebKeys = Object.keys(aStudentNameWeb);
         if (unkownWebKeys.length) await sendToAdmin(`web别名链接失败部分: ${unkownWebKeys.join()}`);
-        const unkownLocalKeys = Object.keys(aStudentNameWeb);
+        const unkownLocalKeys = Object.keys(aStudentNameLocal);
         if (unkownLocalKeys.length) await sendToAdmin(`local别名链接失败部分: ${unkownLocalKeys.join()}`);
 
         global.studentInfo = _studentInfo;
         fs.writeFileSync(config.studentInfo, stringifyFormat(_studentInfo));
     }
 
-    if (fs.existsSync(config.studentInfo)) {
+    if (fs.existsSync(config.studentInfo)) {    // 本地部分
+        const aStudentNameLocal: Record<string, string[]> = JSON.parse(fs.readFileSync(config.aliasStudentNameLocal, { encoding: "utf8" }));
         global.studentInfo = JSON.parse(fs.readFileSync(config.studentInfo).toString());
+        for (const _id in global.studentInfo) {
+            const nameAlis = () => {
+                for (const _ of global.studentInfo[_id].name) {
+                    const localHas: string[] | undefined = aStudentNameLocal[_];
+                    if (!localHas) continue;
+                    global.studentInfo[_id].name.push(...localHas); // 增加本地别名
+                    delete aStudentNameLocal[_];
+                }
+            }
+            nameAlis(); nameAlis();
+            global.studentInfo[_id].name = global.studentInfo[_id].name.filter((v, i, arr) => arr.indexOf(v, 0) === i); // 去重
+        }
+        fs.writeFileSync(config.studentInfo, stringifyFormat(global.studentInfo));
+        const unkownLocalKeys = Object.keys(aStudentNameLocal);
+        if (unkownLocalKeys.length) await sendToAdmin(`local别名链接失败部分: ${unkownLocalKeys.join()}`);
         updateSearchPinyin();
         return `${type} ok`;
     } else return reloadStudentInfo("net");
