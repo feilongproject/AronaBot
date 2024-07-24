@@ -26,7 +26,7 @@ export const handbookMatches: HandbookMatches.Root = {
             has: [HandbookMatches.Type.JP, HandbookMatches.Type.GLOBAL],
         },
         clairvoyance: {
-            reg: /^\/?(千|万)里眼/,
+            reg: /^\/?(千|万)里眼|qly/,
             typeReg: /(千里眼?)|(clairvoyance)/,
             desc: "千里眼",
             has: [HandbookMatches.Type.GLOBAL, HandbookMatches.Type.CN],
@@ -43,11 +43,12 @@ export const handbookMatches: HandbookMatches.Root = {
             desc: "角评",
             has: [HandbookMatches.Type.ALL],
         },
+        //MultiFloorRaid 
     },
     types: {
-        global: /(国际|g)服?/,
-        jp: /(日|jp)服?/,
-        cn: /(国|cn)服?/,
+        global: /(国际|g(lobal)?)服?/,
+        jp: /(日|jp?)服?/,
+        cn: /(国|cn?)服?/,
     },
 }
 
@@ -150,7 +151,7 @@ export async function getLastestImage(name: string, type = "all"): Promise<Handb
 
 export async function handbookUpdate(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
     if (!adminId.includes(msg.author.id)) return;
-    const matched = /^\/?hbupdate(?<imageId>\d+)?\s+(?<name>\S+)\s+(?<type>\S+)\s+(?<url>(https?:\/\/)?\S+)\s?(?<desc>.+)?/.exec(msg.content);
+    const matched = /hbupdate(?<imageId>\d+)?\s+(?<name>\S+)\s+(?<type>\S+)\s+(?<url>(https?:\/\/)?\S+)\s?(?<desc>.+)?/.exec(msg.content);
     // log.debug(matched?.groups);
     if (!matched || !matched.groups) return msg.sendMsgExRef({
         content: `命令错误，命令格式：` +
@@ -211,8 +212,8 @@ export async function handbookUpdate(msg: IMessageGUILD | IMessageDIRECT | IMess
     // 图片 desc turnUrl 结束
 
     // 图片 URL 开始
-    var imageUrl = "";
-    if (/(arona\.schale\.top\/turn)|(t\.bilibili\.com\/(\d+))/.test(url)) {
+    var imageUrl = /(?<imageUrl>(https:\/\/)?.+hdslb\.com\/.+\.(png|jpg|jpeg))/.exec(url)?.groups?.imageUrl;
+    if (!imageUrl && /(arona\.schale\.top\/turn)|(t\.bilibili\.com\/(\d+))/.test(url)) {
         try {
             imageUrl = await fetch(url.startsWith("https://") ? url : "https://" + url).then(res => {
                 // log.debug(res.url);
@@ -230,7 +231,7 @@ export async function handbookUpdate(msg: IMessageGUILD | IMessageDIRECT | IMess
             log.error(err);
             return msg.sendMsgEx({ content: `查找图片时出现错误\n` + JSON.stringify(err).replaceAll(".", ",") });
         }
-    } else if (/(https:\/\/)?.+hdslb\.com\/.+\.(png|jpg|jpeg)/.test(url)) imageUrl = /((https:\/\/)?.+\.(png|jpg|jpeg))/.exec(url)![1];
+    }
     if (!imageUrl) return msg.sendMsgExRef({ content: "图片未找到" });
     // 图片 URL 结束
 
@@ -353,7 +354,7 @@ export async function searchHandbook(msg: IMessageGUILD | IMessageDIRECT | IMess
 
 }
 
-async function studentEvaluation(content: string): Promise<{ type: HandbookMatches.Type; desc: string; fuzzy?: SearchPinyin[]; }> {
+export async function studentEvaluation(content: string): Promise<{ type: HandbookMatches.Type; desc: string; fuzzy?: SearchPinyin[]; }> {
     const studentName = content.replace(handbookMatches.names.studentEvaluation.reg, "").trim();
     if (!studentName || studentName == "all") return { type: HandbookMatches.Type.ALL, desc: "", };
     const findedInfo = await import("./studentInfo").then(module => module.findStudentInfo(studentName));
