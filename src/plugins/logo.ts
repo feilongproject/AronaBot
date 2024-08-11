@@ -55,7 +55,7 @@ export async function baLogo(msg: IMessageGUILD | IMessageGROUP | IMessageC2C) {
             + `${d.hits.map(hit =>
                 `->${hit.datasetName}: (${hit.words})\n`
                 + `->wordHitPositions:\n`
-                + `${hit.wordHitPositions.map((pos, i) =>
+                + `${hit.wordHitPositions?.map((pos, i) =>
                     `-->${i}.k: ${pos.keyword}\n`
                     + `-->${i}.l: ${pos.label}\n`
                     + `-->${i}.p: ${pos.positions.join("|")}`).join("\n")}`

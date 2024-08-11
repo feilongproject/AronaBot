@@ -17,11 +17,11 @@ export async function baServerStatus(msg: IMessageGUILD | IMessageDIRECT | IMess
             "X-Forwarded-For": "8.8.8.8",
         },
         body: readFileSync(`${_path}/data/getPromotion.nx`),
-    }).then(res => res.json() as Promise<ServerStatusGlobal>).catch(err => log.error(err));;
+    }).then(res => res.json() as Promise<ServerStatusGlobal>).catch(err => log.error(err));
 
     const cnStatus = await fetch(`https://ba.gamekee.com/v1/wiki/index`, {
         headers: { "game-alias": "ba" },
-    }).then(res => res.json() as Promise<Gamekee.Index>).catch(err => log.error(err));;
+    }).then(res => res.json() as Promise<Gamekee.Index>).catch(err => log.error(err));
 
     return Promise.all([jpStatus, globalStatus, cnStatus]).then(([jpStatus, globalStatus, cnStatus]) => {
         if (!jpStatus || !globalStatus || !cnStatus) return msg.sendMsgEx({ content: `网络连接失败，请稍后重试`, });
