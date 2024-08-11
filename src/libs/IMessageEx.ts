@@ -204,11 +204,13 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
     _atta: string;
     seq = 1;
     sendToId?: string;
+    event_id: string;
 
     constructor(msg: IntentMessage.MessageChatCommon & Partial<{ group_id: string; group_openid: string; }>, meaasgeType: MessageType) {
         this.id = msg.id;
         this.author = msg.author;
         this.content = msg.content;
+        this.event_id = msg.event_id;
         this.timestamp = msg.timestamp;
         this.messageType = meaasgeType;
         this.attachments = msg.attachments || [];
@@ -240,6 +242,7 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         options.msgId = options.msgId || this.id || undefined;
         options.sendToId = options.sendToId || this.sendToId;
         options.msgType = options.msgType || (options.ark ? 3 : 0);
+        options.eventId = options.eventId || this.event_id;
         // option.guildId = option.guildId || this.guild_id;
         // option.channelId = option.channelId || this.channel_id;
         // option.sendType = option.sendType || this.messageType;
@@ -253,7 +256,7 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
     }
 
     private _sendMsgEx = async (options: Partial<SendOption.Chat>) => {
-        const { content, sendToId, msgType, msgId, ark, } = options;
+        const { content, sendToId, msgType, msgId, ark, eventId } = options;
         if (!sendToId) throw "not has sendToId";
         const fileInfo = options.fileInfo || (msgType == 7 ? await this._sendFile(options, (options.fileUrl || options.imageUrl)?.endsWith("/random")) : null);
         // return 
@@ -261,6 +264,7 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
             content: content ? ("\n" + content) : "",
             msg_type: msgType || 0,
             msg_id: msgId,
+            event_id: eventId,
             media: (msgType == 7 && fileInfo) ? {
                 file_info: fileInfo,
             } : undefined,
@@ -318,8 +322,10 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         this.seq++;
         options.sendToId = options.sendToId || this.sendToId;
         options.msgId = options.msgId || this.id;
+        options.eventId = options.eventId || this.event_id;
 
-        const markdownConfig = await getMarkdown(options, true);
+        if (1) return this.sendMsgEx(options);
+        const markdownConfig = await getMarkdown(options);
         if (!markdownConfig || !allowMarkdown) return this.sendMsgEx(options);
         return callWithRetry(this._sendMarkdown, [{ ...options, ...markdownConfig }]).catch(err => this.sendMsgEx(options));
     }

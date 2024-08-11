@@ -46,7 +46,7 @@ async function dynamicPush(event: IntentMessage.INTERACTION) {
 
     debugger;
 
-    const msg = new IMessageGROUP({ group_id: groupId, group_openid: groupId, } as any, false);
+    const msg = new IMessageGROUP({ group_id: groupId, group_openid: groupId, event_id: eventId } as any, false);
     const pushPlugin = await import("./biliDynamic");
 
     const imageBuffer = fs.readFileSync(`${config.imagesOut}/bili-${imageKey}`);
@@ -60,9 +60,8 @@ async function dynamicPush(event: IntentMessage.INTERACTION) {
 
     debugger;
 
-    await msg.sendMarkdown({
+    const _res = await msg.sendMarkdown({
         imageUrl: imageUrl,
-        eventId,
         params_omnipotent: [
             `${devEnv ? "dev " : ""}${userName} 更新了一条动态`,
             `[🔗https://t.bilibili`, `.com/${dynamicId}]`, `(https://t.bilibili`, `.com/${dynamicId})\r`,

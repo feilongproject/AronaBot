@@ -239,6 +239,7 @@ declare global {
             };
             content: string;
             timestamp: string;
+            event_id: string;
         }
 
         interface GROUP_ROBOT {
