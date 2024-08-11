@@ -1969,6 +1969,11 @@ dot-prop@^6.0.1:
   dependencies:
     is-obj "^2.0.0"
 
+dotenv@^16.4.5:
+  version "16.4.5"
+  resolved "https://registry.npmmirror.com/dotenv/-/dotenv-16.4.5.tgz#cdd3b3b604cb327e286b4762e13502f717cb099f"
+  integrity sha512-ZmdL2rui+eB2YwhsWzjInR8LldtZHGDoQ1ugH85ppHKwpUHL7j7rN0Ti9NCnGiQbhaZ11FpR+7ao1dNsmduNUg==
+
 duplexer2@~0.1.4:
   version "0.1.4"
   resolved "https://registry.npmmirror.com/duplexer2/-/duplexer2-0.1.4.tgz#8b12dab878c0d69e3e7891051662a32fc6bddcc1"
@@ -2350,6 +2355,15 @@ forever-agent@~0.6.1:
   resolved "https://registry.npmmirror.com/forever-agent/-/forever-agent-0.6.1.tgz#fbc71f0c41adeb37f96c577ad1ed42d8fdacca91"
   integrity sha512-j0KLYPhm6zeac4lz3oJ3o65qvgQCcPubiyotZrXqEaG4hNagNYO8qdlUrX5vwqv9ohqeT/Z3j6+yW067yWWdUw==
 
+form-data@^3.0.0:
+  version "3.0.1"
+  resolved "https://registry.npmmirror.com/form-data/-/form-data-3.0.1.tgz#ebd53791b78356a99af9a300d4282c4d5eb9755f"
+  integrity sha512-RHkBKtLWUVwd7SqRIvCZMEvAMoGUp0XU+seQiZejj0COz3RI3hWP4sCv3gZWWLjJTd7rGwcsF5eKZGii0r/hbg==
+  dependencies:
+    asynckit "^0.4.0"
+    combined-stream "^1.0.8"
+    mime-types "^2.1.12"
+
 form-data@^4.0.0:
   version "4.0.0"
   resolved "https://registry.npmmirror.com/form-data/-/form-data-4.0.0.tgz#93919daeaf361ee529584b9b31664dc12c9fa452"
@@ -2501,6 +2515,11 @@ get-stream@^5.1.0:
   integrity sha512-nBF+F1rAZVCu/p7rjzgA+Yb4lfYXrpl7a6VmJrU8wF9I1CKvP/QwPNZHnOlwbTkY6dvtFIzFMSyQXbLoTQPRpA==
   dependencies:
     pump "^3.0.0"
+
+get-stream@^6.0.0:
+  version "6.0.1"
+  resolved "https://registry.npmmirror.com/get-stream/-/get-stream-6.0.1.tgz#a262d8eef67aced57c2852ad6167526a43cbf7b7"
+  integrity sha512-ts6Wi+2j3jQjqi70w5AlN8DFnkSwC+MqmxEzdEALB2qXZYV3X/b1CTfgPLGJNMeAWxdPfU8FO1ms3NUfaHCPYg==
 
 get-uri@^6.0.1:
   version "6.0.3"
@@ -2890,6 +2909,11 @@ is-plain-object@^5.0.0:
   version "5.0.0"
   resolved "https://registry.npmmirror.com/is-plain-object/-/is-plain-object-5.0.0.tgz#4427f50ab3429e9025ea7d52e9043a9ef4159344"
   integrity sha512-VRSzKkbMm5jMDoKLbltAkFQ5Qr7VDiTFGXxYFXXowVj387GeGNOCsOH6Msy00SGZ3Fp84b1Naa1psqgcCIEP5Q==
+
+is-stream@^2.0.0:
+  version "2.0.1"
+  resolved "https://registry.npmmirror.com/is-stream/-/is-stream-2.0.1.tgz#fac1e3d53b97ad5a9d0ae9cef2389f5810a5c077"
+  integrity sha512-hFoiJiTl63nn+kstHGBtewWSKnQLpyb155KHheA1l39uvtO9nWIop1p3udqPcUd/xbF1VLMO4n7OI6p7RbngDg==
 
 is-typedarray@~1.0.0:
   version "1.0.0"
@@ -3594,7 +3618,7 @@ node-addon-api@^8.0.0:
   resolved "https://registry.npmmirror.com/node-addon-api/-/node-addon-api-8.0.0.tgz#5453b7ad59dd040d12e0f1a97a6fa1c765c5c9d2"
   integrity sha512-ipO7rsHEBqa9STO5C5T10fj732ml+5kLN1cAG8/jdHd56ldQeGj3Q7+scUS+VHK/qy1zLEwC4wMK5+yM0btPvw==
 
-node-fetch@^2.6.7:
+node-fetch@^2.2.0, node-fetch@^2.6.7:
   version "2.7.0"
   resolved "https://registry.npmmirror.com/node-fetch/-/node-fetch-2.7.0.tgz#d0f0fa6e3e2dc1d27efcd8ad99d550bda94d187d"
   integrity sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==
@@ -4898,6 +4922,28 @@ tar@^6.1.11, tar@^6.1.2:
     mkdirp "^1.0.3"
     yallist "^4.0.0"
 
+tencentcloud-sdk-nodejs-common@^4.0.488:
+  version "4.0.903"
+  resolved "https://registry.npmmirror.com/tencentcloud-sdk-nodejs-common/-/tencentcloud-sdk-nodejs-common-4.0.903.tgz#95d6bfe7031ece9e3a79282539d0ab92c037834e"
+  integrity sha512-gYzbDho9KIfSqvES1T1X5oS+W5EsX30tVGc7EbLU7WIHDT8Kn6+YNhzHm/fc7fDB1zEWYkxF5ttFwsraHPXU8g==
+  dependencies:
+    form-data "^3.0.0"
+    get-stream "^6.0.0"
+    https-proxy-agent "^5.0.0"
+    is-stream "^2.0.0"
+    json-bigint "^1.0.0"
+    node-fetch "^2.2.0"
+    tslib "1.13.0"
+    uuid "^9.0.1"
+
+tencentcloud-sdk-nodejs-sms@^4.0.882:
+  version "4.0.882"
+  resolved "https://registry.npmmirror.com/tencentcloud-sdk-nodejs-sms/-/tencentcloud-sdk-nodejs-sms-4.0.882.tgz#cc3ea66bce0fc1cad1634b22668634a219f4dfde"
+  integrity sha512-Ap+m3H7OoJsPOnXGrfI/IGGOtTeVM0TLuQJscaUSNIYjPyfpCRVLjfuJ18XGh7qDe5/7M7jvwpUMMPTPNAubSQ==
+  dependencies:
+    tencentcloud-sdk-nodejs-common "^4.0.488"
+    tslib "1.13.0"
+
 text-decoder@^1.1.0:
   version "1.1.0"
   resolved "https://registry.npmmirror.com/text-decoder/-/text-decoder-1.1.0.tgz#3379e728fcf4d3893ec1aea35e8c2cac215ef190"
@@ -4983,6 +5029,11 @@ ts-protoc-gen@^0.15.0:
   integrity sha512-TycnzEyrdVDlATJ3bWFTtra3SCiEP0W0vySXReAuEygXCUr1j2uaVyL0DhzjwuUdQoW5oXPwk6oZWeA0955V+g==
   dependencies:
     google-protobuf "^3.15.5"
+
+tslib@1.13.0:
+  version "1.13.0"
+  resolved "https://registry.npmmirror.com/tslib/-/tslib-1.13.0.tgz#c881e13cc7015894ed914862d276436fa9a47043"
+  integrity sha512-i/6DQjL8Xf3be4K/E6Wgpekn5Qasl1usyw++dAA35Ue5orEn65VIxOA+YvNNl9HV3qv70T7CNwjODHZrLwvd1Q==
 
 tslib@2.4.0:
   version "2.4.0"
