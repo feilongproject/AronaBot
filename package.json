@@ -9,7 +9,8 @@
         "dev:TestBot": "clear && nodemon TestBot",
         "start:AronaBot": "ts-node src/index.ts AronaBot",
         "start:PlanaBot": "ts-node src/index.ts PlanaBot",
-        "test": "clear && nodemon --config nodemon.test.json"
+        "test": "clear && nodemon --config nodemon.test.json",
+        "hbUpdate": "ts-node script/hbupdate.ts"
     },
     "keywords": [],
     "author": "feilongproject",
@@ -44,6 +45,7 @@
         "console-png": "^1.2.1",
         "cos-nodejs-sdk-v5": "^2.13.1",
         "date-format": "^4.0.14",
+        "dotenv": "^16.4.5",
         "exceljs": "^4.3.0",
         "flatbuffers": "^23.5.26",
         "form-data": "^4.0.0",

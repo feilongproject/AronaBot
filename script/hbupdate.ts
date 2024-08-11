@@ -1,15 +1,19 @@
 global.adminId = [];
 
-
 import fs from "fs";
 import fetch from "node-fetch";
 import readline from "readline";
+
 import COS from "cos-nodejs-sdk-v5";
 import { createClient } from "redis";
 import { execSync } from "child_process";
 import { handbookMatches, studentEvaluation, getLastestImage } from "../src/plugins/handbook";
 import config from "../config/config";
+import { image } from "qr-image";
 
+const DISPLAY = execSync("sed -zn 's/^DISPLAY=//p' /proc/*/environ|sort -zu|tr '\\0' '\\n'|sed '1d'|tail -n 1").toString().trim();
+// import "dotenv/config";
+// const { DISPLAY } = process.env;
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -42,7 +46,7 @@ async function main(input: string) {
     const matchNames = handbookMatches.names;
 
     if (status == Status.TYPE) {
-        const [hbMatchedType, hbMatchedName] = Object.entries(matchNames).find(([k, v]) => v.reg.test(input)) || [];
+        const [hbMatchedType, hbMatchedName] = Object.entries(matchNames).find(([k, v]) => v.typeReg.test(input)) || [];
         if (!hbMatchedType || !hbMatchedName) return console.log("未匹配到攻略类型");
         console.log(`已匹配到类型: ${hbMatchedName.desc}(${hbMatchedType})`);
         status = Status.URL;
@@ -106,7 +110,7 @@ async function main(input: string) {
             const _lastestImage = await getLastestImage(imageName, imageType);
             console.log("旧数据:", stringifyFormat(_lastestImage));
 
-            execSync(`fim ${config.handbookRoot}/${imageKey} &`, { stdio: 'inherit' });
+            execSync(`display -display ${DISPLAY} ${config.handbookRoot}/${imageKey} &`, { stdio: 'inherit' });
             await sleep(3 * 1000);
         }
         // debugger;
@@ -124,40 +128,13 @@ async function main(input: string) {
         // if (devEnv) log.debug(lastestImage);
 
         // 预览最终输出图
-        execSync(`fim ${config.handbookRoot}/${imageKey} &`, { stdio: 'inherit' });
+        execSync(`display -display ${DISPLAY} ${config.handbookRoot}/${imageKey} &`, { stdio: 'inherit' });
         console.log(`${imageKey} refetch ok`);
         console.log("\n\n");
 
 
 
     }
-
-
-
-
-    // console.log(`matched: ${hbMatchedType} ${hbMatchedName}`);
-    // const imageType = hbMatchedType;
-
-
-    // // 存入本地与数据库
-    // await redis.hSet("handbook:cache", `${imageName}:${imageType}`, new Date().getTime());
-    // await redis.hSet("handbook:info", `${imageName}:${imageType}`, "");
-    // await redis.hSet("handbook:infoUrl", `${imageName}:${imageType}`, "");
-    // await fetch(imageUrl.startsWith("http") ? imageUrl : `https://${imageUrl}`)
-    //     .then(res => res.buffer())
-    //     .then(buff => fs.writeFileSync(`${config.handbookRoot}/${imageName}/${imageType}.png`, buff));
-    // console.log("set ok");
-
-
-    // // 预热图片
-    // const lastestImage = await (await import("../src/plugins/handbook")).getLastestImage(imageName, imageType);
-    // console.debug(lastestImage);
-    // await fetch(lastestImage.url, {
-    //     headers: { "user-agent": "QQShareProxy" },
-    //     timeout: 60 * 1000,
-    // }).then(res => res.buffer()).then(buff => console.log(`${imageName} ${imageType}\nsize: ${(buff.length / 1024).toFixed(2)}K`)).catch(err => console.error(err));
-    // // 
-
 
 }
 
@@ -226,8 +203,8 @@ rl.on("line", input => {
     if (!input) return setPrompt();
 
     try {
-        execSync("ps -a|grep fim").toString().split("\n")
-            .map(v => v.split(" ")[0])
+        execSync("ps -a|grep display").toString().split("\n")
+            .map(v => v.trim().split(" ")[0])
             .filter(v => v)
             .map(pid => execSync(`kill ${pid}`));
     } catch (_) { }
