@@ -20,21 +20,21 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
     const _studentInfo: Record<string, StudentInfo> = {};
     if (type == "net") {
         const [nStudentsDBcn, nStudentsDBzh, nStudentsElectricgoat, aStudentNameWeb] = await Promise.all([
-            fetch("https://raw.gh.schale.top/lonqie/SchaleDB/main/data/cn/students.min.json", {
+            fetch("https://ghproxy.net/https://raw.githubusercontent.com/lonqie/SchaleDB/main/data/cn/students.min.json", {
                 timeout: 30 * 1000,
             }).then(res => res.json()).then((json: StudentInfoNet[]) => json.map(v => ({ ...v, Name: fixName(v.Name) }))).catch(err => log.error(err)),
 
-            fetch("https://raw.gh.schale.top/lonqie/SchaleDB/main/data/zh/students.min.json", {
+            fetch("https://ghproxy.net/https://raw.githubusercontent.com/lonqie/SchaleDB/main/data/zh/students.min.json", {
                 timeout: 30 * 1000,
             }).then(res => res.json()).then((json: StudentInfoNet[]) => json.map(v => ({ ...v, Name: fixName(v.Name) }))).catch(err => log.error(err)),
 
-            fetch(`https://raw.gh.schale.top/electricgoat/ba-data/jp/Excel/CharacterExcelTable.json`, {
+            fetch(`https://ghproxy.net/https://raw.githubusercontent.com/electricgoat/ba-data/jp/Excel/CharacterExcelTable.json`, {
                 timeout: 60 * 1000,
             }).then(res => res.json()).then((characterExcelTable: CharacterExcelTable.Root) => {
                 return characterExcelTable.DataList.filter(v => v.TacticEntityType == "Student" && v.ProductionStep == "Release" && v.IsPlayableCharacter);
             }).catch(err => log.error(err)),
 
-            fetch("https://raw.gh.schale.top/lgc2333/bawiki-data/main/data/stu_alias.json", {
+            fetch("https://ghproxy.net/https://raw.githubusercontent.com/lgc2333/bawiki-data/main/data/stu_alias.json", {
                 timeout: 30 * 1000,
             }).then(res => res.json()).then((json: Record<string, string[]>) => {
                 for (const names in json) json[names] = json[names].map(v => fixName(v));
@@ -118,6 +118,14 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
             }
             nameAlis(); nameAlis();
             global.studentInfo[_id].name = global.studentInfo[_id].name.filter((v, i, arr) => arr.indexOf(v, 0) === i); // 去重
+
+            for (const [iv, _] of global.studentInfo[_id].name.entries()) {
+                if (global.studentInfo[_id].name[0].includes("幼女") && !_.includes("幼女")) {
+                    global.studentInfo[_id].name[iv] = [global.studentInfo[_id].name[0], global.studentInfo[_id].name[0] = _][0];
+                    break;
+                }
+            }
+
         }
         fs.writeFileSync(config.studentInfo, stringifyFormat(global.studentInfo));
         const unkownLocalKeys = Object.keys(aStudentNameLocal);

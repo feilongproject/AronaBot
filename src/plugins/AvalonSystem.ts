@@ -185,10 +185,10 @@ async function accuseGachaWapper(srcMsg: IMessageGUILD) {
 
 export async function accuseGachaUpdate(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
     if (!adminId.includes(msg.author.id)) return;
-    const _dbImageList = await fetch("https://raw.gh.schale.top/lonqie/SchaleDB/main/data/cn/students.min.json")
+    const _dbImageList = await fetch("https://ghproxy.net/https://raw.githubusercontent.com/lonqie/SchaleDB/main/data/cn/students.min.json")
         .then(res => res.json())
         .then((students: StudentInfoNet[]) => students.map(v => v.DevName));
-    const _extractImageList = await fetch("https://raw.gh.schale.top/electricgoat/ba-data/jp/Excel/CharacterExcelTable.json")
+    const _extractImageList = await fetch("https://ghproxy.net/https://raw.githubusercontent.com/electricgoat/ba-data/jp/Excel/CharacterExcelTable.json")
         .then(res => res.json())
         .then(json => (json.DataList as any[])
             .filter(v => (v.TacticEntityType == "Student" && v.ProductionStep == "Release" && v.IsPlayableCharacter))
