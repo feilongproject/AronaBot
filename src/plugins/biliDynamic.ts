@@ -4,7 +4,7 @@ import imageSize from "image-size";
 import * as puppeteer from "puppeteer";
 import { readFileSync, writeFileSync } from "fs";
 import { BiliDynamic, DynamicPushList, BiliUserCard } from "../types/Dynamic";
-import { sendToAdmin } from "../libs/common";
+import { sendToAdmin, sendToGroup } from "../libs/common";
 import { IMessageC2C, IMessageDIRECT, IMessageGROUP, IMessageGUILD, MessageType } from "../libs/IMessageEx";
 import config from "../../config/config";
 
@@ -103,18 +103,7 @@ async function dynamicPush(dynamicId: string, pushInfo: DynamicPushList.PushInfo
             // debugger;
 
             if (!devEnv && await redis.hExists(`biliMessage:idPushed:${dynamicId}`, pushInfo.id)) return;
-            await fetch(config.dynamicPush.url, {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${config.dynamicPush.llobKey}`,
-                },
-                body: JSON.stringify({
-                    "g": pushInfo.id,
-                    "a": config.dynamicPush.appId,
-                    "b": `${config.dynamicPush.authKey}:dynamicPush`,
-                    "d": `${pushInfo.id},${imageKey}`,
-                }),
-            }).then(res => res.text()).then(text => {
+            sendToGroup(`dynamicPush`, `${pushInfo.id},${imageKey}`, pushInfo.id,).then(text => {
                 if (devEnv) log.debug("fetch结果: ", imageKey, text);
             }).catch(async err => {
                 log.error(err);

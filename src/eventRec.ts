@@ -247,7 +247,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
 
             const { button_id: buttonId } = msg.data.resolved;
             const [authKey = "", commandKey = ""] = buttonId.split(":");
-            if (authKey != config.dynamicPush.authKey) return;
+            if (authKey != config.groupPush.authKey) return;
 
             const interaction = await import('./plugins/interaction');
             const func = interaction.commandMap[commandKey];

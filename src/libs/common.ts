@@ -3,6 +3,27 @@ import config from '../../config/config';
 
 
 export async function sendToAdmin(content: string) {
+    await sendToGroup("echo", content);
+    await callbackToChannel(content);
+}
+
+export async function sendToGroup(buttonId: string, buttonData: string, groupId?: string,) {
+    const callbackGroup = await redis.hGet("config", `callbackGroup`) as string;
+    return fetch(config.groupPush.url, {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${config.groupPush.llobKey}`,
+        },
+        body: JSON.stringify({
+            "g": groupId || callbackGroup,
+            "a": config.groupPush.appId,
+            "b": `${config.groupPush.authKey}:${buttonId}`,
+            "d": buttonData,
+        }),
+    }).then(res => res.text());
+}
+
+export async function callbackToChannel(content: string) {
     const callbackChannel = await redis.hGet("config", `callbackChannel`) as string;
     return new IMessageGUILD({
         id: await redis.get(`lastestMsgId:${botType}`) || "08f3fb8adca9d6ccf46710b4e66c38cba64e48a2cfa1a006",
