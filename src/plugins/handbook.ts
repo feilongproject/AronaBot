@@ -321,13 +321,14 @@ export async function activityStrategyPush(msg: IMessageGUILD | IMessageDIRECT |
 }
 
 export async function searchHandbook(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
-    const matched = /\/?((查询|搜索)攻略|攻略(查询|搜索))\s*(?<searchKey>.+)$/.exec(msg.content)?.groups;
+    const matched = /\/?.*((查询|搜索)攻略|攻略(查询|搜索))\s*(?<searchKey>.+)$/.exec(msg.content)?.groups;
     const { searchKey } = matched || {};
     if (!(searchKey || "").trim()) return msg.sendMsgExRef({
         content: `请输入要查询的攻略！例：`
             + `\n/查询攻略 1-1`,
     });
     const resultData: DiyigemtAPI.Root = await fetch(`https://arona.diyigemt.com/api/v1/image?name=${searchKey}`).then(res => res.json());
+    if (!resultData.data) return msg.sendMsgEx({ content: `未搜索到相关攻略，请更换关键词重新搜索喵` });
 
     const imageUrl = `https://arona.cdn.diyigemt.com/image${resultData.data[0].path}?hash=${resultData.data[0].hash}`;
     if (resultData.data.length == 1) return msg.sendMarkdown({
@@ -424,7 +425,7 @@ interface HandbookMatched {
 namespace DiyigemtAPI {
     export interface Root {
         status: 101 | 200;
-        data: ResultList[];
+        data?: ResultList[];
         message: "name is empty" | "fuse search" | "wrong name";
     }
 
