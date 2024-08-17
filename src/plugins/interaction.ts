@@ -3,6 +3,7 @@ import imageSize from "image-size";
 import { IMessageGROUP, MessageType } from "../libs/IMessageEx";
 import { DynamicPushList } from "../types/Dynamic";
 import config from "../../config/config";
+import { sendToAdmin } from "../libs/common";
 
 
 export const commandMap: Record<string, (event: IntentMessage.INTERACTION) => Promise<void>> = {
@@ -69,7 +70,7 @@ async function dynamicPush(event: IntentMessage.INTERACTION) {
             // `![img #px #px]`, `(${imageUrl})`,
         ],
         content: `${devEnv ? "dev " : ""}${userName} 更新了一条动态\nhttps://t.bilibili.com/${dynamicId}`,
-    });
+    }).catch(err => sendToAdmin(stringifyFormat(err)));
 
     await redis.hSet(`biliMessage:idPushed:${dynamicId}`, groupTrueId, groupId);
 }
@@ -86,7 +87,7 @@ async function echo(event: IntentMessage.INTERACTION) {
         content: btnData,
         event_id: event.eventId,
     } as any).then(data => {
-        log.debug(data.data);
+        if (devEnv) log.debug(data.data);
     }).catch(err => log.error(err));
 
 }
