@@ -20,13 +20,13 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
     const _studentInfo: Record<string, StudentInfo> = {};
     if (type == "net") {
         const [nStudentsDBcn, nStudentsDBzh, nStudentsElectricgoat, aStudentNameWeb] = await Promise.all([
-            fetch("https://ghproxy.net/https://raw.githubusercontent.com/lonqie/SchaleDB/main/data/cn/students.min.json", {
+            fetch("https://schaledb.com/data/cn/students.min.json", {
                 timeout: 30 * 1000,
-            }).then(res => res.json()).then((json: StudentInfoNet[]) => json.map(v => ({ ...v, Name: fixName(v.Name) }))).catch(err => log.error(err)),
+            }).then(res => res.json()).then((json: Record<string, StudentInfoNet>) => Object.values(json).map(v => ({ ...v, Name: fixName(v.Name) }))).catch(err => log.error(err)),
 
-            fetch("https://ghproxy.net/https://raw.githubusercontent.com/lonqie/SchaleDB/main/data/zh/students.min.json", {
+            fetch("https://schaledb.com/data/zh/students.min.json", {
                 timeout: 30 * 1000,
-            }).then(res => res.json()).then((json: StudentInfoNet[]) => json.map(v => ({ ...v, Name: fixName(v.Name) }))).catch(err => log.error(err)),
+            }).then(res => res.json()).then((json: Record<string, StudentInfoNet>) => Object.values(json).map(v => ({ ...v, Name: fixName(v.Name) }))).catch(err => log.error(err)),
 
             fetch(`https://ghproxy.net/https://raw.githubusercontent.com/electricgoat/ba-data/jp/Excel/CharacterExcelTable.json`, {
                 timeout: 60 * 1000,
@@ -51,7 +51,7 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
         for (const _ of nStudentsElectricgoat) {
             const __ = nStudentsDBzh.find(v => v.Id == _.Id);
             const cnName = nStudentsDBcn.find(v => v.Id == _.Id)?.Name;
-            const d = { ..._, ...__, };
+            const d = { ..._, ...__, DevName: _.DevName.replace(/_default$/, ""), };
 
             if (!__) await sendToAdmin(`SchaleDB未更新: ${d.Id}-${d.DevName}`);
             const devName = d.DevName[0].toUpperCase() + d.DevName.slice(1);
