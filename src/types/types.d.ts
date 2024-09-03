@@ -60,7 +60,7 @@ declare global {
         id: number;
         releaseStatus: [boolean, boolean, boolean];
         name: string[];
-        pathName: string;
+        descName: string;
         devName: string;
         star: 1 | 2 | 3;
         limitedType: number;

@@ -115,7 +115,7 @@ async function matchHandbook(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP
     const ret: HandbookMatched & typeof hbMatchedName = { name: hbMatchedType, type: hbType!, ...hbMatchedName, default: true, };
     if (hbMatchedType == "studentEvaluation") {
         const _ = await studentEvaluation(content);
-        ret.type = _.type; // fuzzy或者角色的pathName
+        ret.type = _.type; // fuzzy或者角色的devName
         ret.nameDesc = _.desc || ret.nameDesc; // 对于type的描述, 精准匹配时为角色名称
         ret.fuzzy = _.fuzzy; // 模糊匹配结果
     } else {
@@ -359,7 +359,7 @@ export async function studentEvaluation(content: string): Promise<{ type: Handbo
     const studentName = content.replace(handbookMatches.names.studentEvaluation.reg, "").trim();
     if (!studentName || studentName == "all") return { type: HandbookMatches.Type.ALL, desc: "", };
     const findedInfo = await import("./studentInfo").then(module => module.findStudentInfo(studentName));
-    if (findedInfo) return { type: findedInfo.pathName as any, desc: findedInfo.name[0] };
+    if (findedInfo) return { type: findedInfo.devName as any, desc: findedInfo.name[0] };
 
     const notNameList: string[] = JSON.parse(fs.readFileSync(config.studentNameAlias).toString());
     const pushType = notNameList.includes(studentName) ? "待整理数据库已存在该别名" : "待整理数据库未存在，已推送";

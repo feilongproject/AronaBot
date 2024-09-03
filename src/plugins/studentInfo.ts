@@ -60,7 +60,7 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
                 releaseStatus: d.IsReleased || [false, false, false],
                 name: [d.Name, cnName, fixName(d.DevName), String(d.Id), d.PathName ? fixName(d.PathName) : undefined].filter(v => v) as string[],
                 devName: devName,
-                pathName: d?.PathName || d.DevName,
+                descName: d?.PathName || d.DevName,
                 star: d.DefaultStarGrade as 1 | 2 | 3,
                 limitedType: d?.IsLimited ?? -1,
             };
@@ -118,6 +118,7 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
             }
             nameAlis(); nameAlis();
             global.studentInfo[_id].name = global.studentInfo[_id].name.filter((v, i, arr) => arr.indexOf(v, 0) === i); // 去重
+            global.studentInfo[_id].name = global.studentInfo[_id].name.map(v => fixName(v));
 
             for (const [iv, _] of global.studentInfo[_id].name.entries()) {
                 if (global.studentInfo[_id].name[0].includes("幼女") && !_.includes("幼女")) {

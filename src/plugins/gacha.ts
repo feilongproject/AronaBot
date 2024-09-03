@@ -35,7 +35,7 @@ export async function gachaString(msg: IMessageGUILD | IMessageGROUP | IMessageC
         `${msg instanceof IMessageGROUP ? `` : `<@${msg.author.id}>`} (${setting.server == "jp" ? "日服" : "国际服"}卡池)`,
         /十/.test(msg.content) ? `————————十连结果————————` : `————————单抽结果————————`,
     ];
-    for (const value of o) sendStr.push(`(${starString[value.star]})(${value.pathName})${value.name}`);
+    for (const value of o) sendStr.push(`(${starString[value.star]})(${value.descName})${value.name}`);
     return msg.sendMsgExRef({ content: sendStr.join(`\n`), });
 }
 
@@ -101,7 +101,7 @@ function cTime(server: "global" | "jp", times: 1 | 10, testStar?: 1 | 2 | 3): Ga
         var rNum = Math.random() * 100;
         if (testStar == 3) rNum = rNum % 3;
         if (i == 10 && must) rNum = rNum % 21;
-        if (rNum <= 0.05) ret.push({ name: "彩奈", pathName: "Arona", devName: "Arona", star: 3, custom: "NPC_Portrait_Arona.png" });//彩蛋
+        if (rNum <= 0.05) ret.push({ name: "彩奈", descName: "Arona", devName: "Arona", star: 3, custom: "NPC_Portrait_Arona.png" });//彩蛋
         else if (rNum <= 0.7 && gachaPoolInfo[server].pickup.characters.length > 0) ret.push(startRand("pickup", 3));
         else if (rNum <= 3) ret.push(startRand("common", 3));
         else if (rNum <= 3 + 18) ret.push(startRand("common", 2));
@@ -266,7 +266,7 @@ interface GachaPool {
     star: number;
     name: string;
     devName: string;
-    pathName: string;
+    descName: string;
     custom?: string;
 }
 
