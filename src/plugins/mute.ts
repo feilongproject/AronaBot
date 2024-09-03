@@ -100,7 +100,8 @@ export async function mute(msg: IMessageGUILD) {
 }
 
 export async function ban(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
-    const match = /^(?<isUnBan>un)?ban(?<isForce>f)?\s+(?<banType>group|guild|user)\s+(?<banId>\S+)(\s+(?<banDesc>\S+))?$/.exec(msg.content);
+     if (!adminId.includes(msg.author.id)) return;
+     const match = /(?<isUnBan>un)?ban(?<isForce>f)?\s+(?<banType>group|guild|user)\s+(?<banId>\S+)(\s+(?<banDesc>\S+))?$/.exec(msg.content);
     if (!match || !match.groups) return msg.sendMsgEx({
         content: `指令错误, 格式: \n` +
             `(un)ban (group|guild|user) <id> <原因>`

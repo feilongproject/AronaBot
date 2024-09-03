@@ -96,7 +96,7 @@ export default {
                 describe: "管理员对某人禁言"
             },
             ban: {
-                reg: "^(un)?ban1?",
+                reg: "(un)?ban1?",
                 fnc: "ban",
                 type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
                 describe: "对某用户/群聊/频道执行封禁"
