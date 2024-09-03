@@ -80,7 +80,7 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT | IMessageG
 
             } catch (err) {
                 await import("../eventRec")
-                    .then(m => m.mailerError({ bUser, dynamicId, imageKey, notPushedList, idPushed, item, }, new Error(stringifyFormat(err))))
+                    .then(m => m.mailerError({ bUser, dynamicId, imageKey, notPushedList, idPushed, item, }, err instanceof Error ? err : new Error(stringifyFormat(err))))
                     .catch(err => log.error(err));
                 await sleep(10 * 1000); continue;
             }
@@ -203,11 +203,11 @@ export async function getCookie(): Promise<string> {
     else throw "newCookie not happy";
 }
 
-async function screenshot(dynamicId: string, pubTs: string, quality = 50): Promise<Buffer | undefined> {
+export async function screenshot(dynamicId: string, pubTs: string, quality = 50): Promise<Buffer | undefined> {
 
     if (!global.browser || !browser.connected) global.browser = await puppeteer.launch({
-        headless: true,
-        // headless: false,
+        // headless: true,
+        headless: !process.env.DISPLAY,
         args: ['--no-sandbox'],
         protocolTimeout: 240000,
     });
@@ -217,9 +217,10 @@ async function screenshot(dynamicId: string, pubTs: string, quality = 50): Promi
     await page.setCookie(...cookies);
     await page.setUserAgent(userAgent);
     await page.setViewport({
-        width: 600,
-        height: 1000,
-        deviceScaleFactor: 5,
+        width: 500,
+        height: 800,
+        deviceScaleFactor: 3,
+        isMobile: true,
     });
     await page.goto(`https://t.bilibili.com/${dynamicId}`, {
         waitUntil: "networkidle0",
@@ -246,23 +247,22 @@ async function screenshot(dynamicId: string, pubTs: string, quality = 50): Promi
         document.querySelector(`${r}.opus-modules > div.opus-module-content > div.opus-read-more`)?.remove();//删除"展开阅读全文"阴影 (opus)
         document.querySelector(`${r}.opus-modules > div.opus-module-content > div.link-card-para`)?.remove();//删除"相关游戏" (opus)
         document.querySelector(`${r}.opus-modules > div.opus-module-author > div.launch-app-btn.opus-module-author__action`)?.remove();//删除"关注"按钮 (opus)
-
-        // document.querySelector("#app > div")?.setAttribute("style", "padding-top:0px;padding-right: 3.2vmin;background-color: #fff;");
-        // document.querySelector(`#bili-header-container`)?.remove();
-        // document.querySelector(`#app > div.content > div > div > div.bili-dyn-item__panel > div.bili-comment-container.bili-dyn-comment`)?.remove();
     });
-    // const pic = await page.$("#app").then(value => value!.screenshot({
-    //     type: "jpeg",
-    //     quality: 70,
-    //     encoding: "binary",
-    // }) as Promise<Buffer>);
-    const pic = await (await page.$("#app > div > div"))?.screenshot({
+    const _ = await page.$("#app > div > div");
+    if (!_) { await page.close(); return undefined; }
+
+    const pic = await _.screenshot({
         type: "jpeg",
         encoding: "binary",
         quality,
-    }) as Buffer | null;
+        clip: {
+            x: 0, y: 0,
+            width: await _.evaluate(_ => _.scrollWidth),
+            height: Math.min(5000, await _.evaluate(_ => _.scrollHeight)),
+        }
+    }) as Buffer;
     writeFileSync(browserCkFile, stringifyFormat(await page.cookies()));
-    await page.close();
+    if (!devEnv) await page.close();
     return pic || undefined;
 }
 
