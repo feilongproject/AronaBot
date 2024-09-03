@@ -19,9 +19,10 @@ export async function baLogo(msg: IMessageGUILD | IMessageGROUP | IMessageC2C) {
             + `\n注意：命令与左文字、左文字与右文字中间必须存在空格，否则无法识别`
     });
     const { textL, textR } = match.groups;
+    await msg.sendMsgEx({ content: `生成中...` });
 
     const client = new AipContentCensorClient(config.baiduCensoring.APP_ID, config.baiduCensoring.API_KEY, config.baiduCensoring.SECRET_KEY);
-    const result = await client.textCensorUserDefined(`${textL}\n${textR}\n${textL}${textR}`, {
+    const result = await client.textCensorUserDefined(`${textL}${textR}`, {
         userId: msg.author.id,
         userIp: msg instanceof IMessageGUILD ? msg.guild_id : (msg instanceof IMessageGROUP ? msg.group_id : "C2C"),
     });
@@ -36,8 +37,6 @@ export async function baLogo(msg: IMessageGUILD | IMessageGROUP | IMessageC2C) {
     }
 
     if (result.data?.find(v => v.subType == 3)) {
-        if (msg instanceof IMessageGROUP) await redis.hSet(`ban:use:group`, msg.group_id, "群聊中有人存在使用机器人发布政治敏感消息");
-        else if (msg instanceof IMessageGUILD) await redis.hSet(`ban:use:guild`, msg.guild_id, "频道中存在使用机器人发布政治敏感消息");
         await redis.hSet(`ban:use:user`, msg.author.id, "历史中存在使用机器人发布政治敏感消息");
     }
 
