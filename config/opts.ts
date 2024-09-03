@@ -312,6 +312,14 @@ export default {
                 channelAllows: ["all"],
                 export: "/balogo <左文本> <右文本>"
             }
+        },
+        translate: {
+            translate: {
+                reg: "/?翻译\\s*",
+                fnc: "translate",
+                type: [MessageType.GROUP, MessageType.FRIEND],
+                describe: "资讯站的翻译"
+            }
         }
     },
     channelAllows: {
