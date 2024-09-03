@@ -48,10 +48,8 @@ function buildALA(content: string) {
             case "莉":
             case "丽":
             case "麗":
-                if (pop)
-                    alaQueue.push(pop, "12");
-                else
-                    alaQueue.push("12");
+                if (pop) alaQueue.push(pop, "12");
+                else alaQueue.push("12");
                 break;
             case "丝":
             case "絲":
@@ -67,7 +65,7 @@ function buildALA(content: string) {
                 if (pop) {
                     alaQueue.push(pop);
                 }
-                log.error(`error word${word}`);
+            // log.error(`error word${word}`);
         }
     }
     return alaQueue;

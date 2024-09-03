@@ -89,11 +89,12 @@ export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessag
             + (hbMatched.fuzzy?.map(v => `「${v.name}」`).join("\n") || ""),
         imageUrl: lastestImage?.url,
         // fallback 部分
-    }).catch(err => {
+    }).catch(async err => {
         log.error(err);
-        return msg.sendMsgEx({
+        await msg.sendMsgEx({
             content: getErrorMessage + (err.errors.length ? (err.errors as string[]).join("\n") : stringifyFormat(err)).replaceAll(".", ",")
         });
+        (await import("../eventRec")).mailerError({ hbMatched, lastestImage }, err);
     });
 
 }

@@ -7,6 +7,7 @@ import { IMessageDIRECT } from "../libs/IMessageEx";
 export async function updateGithubVersion(msg?: IMessageDIRECT) {
     if (!devEnv && await redis.exists("push:ghUpdate")) return;
     if (msg && !adminId.includes(msg.author.id)) return;
+    if (1) return;
 
     await msg?.sendMsgEx({ content: "updating" });
     const queue: Promise<GithubBranchInfobar | undefined>[] = [];

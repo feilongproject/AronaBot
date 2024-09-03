@@ -67,7 +67,7 @@ async function executeChat(msg: IMessageGROUP | IMessageC2C) {
 
 export async function mailerError(msg: any, err: Error) {
     log.error(err);
-    if (devEnv) return;
+    // if (devEnv) return;
 
     const host = await redis.hGet("config", "sendMail:host");
     const user = await redis.hGet("config", "sendMail:user");
@@ -230,7 +230,8 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
         }
 
         case AvailableIntentsEventsEnum.FORUMS_EVENT: {
-            const { eventId, msg } = event as IntentMessage.FORUMS_EVENT;
+            const { eventId, msg } = event as IntentMessage.FORUMS_EVENT; // FORUM_THREAD_CREATE FORUM_POST_CREATE FORUM_REPLY_CREATE
+            // if (devEnv) log.debug(event);
             const aid = msg.author_id;
             const uidMatch = /:(?<uid>\d+)_/.exec(eventId)?.groups;
             if (!aid || !uidMatch || !uidMatch.uid || uidMatch.uid == "0") return;
@@ -242,7 +243,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             if (await redis.get("devEnv") && !devEnv) return;
 
             const { msg } = event as IntentMessage.INTERACTION;
-            // if (devEnv) log.debug(event, msg.data);
+            if (devEnv) log.debug(event, msg.data);
             if (!("group_openid" in msg)) return;
 
             const { button_id: buttonId } = msg.data.resolved;
