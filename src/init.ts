@@ -1,8 +1,9 @@
 import chokidar from "chokidar";
 import COS from "cos-nodejs-sdk-v5";
+import schedule from "node-schedule";
 import { createPool } from 'mariadb';
 import { createClient } from 'redis';
-import schedule from "node-schedule";
+import { mkdirSync, existsSync } from "fs";
 import { IChannel, IGuild, createOpenAPI, createWebsocket } from "qq-bot-sdk";
 import { sendToAdmin } from './libs/common';
 import config from '../config/config';
@@ -11,6 +12,7 @@ import config from '../config/config';
 export async function init() {
 
     console.log(`机器人准备运行，正在初始化`);
+    if (!existsSync(config.imagesOut)) mkdirSync(config.imagesOut);
 
     global.adminId = ["7681074728704576201", "15874984758683127001", "2975E2CA5AE779F1899A0AED2D4FA9FD",
         "21EE2355F1D4106219EC134842203DF6",
@@ -58,7 +60,6 @@ export async function init() {
     global.cos = new COS(config.cos);
 
     log.info(`初始化: 正在连接数据库`);
-
     const connectRedis = async (init = true, retry = 0) => {
         global.redis = createClient(config.redis);
         await global.redis.connect().then(() => redis.ping()).then(pong => {
@@ -149,7 +150,7 @@ export async function init() {
     } else if (botType == "AronaBot") {
         schedule.scheduleJob("0 * * * * ? ", () => redis.save().then(v => log.mark(`保存数据库:${v}`)));
         schedule.scheduleJob("0 */3 * * * ?", () => import("./plugins/admin").then(module => module.updateEventId()));
-        schedule.scheduleJob("0 */5 * * * ?", () => import("./plugins/pusher").then(module => module.updateGithubVersion()));
+        // schedule.scheduleJob("0 */5 * * * ?", () => import("./plugins/pusher").then(module => module.updateGithubVersion()));
         schedule.scheduleJob("0 */5 * * * ? ", () => import("./plugins/biliDynamic").then(module => module.mainCheck()).catch(err => {
             log.error(err);
             return sendToAdmin((typeof err == "object" ? JSON.stringify(err) : String(err)).replaceAll(".", ",")).catch(() => { });
@@ -214,7 +215,7 @@ Date.prototype.toDBString = function () {
         ].join(":") + "+08:00";
 };
 
-global.stringifyFormat = (obj: any) => JSON.stringify(obj, undefined, "    ");
+global.stringifyFormat = (obj: any) => [JSON.stringify(obj, undefined, "    "), String(obj)].reduce((a, b) => a.length > b.length ? a : b);;
 global.sleep = (ms: number) => new Promise(resovle => { setTimeout(resovle, ms) });
 global.fixName = (name: string) => name.replace("（", "(").replace("）", ")").toLowerCase().replaceAll(" ", "").replace(/(国际?服|日服)/g, "");
 global.cosPutObject = async (params: CosPutObjectParams) => cos.putObject({ ...config.cos, ...params, });
