@@ -15,7 +15,7 @@ export async function translate(msg: IMessageGROUP) {
     if (!translateContent) return msg.sendMsgEx({ content: `请输入需要翻译的内容` });
     await msg.sendMsgEx({ content: `正在翻译中，请稍后` }).catch(err => log.error(err));
 
-    const postData: ApiData.Req = config.aiTranslate.system;
+    const postData: ApiData.Req = JSON.parse(JSON.stringify(config.aiTranslate.system));
     postData.system = fs.readFileSync(config.aiTranslate.systemPromptFile).toString();
     postData.messages.push({
         role: "user",
