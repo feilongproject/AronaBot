@@ -122,7 +122,7 @@ async function main(input: string) {
         const imageBuff = await fetch(imageUrl.startsWith("http") ? imageUrl : `https://${imageUrl}`)
             .then(res => res.buffer());
         fs.writeFileSync(`${config.handbookRoot}/${imageKey}`, imageBuff);
-        cosPutObject({ Key: `handbook/${imageKey}`, Body: imageBuff });
+        await cosPutObject({ Key: `handbook/${imageKey}`, Body: imageBuff });
 
         const lastestImage = await getLastestImage(imageName, imageType);
         // if (devEnv) log.debug(lastestImage);
