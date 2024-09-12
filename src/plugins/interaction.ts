@@ -1,5 +1,6 @@
 import fs from "fs";
 import imageSize from "image-size";
+import { Button, MessageKeyboard } from "qq-bot-sdk";
 import { IMessageGROUP, MessageType } from "../libs/IMessageEx";
 import { DynamicPushList } from "../types/Dynamic";
 import config from "../../config/config";
@@ -36,15 +37,14 @@ async function dynamicPush(event: IntentMessage.INTERACTION) {
         enable: true,
     })) : undefined;
 
-    if (await redis.hExists(`biliMessage:idPushed:${dynamicId}`, groupTrueId)) { debugger; return; }
-    if (await redis.exists(`biliMessage:idPushing:${dynamicId}:${groupTrueId}`)) { debugger; return; }
+    if (await redis.hExists(`biliMessage:idPushed:${dynamicId}`, groupTrueId) && !devEnv) { debugger; return; }
+    if (await redis.exists(`biliMessage:idPushing:${dynamicId}:${groupTrueId}`) && !devEnv) { debugger; return; }
     await redis.setEx(`biliMessage:idPushing:${dynamicId}:${groupTrueId}`, 30, groupId);
 
     if (devEnv) {
         // log.debug(dynamicId, bUserId, pushList);
         await echo(event);
     }
-
     debugger;
 
     const msg = new IMessageGROUP({ group_id: groupId, group_openid: groupId, event_id: eventId } as any, false);
@@ -61,6 +61,26 @@ async function dynamicPush(event: IntentMessage.INTERACTION) {
 
     debugger;
 
+    const genKeyboard = (show: string, input: string, id?: string): Button => ({
+        id: id || `${show}`,
+        render_data: { label: show, style: 1 },
+        action: {
+            type: 2,
+            permission: { type: 2 },
+            data: `hbupdate ${input} https://t.bilibili.com/${dynamicId}`,
+        }
+    });
+    const hbUpdateBtn: MessageKeyboard | undefined = (bUserId == "425535005" && groupTrueId == "1041893514" && botType == "PlanaBot") ? {
+        content: {
+            rows: [
+                { buttons: [genKeyboard("角评all", "角评 all"), genKeyboard("角评_", "角评 _")] },
+                { buttons: [genKeyboard("活动jp", "活动 jp"), genKeyboard("活动g", "活动 global")] },
+                { buttons: [genKeyboard("千里眼g", "千里眼 global")] },
+            ],
+        }
+    } : undefined;
+    debugger;
+
     const _res = await msg.sendMarkdown({
         imageUrl: imageUrl,
         params_omnipotent: [
@@ -70,6 +90,7 @@ async function dynamicPush(event: IntentMessage.INTERACTION) {
             // `![img #px #px]`, `(${imageUrl})`,
         ],
         content: `${devEnv ? "dev " : ""}${userName} 更新了一条动态\nhttps://t.bilibili.com/${dynamicId}`,
+        keyboard: hbUpdateBtn,
     }).catch(err => sendToAdmin(stringifyFormat(err)));
 
     await redis.hSet(`biliMessage:idPushed:${dynamicId}`, groupTrueId, groupId);

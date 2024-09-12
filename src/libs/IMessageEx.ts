@@ -324,8 +324,7 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         options.msgId = options.msgId || this.id;
         options.eventId = options.eventId || this.event_id;
 
-        if (1) return this.sendMsgEx(options);
-        const markdownConfig = await getMarkdown(options);
+        const markdownConfig = await getMarkdown(options, true);
         if (!markdownConfig || !allowMarkdown) return this.sendMsgEx(options);
         return callWithRetry(this._sendMarkdown, [{ ...options, ...markdownConfig }]).catch(err => this.sendMsgEx(options));
     }
