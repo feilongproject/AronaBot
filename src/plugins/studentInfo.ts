@@ -17,6 +17,83 @@ const searchPinyin: SearchPinyin[] = [];
 jieba.load({ userDict: config.studentNameDict });
 if (!searchPinyin.length && global.studentInfo) updateSearchPinyin();
 
+export async function alias(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP): Promise<any> {
+    if (!adminId.includes(msg.author.id)) return;
+    if (allowMarkdown !== true) return msg.sendMsgEx({ content: `ERROR: allowMarkdown is ${allowMarkdown}` });
+    const aliasMatch = /(?<un>un)?alias\s+(?<unkName>\S+)(\s+(?<kName>\S+))?/.exec(msg.content)?.groups;
+
+    const genBtn = (show: string, input: string, u = ""): Button => ({
+        id: `kb-${show}`,
+        render_data: { label: `${u}${show}`, style: 1 },
+        action: {
+            type: 2,
+            permission: { type: 2 },
+            data: `${u}alias ${input}`,
+        },
+    });
+    const mdCmdLink = (showDesc: string, command: string, enter = true) => {
+        command = command.replace(/\(/g, "（").replace(/\)/g, "）");
+        return [`[${showDesc}]`, `(mqqapi://aio/inlinecmd?command=${encodeURIComponent(command)}&reply=false&enter=${enter})`, "\r"];
+    }
+
+
+
+    const { un, unkName, kName } = aliasMatch || {} as Record<string, string | undefined>;
+    if (un) {
+        // debugger;
+        studentNameAlias.remove(unkName);
+        return msg.sendMsgEx({
+            content: unkName ? `已删除本地记录 ${unkName}` : `未指定要删除的名称`,
+        }).then(_ => {
+            msg.content = "alias";
+            return alias(msg);
+        });
+    }
+
+    if (unkName && kName) {
+        const studentInfo = findStudentInfo(kName);
+        if (!studentInfo) return msg.sendMsgEx({ content: `未找到 ${kName} 对应信息` });
+
+        const localMap = fs.readFileSync(config.aliasStudentNameLocal).json<Record<string, string[]>>();
+        if (!localMap[studentInfo.descName]) localMap[studentInfo.descName] = [];
+        localMap[studentInfo.descName].push(unkName);
+        localMap[studentInfo.descName] = localMap[studentInfo.descName].filter((v, i, arr) => arr.indexOf(v, 0) === i); // 去重
+
+        // debugger;
+        fs.writeFileSync(config.aliasStudentNameLocal, stringifyFormat(localMap));
+        studentNameAlias.remove(unkName);
+
+        return msg.sendMsgEx({
+            content: `「${unkName}」==>「${studentInfo.descName}」ok`
+                + `\nreloadStudentInfo: ${await reloadStudentInfo("local")}`,
+        }).then(_ => {
+            msg.content = "alias";
+            return alias(msg);
+        });
+    }
+
+
+    const unkownName = unkName || studentNameAlias[-1];
+    if (!unkownName) return msg.sendMsgEx({ content: `本地中不存在未关联id` + `\n/alias <原名字> <添加的名字>` });
+
+    await msg.sendMsgEx({ content: `搜索中 ${unkownName}` });
+    const searchFuzzy = sutdentNameFuzzySearch(unkownName);
+    const btns = searchFuzzy.map(fuzzy => genBtn(`${fuzzy.name} ${fuzzy.score}`, `${unkownName} ${fixName(fuzzy.name)}`));
+    const rows = [...Array(Math.ceil(btns.length / 3))].map((_, i) => ({ buttons: btns.slice(i * 3, i * 3 + 3) }));
+    rows.push({ buttons: [genBtn(unkownName, unkownName, "un")] })
+
+    return msg.sendMarkdown({
+        params_omnipotent: [
+            ...(searchFuzzy || [])
+                .map(fuzzy => mdCmdLink(`「${unkownName}」==>「${fuzzy.name}」`, `alias ${unkownName} ${fixName(fuzzy.name)}`))
+                .flat()
+                .slice(0, -1),
+        ],
+        keyboard: { content: { rows: rows, } },
+    });
+
+}
+
 export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok" | "local ok" | "ok"> {
 
     const _studentInfo = new StudentInfo(false);

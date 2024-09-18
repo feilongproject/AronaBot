@@ -313,6 +313,14 @@ export default {
                 export: "/balogo <左文本> <右文本>"
             }
         },
+        studentInfo: {
+            alias: {
+                reg: "/?alias",
+                fnc: "alias",
+                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
+                describe: "关联数据库中学生别名",
+            }
+        },
         translate: {
             translate: {
                 reg: "/?翻译\\s*",
