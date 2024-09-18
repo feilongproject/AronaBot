@@ -12,7 +12,7 @@ const log = log4js.configure({
                  * %A method or function alias
                  * %F fully qualified caller name
                  */
-                pattern: devEnv ? "%[[%d] [%f:%l:%o:%F] [%p]%] %m" : "%[[%d] [%f:%l:%o] [%p]%] %m",
+                pattern: global.devEnv ? "%[[%d] [%f:%l:%o:%F] [%p]%] %m" : "%[[%d] [%f:%l:%o] [%p]%] %m",
             }
         }
     },

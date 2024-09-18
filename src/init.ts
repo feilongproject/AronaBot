@@ -6,6 +6,7 @@ import { createClient } from 'redis';
 import { mkdirSync, existsSync } from "fs";
 import { IChannel, IGuild, createOpenAPI, createWebsocket } from "qq-bot-sdk";
 import { sendToAdmin } from './libs/common';
+import { StudentInfo, StudentNameAlias } from "./libs/globalVar";
 import config from '../config/config';
 
 
@@ -53,6 +54,20 @@ export async function init() {
                 delete require.cache[filepath];
                 if (!devEnv) return sendToAdmin(`${devEnv} ${hotloadConfig.type} ${fileD} 正在进行热更新 ${hotLoadStatus}`);
             }
+        });
+    }
+
+    log.info(`初始化: 正在创建全局变量监听`);
+    const hotloadJson: { p: string, classVar: InstanceWithReload }[] = [];
+    hotloadJson.push({ p: config.studentInfo, classVar: studentInfo });
+    hotloadJson.push({ p: config.studentNameAlias, classVar: studentNameAlias });
+    for (const { p, classVar } of hotloadJson) {
+        const constructorName = Object.getPrototypeOf(classVar).constructor.name;
+        log.info(`初始化: 正在创建热加载监听: ${constructorName}`);
+        chokidar.watch(p).on("change", async (filepath, stats) => {
+            log.mark(`${constructorName} 正在进行热更新`);
+            classVar.reload();
+            if (!devEnv) return sendToAdmin(`${devEnv} ${constructorName} 正在进行热更新`);
         });
     }
 
@@ -217,10 +232,17 @@ Date.prototype.toDBString = function () {
 
 global.stringifyFormat = (obj: any) => [JSON.stringify(obj, undefined, "    "), String(obj)].reduce((a, b) => a.length > b.length ? a : b);;
 global.sleep = (ms: number) => new Promise(resovle => { setTimeout(resovle, ms) });
-global.fixName = (name: string) => name.replace("（", "(").replace("）", ")").toLowerCase().replaceAll(" ", "").replace(/(国际?服|日服)/g, "");
+global.fixName = (name: string): string => {
+    name = name.replace("（", "(").replace("）", ")").toLowerCase().replaceAll(" ", "").replace(/(国际?服|日服|​「|」|\+| |\.|。)/g, "");
+    if (name.includes("(") && !name.includes(")")) name += ")";
+    return name;
+};
 global.cosPutObject = async (params: CosPutObjectParams) => cos.putObject({ ...config.cos, ...params, });
 // global.cosUrl = (key: string) => `https://${config.cos.Bucket}.cos.${config.cos.Region}.myqcloud.com/${key}`;
 // global.cosUrl = (key: string) => `https://${config.cos.Bucket}.cos-website.${config.cos.Region}.myqcloud.com/${key}`;
 global.cosUrl = (key: string, fix = "!Image3500K") => `${config.cosUrl}/${key}${fix || ""}`;
+global.isNumStr = (value: string): value is `${number}` => /^\d+$/.test(value);
 (global as any).btoa = null;
 (global as any).atob = null;
+global.studentNameAlias = new StudentNameAlias();
+global.studentInfo = new StudentInfo();

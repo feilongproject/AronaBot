@@ -3,10 +3,12 @@ import pinyin from "pinyin";
 import jieba from "nodejieba";
 import fetch from 'node-fetch';
 import { uniqBy } from "lodash";
+import { Button } from "qq-bot-sdk";
 import PinyinMatch from "pinyin-match";
 import { sendToAdmin } from "../libs/common";
 import { IMessageDIRECT, IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 import config from '../../config/config';
+import { StudentInfo } from "../libs/globalVar";
 
 
 const nameToId = { jp: 0, global: 1 };
@@ -17,16 +19,16 @@ if (!searchPinyin.length && global.studentInfo) updateSearchPinyin();
 
 export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok" | "local ok" | "ok"> {
 
-    const _studentInfo: Record<string, StudentInfo> = {};
+    const _studentInfo = new StudentInfo(false);
     if (type == "net") {
         const [nStudentsDBcn, nStudentsDBzh, nStudentsElectricgoat, aStudentNameWeb] = await Promise.all([
             fetch("https://schaledb.com/data/cn/students.min.json", {
                 timeout: 30 * 1000,
-            }).then(res => res.json()).then((json: Record<string, StudentInfoNet>) => Object.values(json).map(v => ({ ...v, Name: fixName(v.Name) }))).catch(err => log.error(err)),
+            }).then(res => res.json()).then((json: Record<string, StudentDataNet>) => Object.values(json).map(v => ({ ...v, Name: fixName(v.Name) }))).catch(err => log.error(err)),
 
             fetch("https://schaledb.com/data/zh/students.min.json", {
                 timeout: 30 * 1000,
-            }).then(res => res.json()).then((json: Record<string, StudentInfoNet>) => Object.values(json).map(v => ({ ...v, Name: fixName(v.Name) }))).catch(err => log.error(err)),
+            }).then(res => res.json()).then((json: Record<string, StudentDataNet>) => Object.values(json).map(v => ({ ...v, Name: fixName(v.Name) }))).catch(err => log.error(err)),
 
             fetch(`https://ghproxy.net/https://raw.githubusercontent.com/electricgoat/ba-data/jp/Excel/CharacterExcelTable.json`, {
                 timeout: 60 * 1000,
@@ -105,30 +107,36 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
     }
 
     if (fs.existsSync(config.studentInfo)) {    // 本地部分
-        const aStudentNameLocal: Record<string, string[]> = JSON.parse(fs.readFileSync(config.aliasStudentNameLocal, { encoding: "utf8" }));
-        global.studentInfo = JSON.parse(fs.readFileSync(config.studentInfo).toString());
+        const aStudentNameLocal = fs.readFileSync(config.aliasStudentNameLocal).json<Record<string, string[]>>();
+        global.studentInfo = new StudentInfo();
         for (const _id in global.studentInfo) {
+            if (!isNumStr(_id)) continue;
+            let names = global.studentInfo[_id].name;
             const nameAlis = () => {
-                for (const _ of global.studentInfo[_id].name) {
+                for (const _ of names) {
                     const localHas: string[] | undefined = aStudentNameLocal[_];
                     if (!localHas) continue;
-                    global.studentInfo[_id].name.push(...localHas); // 增加本地别名
+                    names.push(...localHas); // 增加本地别名
                     delete aStudentNameLocal[_];
                 }
             }
             nameAlis(); nameAlis();
-            global.studentInfo[_id].name = global.studentInfo[_id].name.filter((v, i, arr) => arr.indexOf(v, 0) === i); // 去重
-            global.studentInfo[_id].name = global.studentInfo[_id].name.map(v => fixName(v));
 
-            for (const [iv, _] of global.studentInfo[_id].name.entries()) {
-                if (global.studentInfo[_id].name[0].includes("幼女") && !_.includes("幼女")) {
-                    global.studentInfo[_id].name[iv] = [global.studentInfo[_id].name[0], global.studentInfo[_id].name[0] = _][0];
+            names = names
+                .map(v => fixName(v))
+                .filter((v, i, arr) => arr.indexOf(v, 0) === i);// 去重
+
+            for (const [iv, _] of names.entries()) {
+                if (names[0].includes("幼女") && !_.includes("幼女")) {
+                    names[iv] = [names[0], names[0] = _][0];
                     break;
                 }
             }
 
+            global.studentInfo[_id].name = names;
+
         }
-        fs.writeFileSync(config.studentInfo, stringifyFormat(global.studentInfo));
+        studentInfo.save();
         const unkownLocalKeys = Object.keys(aStudentNameLocal);
         if (unkownLocalKeys.length) await sendToAdmin(`local别名链接失败部分: ${unkownLocalKeys.join()}`);
         updateSearchPinyin();
@@ -136,14 +144,14 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
     } else return reloadStudentInfo("net");
 }
 
-export function findStudentInfo(name: string): StudentInfo | null {
-    for (const id in studentInfo) if (studentInfo[id].name.includes(fixName(name))) return studentInfo[id];
+export function findStudentInfo(name: string): StudentData | null {
+    for (const id in studentInfo) if (isNumStr(id) && studentInfo[id].name.includes(fixName(name))) return studentInfo[id];
     return null;
 }
 
 function updateSearchPinyin() {
     searchPinyin.length = 0;
-    searchPinyin.push(...Object.values(studentInfo).map(v => uniqBy(
+    searchPinyin.push(...studentInfo.values().map(v => uniqBy(
         v.name.map(exName => ({ id: String(v.id), name: exName, pinyin: toPinyin(exName) }))
             .filter(s => !/^(ch)?\d{4,5}$/.exec(s.pinyin)) // 去除id类型
             .filter(s => /^[a-z0-9]+$/.exec(s.pinyin)) // 去除特殊字符
@@ -152,7 +160,7 @@ function updateSearchPinyin() {
     ).flat());
 }
 
-export function sutdentNameFuzzySearch(source: string, limit: number): SearchResultScore[] {
+export function sutdentNameFuzzySearch(source: string, limit = 6): SearchResultScore[] {
     source = source.replace(
         /[\u3002\uff1f\uff01\uff0c\u3001\uff1b\uff1a\u201c\u201d\u2018\u2019\uff08\uff09\u300a\u300b\u3008\u3009\u3010\u3011\u300e\u300f\u300c\u300d\ufe43\ufe44\u3014\u3015\u2026\u2014\uff5e\ufe4f\uffe5]/g,
         ""
@@ -188,7 +196,7 @@ export function sutdentNameFuzzySearch(source: string, limit: number): SearchRes
         .sort((a, b) => b.score - a.score), "id");
     const maxScore = searchResult[0]?.score || -1;
     const maxScoreLength = searchResult.findIndex(v => v.score == maxScore) + 1;
-    return searchResult.slice(0, Math.max(maxScoreLength, limit)).map(v => ({ ...v, name: studentInfo[v.id].name[0], }));
+    return searchResult.slice(0, Math.max(maxScoreLength, limit)).map(v => ({ ...v, name: studentInfo[v.id as `${number}`].name[0], }));
 }
 
 function toPinyin(han: string): string {

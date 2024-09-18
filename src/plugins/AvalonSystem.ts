@@ -61,7 +61,7 @@ export async function accuseGacha(msg: IMessageGUILD) {
                         `\n第${i + 1}张图未找到三星(${gacha.possibleTotal}): lang-${gacha.gachaInfo.firstChecker.length}\n` +
                         gacha.gachaInfo.firstChecker.map(v => `${v[0]}->${v[1]} (${v[2].map(vv => vv.toFixed()).join(",")})`).join("\n") + `\n` +
                         gacha.gachaInfo.main.map((vv, vi) =>
-                            `${vv.studentInfo.star}${vv.nameCn}(${vv.nameDev}) ${vv.possible.join('->')}  ` + vv.center.map(point => `(${point.map(p => p.toFixed()).join(",")})`).join("---")
+                            `${vv.studentData.star}${vv.nameCn}(${vv.nameDev}) ${vv.possible.join('->')}  ` + vv.center.map(point => `(${point.map(p => p.toFixed()).join(",")})`).join("---")
                         ).join("\n"),
 
                     imagePath: gacha.pointsFileName,
@@ -86,12 +86,12 @@ export async function accuseGacha(msg: IMessageGUILD) {
                     `\n第${i + 1}张图检测统计(${gacha.possibleTotal}): ${gacha.gachaInfo.firstChecker.length}lang\n` +
                     gacha.gachaInfo.firstChecker.map(v => `${v[0]}->${v[1]} (${v[2].map(vv => vv.toFixed()).join(",")})`).join("\n") + `\n` +
                     gacha.gachaInfo.main.map((vv, vi) =>
-                        `${vv.studentInfo.star}${vv.nameCn}(${vv.nameDev}) ${vv.possible.join('->')}  ` + vv.center.map(point => `(${point.map(p => p.toFixed()).join(",")})`).join("---")
+                        `${vv.studentData.star}${vv.nameCn}(${vv.nameDev}) ${vv.possible.join('->')}  ` + vv.center.map(point => `(${point.map(p => p.toFixed()).join(",")})`).join("---")
                     ).join("\n"),
                 imagePath: gacha.pointsFileName,
                 channelId: muteLogChannel,
             });
-            const studentInfo3star = gacha.gachaInfo.main.filter(vv => vv.studentInfo.star == 3);
+            const studentInfo3star = gacha.gachaInfo.main.filter(vv => vv.studentData.star == 3);
             // log.debug(studentInfo3star.map(v => v.name[0]));
             if (!studentInfo3star.length) continue;
             has3star++;
@@ -173,7 +173,7 @@ async function accuseGachaWapper(srcMsg: IMessageGUILD) {
             if (info.star == 3) has3star = true;
             possibleTotal += Math.min(...e.possible);
             e.nameCn = info.name[0];
-            e.studentInfo = info;
+            e.studentData = info;
             gachaInfo.main[i] = e;
         }
         total.push({ gachaInfo, pointsFileName, possibleTotal, has3star, });
@@ -187,7 +187,7 @@ export async function accuseGachaUpdate(msg: IMessageGUILD | IMessageDIRECT | IM
     if (!adminId.includes(msg.author.id)) return;
     const _dbImageList = await fetch("https://schaledb.com/data/cn/students.min.json")
         .then(res => res.json())
-        .then((students: Record<string, StudentInfoNet>) => Object.values(students).map(v => v.DevName));
+        .then((students: Record<string, StudentDataNet>) => Object.values(students).map(v => v.DevName));
     const _extractImageList = await fetch("https://ghproxy.net/https://raw.githubusercontent.com/electricgoat/ba-data/jp/Excel/CharacterExcelTable.json")
         .then(res => res.json())
         .then(json => (json.DataList as any[])
@@ -383,6 +383,6 @@ interface PythonGachaInfo {
         nameCn: string;
         possible: [number, number];// possible possible_ed
         center: [number, number][];// 中心坐标
-        studentInfo: StudentInfo;//学生数据
+        studentData: StudentData;//学生数据
     }[];//多个匹配, 一般长度为10
 }

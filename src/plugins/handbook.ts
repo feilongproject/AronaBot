@@ -362,10 +362,8 @@ export async function studentEvaluation(content: string): Promise<{ type: Handbo
     const findedInfo = await import("./studentInfo").then(module => module.findStudentInfo(studentName));
     if (findedInfo) return { type: findedInfo.devName as any, desc: findedInfo.name[0] };
 
-    const notNameList: string[] = JSON.parse(fs.readFileSync(config.studentNameAlias).toString());
-    const pushType = notNameList.includes(studentName) ? "待整理数据库已存在该别名" : "待整理数据库未存在，已推送";
-    if (!notNameList.includes(studentName)) notNameList.push(studentName);
-    fs.writeFileSync(config.studentNameAlias, stringifyFormat(notNameList));
+    const pushType = studentNameAlias.includes(studentName) ? "待整理数据库已存在该别名" : "待整理数据库未存在，已推送";
+    if (!studentNameAlias.includes(studentName)) studentNameAlias.push(studentName);
 
     const fuzzySearch = await import("./studentInfo").then(m => m.sutdentNameFuzzySearch(studentName, fuzzyLimit));
 

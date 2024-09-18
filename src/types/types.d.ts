@@ -3,7 +3,8 @@ import { Browser } from "puppeteer";
 import COS from "cos-nodejs-sdk-v5";
 import { RedisClientType } from "redis";
 import { PoolConnection } from "mariadb";
-import { IChannel, IMember, IUser, createOpenAPI, createWebsocket, IOpenAPI, AvailableIntentsEventsEnum } from "qq-bot-sdk";
+import { IChannel, IMember, IUser, createWebsocket, IOpenAPI, AvailableIntentsEventsEnum } from "qq-bot-sdk";
+import { StudentNameAlias, StudentInfo } from "../libs/globalVar";
 import config from "../../config/config";
 
 declare global {
@@ -25,7 +26,8 @@ declare global {
     }
     var hotLoadStatus: number;
     var saveGuildsTree: Record<string, SaveGuild>;
-    var studentInfo: Record<string, StudentInfo>;
+    var studentInfo: StudentInfo;
+    var studentNameAlias: StudentNameAlias;
     var botType: BotTypes;
     var allowMarkdown: boolean;
     var cos: COS;
@@ -43,7 +45,14 @@ declare global {
 
     var cosUrl: (key: string, fix?: string) => string;
     var cosPutObject: (params: CosPutObjectParams, tag?: string) => Promise<COS.PutObjectResult>;
+    var isNumStr: (value: string) => value is `${number}`;
     type CosPutObjectParams = Omit<COS.PutObjectParams, keyof Omit<COS.ObjectParams, "Key">>;
+
+    type InstanceWithReload = { reload: () => void };
+    type ClassWithReload<T = any> = {
+        new(...args: any[]): InstanceWithReload;
+    };
+
 
     // 结巴分词后判断与source的相关性
     interface SearchResultScore extends SearchPinyin {
@@ -51,12 +60,12 @@ declare global {
     }
 
     interface SearchPinyin {
-        id: string;
+        id: `${string}`;
         name: string;
         pinyin: string;
     }
 
-    interface StudentInfo {
+    interface StudentData {
         id: number;
         releaseStatus: [boolean, boolean, boolean];
         name: string[];
@@ -290,7 +299,7 @@ declare global {
         C2C_MESSAGE_CREATE = "C2C_MESSAGE_CREATE",
     }
 
-    interface StudentInfoNet {
+    interface StudentDataNet {
         Id: number;
         Name: string;
         DevName: string;

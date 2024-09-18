@@ -210,6 +210,7 @@ async function gachaReload(type: "net" | "local") {
         };
 
         for (const id in studentInfo) {
+            if (!isNumStr(id)) continue;
             const d = studentInfo[id];
             for (key in nameToId)
                 if (d.releaseStatus[nameToId[key]] && !d.limitedType) _gachaPoolInfo[key].common[d.star].push(Number(id));
@@ -238,7 +239,7 @@ async function gachaReload(type: "net" | "local") {
     });
     else {
         if (fs.existsSync(config.gachaPoolInfo)) {
-            const _gachaPoolInfo: GachaPoolInfo = JSON.parse(fs.readFileSync(config.gachaPoolInfo).toString());
+            const _gachaPoolInfo = fs.readFileSync(config.gachaPoolInfo).json<GachaPoolInfo>();
             gachaPoolInfo.global = _gachaPoolInfo.global;
             gachaPoolInfo.jp = _gachaPoolInfo.jp;
             return "local | ok";
