@@ -11,10 +11,9 @@
         "sourceMap": true,
         "esModuleInterop": true,
         "resolveJsonModule": true,
-        "types": ["node"],
-        "allowImportingTsExtensions": true
+        "types": ["node"]
     },
-    "include": ["src/", "script/", "test/", "data/"],
+    "include": ["src/", "script/", "test/**/*", "data/"],
     "typeRoots": ["./src/types"],
     "ts-node": {
         "files": true

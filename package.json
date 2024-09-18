@@ -37,6 +37,7 @@
     "dependencies": {
         "@napi-rs/canvas": "^0.1.51",
         "@node-rs/jieba": "^1.9.2",
+        "@types/koa-router": "^7.4.8",
         "@u4/opencv4nodejs": "^6.5.2",
         "adm-zip": "^0.5.10",
         "baidu-aip-sdk": "^4.16.13",
@@ -55,6 +56,9 @@
         "itertools": "^2.1.2",
         "js-base64": "^3.7.5",
         "json-bigint": "^1.0.0",
+        "koa": "^2.15.3",
+        "koa-body": "^6.0.1",
+        "koa-router": "^12.0.1",
         "lodash": "^4.17.21",
         "log4js": "^6.5.2",
         "mariadb": "^3.0.2",
