@@ -15,7 +15,7 @@ export async function todayTarot(msg: IMessageGUILD | IMessageDIRECT | IMessageG
     const has = await redis.hGet(`Tarot:${nowDay}`, msg.author.id);
     const notHas = `${crypto.randomInt(0, 21 + 1)}:${crypto.randomInt(0, 2) == 1 ? "u" : "d"}`;
     const [num, type] = (has || notHas).split(":");
-    const desc: Tarot = JSON.parse(fs.readFileSync(`${config.images.Tarot}/Tarot.json`).toString())[Number(num)];
+    const desc: Tarot = fs.readFileSync(`${config.images.Tarot}/Tarot.json`).json<Tarot[]>()[Number(num)];
     const atMsg = msg instanceof IMessageGROUP ? "" : `『<@${msg.author.id}>』`;
     return msg.sendMsgEx({
         content: (has ? `${atMsg}老师今天已经抽过了哦！这是今天的结果：` : `看看${atMsg}老师今天抽到了什么`)

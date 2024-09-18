@@ -39,6 +39,11 @@ declare global {
         toDBString: () => string;
     }
 
+    interface Buffer {
+        json: <T>() => T;
+    }
+
+
     var stringifyFormat: (d: any) => string;
     var sleep: (time: number) => Promise<any>;
     var fixName: (name: string) => string;

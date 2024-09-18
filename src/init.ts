@@ -229,6 +229,9 @@ Date.prototype.toDBString = function () {
             this.getSeconds().toString().padStart(2, "0"),
         ].join(":") + "+08:00";
 };
+Buffer.prototype.json = function () {
+    return JSON.parse(this.toString());
+}
 
 global.stringifyFormat = (obj: any) => [JSON.stringify(obj, undefined, "    "), String(obj)].reduce((a, b) => a.length > b.length ? a : b);;
 global.sleep = (ms: number) => new Promise(resovle => { setTimeout(resovle, ms) });

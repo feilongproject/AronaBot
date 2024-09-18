@@ -125,7 +125,7 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
         if (!nStudentsElectricgoat) throw `can't fetch json:netStudentsElectricgoat`;
         if (!aStudentNameWeb) throw `can't fetch json:aliasStudentNameWeb`;
 
-        const aStudentNameLocal: Record<string, string[]> = JSON.parse(fs.readFileSync(config.aliasStudentNameLocal, { encoding: "utf8" }));
+        const aStudentNameLocal = fs.readFileSync(config.aliasStudentNameLocal).json<Record<string, string[]>>();
 
         for (const _ of nStudentsElectricgoat) {
             const __ = nStudentsDBzh.find(v => v.Id == _.Id);
