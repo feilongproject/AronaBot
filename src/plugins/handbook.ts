@@ -54,7 +54,7 @@ export const handbookMatches: HandbookMatches.Root = {
 
 export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
     const forceGuildType = ("guild_id" in msg && ["16392937652181489481"].includes(msg.guild_id)) ? HandbookMatches.Type.CN : undefined;
-    const hbMatched = await matchHandbook(msg, forceGuildType).catch(err => stringifyFormat(err));
+    const hbMatched = await matchHandbook(msg, forceGuildType).catch(err => strFormat(err));
     if (typeof hbMatched == "string") return msg.sendMsgEx({ content: `未找到对应攻略数据，${hbMatched}` });
     const lastestImage = hbMatched.fuzzy ? undefined : await getLastestImage(hbMatched.name, hbMatched.type);
     const filePath = `${config.handbookRoot}/${hbMatched.name}/${hbMatched.type}.png`;
@@ -92,7 +92,7 @@ export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessag
     }).catch(async err => {
         log.error(err);
         await msg.sendMsgEx({
-            content: getErrorMessage + (err.errors.length ? (err.errors as string[]).join("\n") : stringifyFormat(err)).replaceAll(".", ",")
+            content: getErrorMessage + (err.errors.length ? (err.errors as string[]).join("\n") : strFormat(err)).replaceAll(".", ",")
         });
         (await import("../eventRec")).mailerError({ hbMatched, lastestImage }, err);
     });

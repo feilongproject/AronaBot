@@ -44,7 +44,7 @@ declare global {
     }
 
 
-    var stringifyFormat: (d: any) => string;
+    var strFormat: (d: any) => string;
     var sleep: (time: number) => Promise<any>;
     var fixName: (name: string) => string;
 

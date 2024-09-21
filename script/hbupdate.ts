@@ -30,7 +30,7 @@ const statusData: Record<Status, string> = { TYPE: "", URL: "", };
 
 global.redis = createClient(config.redis);
 global.studentInfo = JSON.parse(fs.readFileSync(config.studentInfo).toString());
-global.stringifyFormat = (obj: any) => JSON.stringify(obj, undefined, "    ");
+global.strFormat = (obj: any) => JSON.stringify(obj, undefined, "    ");
 global.sleep = (ms: number) => new Promise(resovle => { setTimeout(resovle, ms) });
 global.fixName = (name: string) => name.replace("（", "(").replace("）", ")").toLowerCase().replaceAll(" ", "").replace(/(国际?服|日服)/g, "");
 global.cosPutObject = async (params: CosPutObjectParams) => cos.putObject({ ...config.cos, ...params, });
@@ -108,7 +108,7 @@ async function main(input: string) {
         // 预览原图
         if (fs.existsSync(`${config.handbookRoot}/${imageKey}`)) {
             const _lastestImage = await getLastestImage(imageName, imageType);
-            console.log("旧数据:", stringifyFormat(_lastestImage));
+            console.log("旧数据:", strFormat(_lastestImage));
 
             execSync(`display -display ${DISPLAY} ${config.handbookRoot}/${imageKey} &`, { stdio: 'inherit' });
             await sleep(3 * 1000);

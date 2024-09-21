@@ -91,7 +91,7 @@ async function dynamicPush(event: IntentMessage.INTERACTION) {
         ],
         content: `${devEnv ? "dev " : ""}${userName} 更新了一条动态\nhttps://t.bilibili.com/${dynamicId}`,
         keyboard: hbUpdateBtn,
-    }).catch(err => sendToAdmin(stringifyFormat(err)));
+    }).catch(err => sendToAdmin(strFormat(err)));
 
     await redis.hSet(`biliMessage:idPushed:${dynamicId}`, groupTrueId, groupId);
 }

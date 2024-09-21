@@ -21,7 +21,7 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT | IMessageG
 
     const cookies = await getCookie().catch(err => {
         log.error(err);
-        const _err = typeof err == "object" ? stringifyFormat(err) : String(err);
+        const _err = typeof err == "object" ? strFormat(err) : String(err);
         return (msg ? msg.sendMsgEx({ content: _err }) : sendToAdmin(_err)).catch(() => { }) as any;
     });
     if (typeof cookies != "string") return msg?.sendMsgEx({ content: `cookies 未找到` });
@@ -34,7 +34,7 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT | IMessageG
 
         const dynamicItems = await getUserDynamics(userId, cookies).catch(err => {
             log.error(bUser, userId, err);
-            const _err = `api出错: ${bUser.name} ${userId} ${stringifyFormat(err)}`.replaceAll(".", ",");
+            const _err = `api出错: ${bUser.name} ${userId} ${strFormat(err)}`.replaceAll(".", ",");
             return (msg ? msg.sendMsgEx({ content: _err }) : sendToAdmin(_err)).then(() => { });
         }).catch(err => { });
         if (!dynamicItems) { await sleep(10 * 1000); continue; }
@@ -80,7 +80,7 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT | IMessageG
 
             } catch (err) {
                 await import("../eventRec")
-                    .then(m => m.mailerError({ bUser, dynamicId, imageKey, notPushedList, idPushed, item, }, err instanceof Error ? err : new Error(stringifyFormat(err))))
+                    .then(m => m.mailerError({ bUser, dynamicId, imageKey, notPushedList, idPushed, item, }, err instanceof Error ? err : new Error(strFormat(err))))
                     .catch(err => log.error(err));
                 await sleep(10 * 1000); continue;
             }
@@ -109,7 +109,7 @@ async function dynamicPush(dynamicId: string, pushInfo: DynamicPushList.PushInfo
                 log.error(err);
                 try {
                     const m = await import("../eventRec");
-                    return await m.mailerError({ dynamicId }, new Error(stringifyFormat(err)));
+                    return await m.mailerError({ dynamicId }, new Error(strFormat(err)));
                 } catch (err_1) {
                     return log.error(err_1);
                 }
@@ -261,7 +261,7 @@ export async function screenshot(dynamicId: string, pubTs: string, quality = 50)
             height: Math.min(5000, await _.evaluate(_ => _.scrollHeight)),
         }
     }) as Buffer;
-    writeFileSync(browserCkFile, stringifyFormat(await page.cookies()));
+    writeFileSync(browserCkFile, strFormat(await page.cookies()));
     if (!devEnv) await page.close();
     return pic || undefined;
 }

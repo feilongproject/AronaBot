@@ -41,7 +41,7 @@ async function executeChannel(msg: IMessageDIRECT | IMessageGUILD) {
             content: msg.content,
         });
     } catch (err) {
-        await mailerError(msg, err instanceof Error ? err : new Error(stringifyFormat(err)))
+        await mailerError(msg, err instanceof Error ? err : new Error(strFormat(err)))
             .catch(err => log.error(err));
     }
 }
@@ -76,7 +76,7 @@ export async function mailerError(msg: any, err: Error) {
     if (!host || !user || !pass || !to) return;
 
     const html = readFileSync(config.errorMessageTemaple).toString()
-        .replace("%message%", stringifyFormat(msg))
+        .replace("%message%", strFormat(msg))
         .replace("%errorName%", err.name)
         .replace("%errorMessage%", err.message)
         .replace("%errorStack%", err.stack || "");
@@ -142,7 +142,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
         }
 
         case AvailableIntentsEventsEnum.GROUP_AND_C2C_EVENT: {
-            if (devEnv) log.debug(stringifyFormat(event));
+            if (devEnv) log.debug(strFormat(event));
             if (event.eventType == IntentEventType.GROUP_AT_MESSAGE_CREATE) {
                 const data = event.msg as any as IntentMessage.GROUP_MESSAGE_body;
                 if (devEnv && !adminId.includes(data.author.id)) return;

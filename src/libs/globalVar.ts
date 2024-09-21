@@ -56,7 +56,7 @@ export class StudentNameAlias extends Array<string> {
     }
 
     async save() {
-        fs.writeFileSync(config.studentNameAlias, stringifyFormat(this._data));
+        fs.writeFileSync(config.studentNameAlias, strFormat(this._data));
     }
 
 }
@@ -108,6 +108,6 @@ export class StudentInfo extends Object implements Record<`${number}`, StudentDa
     }
 
     public async save() {
-        fs.writeFileSync(config.studentInfo, stringifyFormat(this._data));
+        fs.writeFileSync(config.studentInfo, strFormat(this._data));
     }
 }

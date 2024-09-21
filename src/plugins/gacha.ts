@@ -80,7 +80,7 @@ export async function gachaImage(msg: IMessageGUILD | IMessageGROUP | IMessageC2
         return msg.sendMsgExRef({
             content: `发送消息时出现了错误 <@${adminId[0]}>`
                 + `\nimageName: ${imageName}`
-                + `\n${stringifyFormat(err).replaceAll(".", ",")}`,
+                + `\n${strFormat(err).replaceAll(".", ",")}`,
         });
     });
 }
@@ -234,7 +234,7 @@ async function gachaReload(type: "net" | "local") {
 
         gachaPoolInfo.global = _gachaPoolInfo.global;
         gachaPoolInfo.jp = _gachaPoolInfo.jp;
-        fs.writeFileSync(config.gachaPoolInfo, stringifyFormat(_gachaPoolInfo));
+        fs.writeFileSync(config.gachaPoolInfo, strFormat(_gachaPoolInfo));
         return `net | ${r}`;
     });
     else {

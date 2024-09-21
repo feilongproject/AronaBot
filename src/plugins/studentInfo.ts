@@ -60,7 +60,7 @@ export async function alias(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP)
         localMap[studentInfo.descName] = localMap[studentInfo.descName].filter((v, i, arr) => arr.indexOf(v, 0) === i); // 去重
 
         // debugger;
-        fs.writeFileSync(config.aliasStudentNameLocal, stringifyFormat(localMap));
+        fs.writeFileSync(config.aliasStudentNameLocal, strFormat(localMap));
         studentNameAlias.remove(unkName);
 
         return msg.sendMsgEx({
@@ -180,7 +180,7 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
         if (unkownLocalKeys.length) await sendToAdmin(`local别名链接失败部分: ${unkownLocalKeys.join()}`);
 
         global.studentInfo = _studentInfo;
-        fs.writeFileSync(config.studentInfo, stringifyFormat(_studentInfo));
+        fs.writeFileSync(config.studentInfo, strFormat(_studentInfo));
     }
 
     if (fs.existsSync(config.studentInfo)) {    // 本地部分

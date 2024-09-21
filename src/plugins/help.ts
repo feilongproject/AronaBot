@@ -39,6 +39,6 @@ export async function help(msg: IMessageGUILD | IMessageGROUP) {
     return msg.sendMsgEx({
         content: sendStr.join("\n"),
     }).catch(err => {
-        throw new Error(stringifyFormat(err));
+        throw new Error(strFormat(err));
     });
 }

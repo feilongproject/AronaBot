@@ -67,7 +67,6 @@ export async function init() {
         chokidar.watch(p).on("change", async (filepath, stats) => {
             log.mark(`${constructorName} 正在进行热更新`);
             classVar.reload();
-            if (!devEnv) return sendToAdmin(`${devEnv} ${constructorName} 正在进行热更新`);
         });
     }
 
@@ -112,7 +111,7 @@ export async function init() {
             mariadb.release();
             connectMariadb(false);
         });
-        log.info((init ? "初始化: " : "重连: ") + `mariadb 数据库连接成功`);
+        log.info(`${init ? "初始化: " : "重连: "}mariadb 数据库连接成功`);
     };
     if (config.bots[botType].allowMariadb) await connectMariadb();
 
@@ -168,7 +167,7 @@ export async function init() {
         // schedule.scheduleJob("0 */5 * * * ?", () => import("./plugins/pusher").then(module => module.updateGithubVersion()));
         schedule.scheduleJob("0 */5 * * * ? ", () => import("./plugins/biliDynamic").then(module => module.mainCheck()).catch(err => {
             log.error(err);
-            return sendToAdmin((typeof err == "object" ? JSON.stringify(err) : String(err)).replaceAll(".", ",")).catch(() => { });
+            return sendToAdmin((typeof err == "object" ? strFormat(err) : String(err)).replaceAll(".", ",")).catch(() => { });
         }));
     }
 
@@ -233,7 +232,7 @@ Buffer.prototype.json = function () {
     return JSON.parse(this.toString());
 }
 
-global.stringifyFormat = (obj: any) => [JSON.stringify(obj, undefined, "    "), String(obj)].reduce((a, b) => a.length > b.length ? a : b);;
+global.strFormat = (obj: any) => [JSON.stringify(obj, undefined, "    "), String(obj)].reduce((a, b) => a.length > b.length ? a : b);;
 global.sleep = (ms: number) => new Promise(resovle => { setTimeout(resovle, ms) });
 global.fixName = (name: string): string => {
     name = name.replace("（", "(").replace("）", ")").toLowerCase().replaceAll(" ", "").replace(/(国际?服|日服|​「|」|\+| |\.|。)/g, "");
