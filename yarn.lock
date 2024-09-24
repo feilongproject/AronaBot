@@ -4141,10 +4141,10 @@ python-struct@^1.1.3:
   dependencies:
     long "^4.0.0"
 
-qq-bot-sdk@1.7.0:
-  version "1.7.0"
-  resolved "https://registry.npmjs.org/qq-bot-sdk/-/qq-bot-sdk-1.7.0.tgz#c7952d02ecf4617f9834bed3e10cb6c790bfb780"
-  integrity sha512-VKdQN/2FDPfJmEPYqAHD9m36sRNOkHqmc3eYs3KIyoMlccudIdpIsqD3iyW2ItLgUw2tFAyfDQ7Vkf6Qq631kw==
+qq-bot-sdk@1.8.0:
+  version "1.8.0"
+  resolved "https://registry.npmjs.org/qq-bot-sdk/-/qq-bot-sdk-1.8.0.tgz#bf2f7009252bdcc0a39c21a91a5df0b4aa10c0e8"
+  integrity sha512-U2aT8rX7tNv5Tm+ajUMs7XGbnN68syu0kz8WhUysW/AEIUPwvr6eBsDrPGk4XiHolbbdOldmUuR+q+NnwQSgVA==
   dependencies:
     "@noble/curves" "^1.6.0"
     axios "0.24.0"

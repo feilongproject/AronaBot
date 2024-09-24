@@ -103,7 +103,7 @@ async function dynamicPush(dynamicId: string, pushInfo: DynamicPushList.PushInfo
             // debugger;
 
             if (!devEnv && await redis.hExists(`biliMessage:idPushed:${dynamicId}`, pushInfo.id)) return;
-            sendToGroup(`dynamicPush`, `${pushInfo.id},${imageKey}`, pushInfo.id,).then(text => {
+            await sendToGroup(`dynamicPush`, `${pushInfo.id},${imageKey}`, pushInfo.id).then(text => {
                 if (devEnv) log.debug("fetch结果: ", imageKey, text);
             }).catch(async err => {
                 log.error(err);

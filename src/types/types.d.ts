@@ -49,7 +49,7 @@ declare global {
     var fixName: (name: string) => string;
 
     var cosUrl: (key: string, fix?: string) => string;
-    var cosPutObject: (params: CosPutObjectParams, tag?: string) => Promise<COS.PutObjectResult>;
+    var cosPutObject: (params: CosPutObjectParams & Partial<COS.ObjectParams>, tag?: string) => Promise<COS.PutObjectResult>;
     var isNumStr: (value: string) => value is `${number}`;
     type CosPutObjectParams = Omit<COS.PutObjectParams, keyof Omit<COS.ObjectParams, "Key">>;
 

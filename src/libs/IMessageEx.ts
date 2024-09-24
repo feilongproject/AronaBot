@@ -275,7 +275,7 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
             return res.data;
         });
         else return client.c2cApi.postMessage(sendToId, {
-            content: content ? ("\n" + content) : "",
+            content: content || "",
             msg_type: msgType || 0,
             msg_id: msgId,
             media: (msgType == 7 && fileInfo) ? {
@@ -290,14 +290,15 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
     }
 
     async sendFile(options: Partial<SendOption.Chat>, force = false) {
+        options.sendToId = options.sendToId || this.sendToId;
         return callWithRetry(this._sendFile, [options, force]);
     }
 
     private _sendFile = async (options: Partial<SendOption.Chat>, force = false): Promise<string> => {
-        const { imageUrl, fileUrl, sendToId, fileType } = options;
+        const { imageUrl, fileUrl, sendToId, fileType, fileData } = options;
         const fUrl = imageUrl || fileUrl;
         if (!sendToId) throw "not has sendToId";
-        if (!fUrl) throw "neither imageUrl nor fileUrl";
+        if (!fUrl && !fileData) throw "imageUrl/fileUrl/fileData must set one";
         if (!fileType) throw "not has fileType";
 
         const redisKey = `fileInfo:cache:${sendToId}:${fUrl}`.replace(/https?:\/\//, "");
@@ -307,6 +308,7 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         // if (!new URL(fUrl).pathname.startsWith("/p/gacha/")) log.mark(`资源 ${fUrl} 获取中, 存在: ${!!fileInfo}`);
         const fileRes = await (this.messageType == MessageType.GROUP ? client.groupApi.postFile(sendToId, {
             file_type: fileType,
+            file_data: fileData,
             url: fUrl,
             srv_send_msg: false,
         }).then(res => res.data) : client.c2cApi.postFile(sendToId, {
@@ -457,6 +459,7 @@ namespace SendOption {
         imagePath?: string;
         imageUrl?: string;
         fileUrl?: string;
+        fileData?: string;
         fileType?: 1 | 2 | 3; // 1 图片，2 视频，3 语音，4 文件（暂不开放）
         content?: string;
         // sendType: MessageType;

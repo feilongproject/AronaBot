@@ -1,7 +1,7 @@
 import { IMessageGUILD, IMessageDIRECT, IMessageGROUP, IMessageC2C, MessageType } from "./IMessageEx";
 
 export async function findOpts(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C): Promise<{ path: string; fnc: string; keyChild: string; data?: string } | null> {
-    if (!msg.content) return null;
+    if (typeof msg.content !== "string") return null;
 
     const configOpt = (await import("../../config/opts")).default;
     const commandFathers: Record<string, Record<string, {

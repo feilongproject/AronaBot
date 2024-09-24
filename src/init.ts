@@ -239,7 +239,7 @@ global.fixName = (name: string): string => {
     if (name.includes("(") && !name.includes(")")) name += ")";
     return name;
 };
-global.cosPutObject = async (params: CosPutObjectParams) => cos.putObject({ ...config.cos, ...params, });
+global.cosPutObject = async (params) => cos.putObject({ ...config.cos, ...params, });
 // global.cosUrl = (key: string) => `https://${config.cos.Bucket}.cos.${config.cos.Region}.myqcloud.com/${key}`;
 // global.cosUrl = (key: string) => `https://${config.cos.Bucket}.cos-website.${config.cos.Region}.myqcloud.com/${key}`;
 global.cosUrl = (key: string, fix = "!Image3500K") => `${config.cosUrl}/${key}${fix || ""}`;

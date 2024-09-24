@@ -7,7 +7,7 @@ export async function sendToAdmin(content: string) {
     await callbackToChannel(content);
 }
 
-export async function sendToGroup(buttonId: string, buttonData: string, groupId?: string,) {
+export async function sendToGroup(buttonId: string, buttonData: string, groupId?: string, appid?: string) {
     const callbackGroup = await redis.hGet("config", `callbackGroup`) as string;
     return fetch(config.groupPush.url, {
         method: "POST",
@@ -16,7 +16,7 @@ export async function sendToGroup(buttonId: string, buttonData: string, groupId?
         },
         body: JSON.stringify({
             "g": groupId || callbackGroup,
-            "a": config.groupPush.appId,
+            "a": appid || config.groupPush.appId,
             "b": `${config.groupPush.authKey}:${buttonId}`,
             "d": buttonData,
         }),
@@ -60,7 +60,7 @@ export async function callWithRetry<T extends (...args: A) => Promise<R>, R, A e
             await sleep(100);
             return await callWithRetry(functionCall, args, ++retries, errors);
         } else {
-            log.error(`重试多次未成功 args:\n`, JSON.stringify(args[0]));
+            log.error(`重试多次未成功 args:\n`, strFormat(args[0]));
             throw { errors };
         }
     }
