@@ -242,7 +242,11 @@ global.fixName = (name: string): string => {
 global.cosPutObject = async (params) => cos.putObject({ ...config.cos, ...params, });
 // global.cosUrl = (key: string) => `https://${config.cos.Bucket}.cos.${config.cos.Region}.myqcloud.com/${key}`;
 // global.cosUrl = (key: string) => `https://${config.cos.Bucket}.cos-website.${config.cos.Region}.myqcloud.com/${key}`;
-global.cosUrl = (key: string, fix = "!Image3500K") => `${config.cosUrl}/${key}${fix || ""}`;
+global.cosUrl = (key: string, fix = "!Image3500K") => {
+    key = `${key}${fix || ""}`;
+    const authKey = new COS(config.cos).getAuth({ Key: key, Expires: 60 * 5 });
+    return `${config.cosUrl}/${key}?${authKey}`;
+};
 global.isNumStr = (value: string): value is `${number}` => /^\d+$/.test(value);
 (global as any).btoa = null;
 (global as any).atob = null;
