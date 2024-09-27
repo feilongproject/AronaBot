@@ -5,7 +5,7 @@ export async function findOpts(msg: IMessageGUILD | IMessageDIRECT | IMessageGRO
 
     const configOpt = (await import("../../config/opts")).default;
     const commandFathers: Record<string, Record<string, {
-        reg: string;
+        reg: RegExp;
         fnc: string;
         channelAllows?: string[];
         data?: string;
