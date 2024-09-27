@@ -213,7 +213,7 @@ export async function screenshot(dynamicId: string, pubTs: string, quality = 50)
     });
 
     const page = await browser.newPage();
-    const cookies: puppeteer.Protocol.Network.Cookie[] = JSON.parse(readFileSync(browserCkFile).toString() || "[]");
+    const cookies: puppeteer.Cookie[] = JSON.parse(readFileSync(browserCkFile).toString() || "[]");
     await page.setCookie(...cookies);
     await page.setUserAgent(userAgent);
     await page.setViewport({
