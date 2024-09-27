@@ -328,6 +328,56 @@ export default {
                 type: [MessageType.GROUP, MessageType.FRIEND],
                 describe: "资讯站的翻译"
             }
+        },
+        transcoding: {
+            loadFile: {
+                reg: "^$",
+                fnc: "loadFile",
+                type: [MessageType.FRIEND],
+                describe: "资讯站的自动化压制加载脚本"
+            },
+            startJob: {
+                reg: "开始压制",
+                fnc: "startJob",
+                type: [MessageType.FRIEND, MessageType.GROUP],
+                describe: "资讯站的自动化压制开始脚本"
+            },
+            statusJob: {
+                reg: "压制进度",
+                fnc: "statusJob",
+                type: [MessageType.FRIEND, MessageType.GROUP],
+                describe: "资讯站的自动化压制状态查询脚本"
+            },
+            downloadJob: {
+                reg: "下载压制",
+                fnc: "downloadJob",
+                type: [MessageType.FRIEND, MessageType.GROUP],
+                describe: "资讯站的自动化压制后下载脚本"
+            },
+            clearJob: {
+                reg: "清空压制",
+                fnc: "clearJob",
+                type: [MessageType.FRIEND, MessageType.GROUP],
+                describe: "资讯站的自动化压制清空脚本"
+            },
+            cancelJob: {
+                reg: "取消压制",
+                fnc: "cancelJob",
+                type: [MessageType.FRIEND, MessageType.GROUP],
+                describe: "资讯站的自动化压制退出脚本"
+            },
+            help: {
+                reg: "压制帮助",
+                fnc: "help",
+                type: [MessageType.FRIEND, MessageType.GROUP],
+                describe: "资讯站的自动化压制帮助"
+            },
+            auth: {
+                reg: "压制认证",
+                fnc: "auth",
+                type: [MessageType.FRIEND, MessageType.GROUP],
+                describe: "资讯站的自动化压制认证服务"
+            },
         }
     },
     channelAllows: {
