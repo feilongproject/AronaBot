@@ -44,22 +44,41 @@ export async function callWithRetry<T extends (...args: A) => Promise<R>, R, A e
         } else log.error(err);
         if (typeof err == "object") errors.push(JSON.stringify(err));
         else errors.push(String(err));
-        if (err && (err as any).code == 304003 || ((err as any)?.msg as string | null)?.includes("url not allowed")) {
-            log.error(`url 不被允许:\n`, JSON.stringify(args[0]));
+
+        const removeParams = () => {
+            if (Array.isArray(args[0]?.params)) {
+                args[0].params = (args[0]?.params as string[]).filter(v => v !== "\u200b");
+                args[0].markdown.params = undefined;
+            }
+        }
+
+        if (err && (err as any).code === 304003 || ((err as any)?.msg as string | null)?.includes("url not allowed")) {
+            log.error(`url 不被允许:\n`, strFormat(args[0]));
             throw { errors };
         }
-        if (err && (err as any).code == 40014 || ((err as any)?.msg as string | null)?.includes("file too large")) {
-            log.error(`文件过大\n`, JSON.stringify(args[0]));
+        if (err && (err as any).code === 40014 || ((err as any)?.msg as string | null)?.includes("file too large")) {
+            log.error(`文件过大\n`, strFormat(args[0]));
             throw { errors };
         }
-        if (err && (err as any).code == 304020 || ((err as any)?.msg as string | null)?.includes("file size exceeded")) {
-            log.error(`文件超过大小\n`, JSON.stringify(args[0]));
+        if (err && (err as any).code === 304020 || ((err as any)?.msg as string | null)?.includes("file size exceeded")) {
+            log.error(`文件超过大小\n`, strFormat(args[0]));
+            throw { errors };
+        }
+        if (err && (err as any).code === 40034010 || (err as any)?.message?.includes("模版参数中不能含有 markdown 语法")) {
+            removeParams();
+            log.error(`模版参数中不能含有 markdown 语法\n`, strFormat(args[0]));
+            throw { errors };
+        }
+        if (err && (err as any).code === 40054010 || (err as any)?.message?.includes("消息发送失败, 不允许发送url")) {
+            removeParams();
+            log.error(`不允许发送url\n`, strFormat(args[0]));
             throw { errors };
         }
         if (retries < config.retryTime - 1) {
             await sleep(100);
             return await callWithRetry(functionCall, args, ++retries, errors);
         } else {
+            removeParams();
             log.error(`重试多次未成功 args:\n`, strFormat(args[0]));
             throw { errors };
         }
