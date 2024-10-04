@@ -90,7 +90,6 @@ export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessag
         imageUrl: lastestImage?.url,
         // fallback 部分
     }).catch(async err => {
-        log.error(err);
         await msg.sendMsgEx({
             content: getErrorMessage + (err.errors.length ? (err.errors as string[]).join("\n") : strFormat(err)).replaceAll(".", ",")
         });
@@ -146,7 +145,7 @@ export async function getLastestImage(name: string, type = "all"): Promise<Handb
         info: imageInfo || "",
         infoUrl: infoUrl || "",
         updateTime: updateTimeMessage + (updateTime ? format.asString(new Date(Number(updateTime) || updateTime)) : "未知"),
-        url: cosUrl(`handbook/${name}/${type}.png`) + `?expired=${updateTime}`,
+        url: cosUrl(`handbook/${name}/${type}.png`),
     };
 }
 
