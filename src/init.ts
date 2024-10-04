@@ -175,8 +175,8 @@ export async function init() {
 
     if (await redis.exists(`isRestart:${meId}`)) {
         await redis.del(`isRestart:${meId}`);
-        return sendToAdmin("重启成功");
-    } else return sendToAdmin("启动成功");
+        return sendToAdmin(`${botType} 重启成功`);
+    } else if (!devEnv) return sendToAdmin(`${botType} 启动成功`);
 
 }
 
