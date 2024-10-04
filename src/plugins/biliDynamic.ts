@@ -251,19 +251,19 @@ export async function screenshot(dynamicId: string, pubTs: string, quality = 50)
     const _ = await page.$("#app > div > div");
     if (!_) { await page.close(); return undefined; }
 
-    const pic = await _.screenshot({
+    const b64 = await _.screenshot({
         type: "jpeg",
-        encoding: "binary",
+        encoding: "base64",
         quality,
         clip: {
             x: 0, y: 0,
             width: await _.evaluate(_ => _.scrollWidth),
             height: Math.min(5000, await _.evaluate(_ => _.scrollHeight)),
         }
-    }) as Buffer;
+    });
     writeFileSync(browserCkFile, strFormat(await page.cookies()));
     if (!devEnv) await page.close();
-    return pic || undefined;
+    return Buffer.from(b64, "base64") || undefined;
 }
 
 async function getUserDynamics(biliUserId: string, cookies: string): Promise<BiliDynamic.Item[]> {
