@@ -3,6 +3,7 @@ import COS from "cos-nodejs-sdk-v5";
 import schedule from "node-schedule";
 import { createPool } from 'mariadb';
 import { createClient } from 'redis';
+import { encode, decode } from "js-base64";
 import { mkdirSync, existsSync } from "fs";
 import { IChannel, IGuild, createOpenAPI, createWebsocket } from "qq-bot-sdk";
 import { sendToAdmin } from './libs/common';
@@ -248,7 +249,7 @@ global.cosUrl = (key: string, fix = "!Image3500K") => {
     return `${config.cosUrl}/${key}?${authKey}`;
 };
 global.isNumStr = (value: string): value is `${number}` => /^\d+$/.test(value);
-(global as any).btoa = null;
-(global as any).atob = null;
+(global as any).btoa = encode;
+(global as any).atob = decode;
 global.studentNameAlias = new StudentNameAlias();
 global.studentInfo = new StudentInfo();
