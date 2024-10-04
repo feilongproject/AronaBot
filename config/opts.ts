@@ -378,7 +378,15 @@ export default {
                 type: [MessageType.FRIEND, MessageType.GROUP],
                 describe: "资讯站的自动化压制认证服务"
             },
-        }
+        },
+        soutubot: {
+            soutubot: {
+                reg: /搜(图|本子)/,
+                fnc: "soutubot",
+                type: [MessageType.GROUP, MessageType.FRIEND],
+                describe: "soutubot"
+            },
+        },
     },
     channelAllows: {
         common: [
