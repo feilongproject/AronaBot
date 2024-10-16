@@ -53,7 +53,7 @@ export default {
                 export: "/状态"
             },
             hotLoad: {
-                reg: /^\/?热(加载|更新)(-?\d+)$/,
+                reg: /^\/?热(加载|更新)\s*(-?\d+)$/,
                 fnc: "hotLoad",
                 type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
                 channelAllows: ["all"],
