@@ -33,13 +33,13 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT | IMessageG
         if (!bUser.list.length) { await sleep(10 * 1000); continue; }
 
         const dynamicItems = await getUserDynamics(userId, cookies).catch(err => {
-            log.error(bUser, userId, err);
+            if (devEnv) log.error(bUser, userId, err);
             const _err = `api出错: ${bUser.name} ${userId} ${strFormat(err)}`.replaceAll(".", ",");
             return (msg ? msg.sendMsgEx({ content: _err }) : sendToAdmin(_err)).then(() => { });
         }).catch(err => { });
-        if (!dynamicItems) { await sleep(10 * 1000); continue; }
+        if (!dynamicItems) break;
 
-        debugger;
+        // debugger;
 
         if (devEnv) await msg?.sendMsgEx({ content: `开始检查 ${bUser.name}(${userId})的动态` });
         log.info(`开始检查 ${bUser.name}(${userId})的动态`);
@@ -124,7 +124,8 @@ async function dynamicPush(dynamicId: string, pushInfo: DynamicPushList.PushInfo
     const userCard = await getUserCard(item.modules.module_author.mid.toString());
     const userName = userCard.data.card.name;
 
-    const msg = new IMessageGUILD({ id: await redis.get(`lastestMsgId:${botType}`), channel_id: pushInfo.id, } as any, false);
+    const guildId = Object.values(saveGuildsTree).find(v => Object.values(v.channels).find(v => v.id === pushInfo.id)?.id)?.id;
+    const msg = new IMessageGUILD({ id: await redis.get(`lastestMsgId:${botType}`), guildId, channel_id: pushInfo.id, } as any, false);
     if (pushInfo.id == "544252608" && (devEnv || item.type == "DYNAMIC_TYPE_FORWARD"))
         return redis.hSet(`biliMessage:idPushed:${dynamicId}`, pushInfo.id, pushInfo.id);
 
