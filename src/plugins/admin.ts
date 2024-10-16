@@ -17,14 +17,15 @@ export async function updateEventId(event?: IntentMessage.GUILD_MEMBERS) {
     if (event) return;
 
     for (const guildId in saveGuildsTree) {
-        const channel = Object.values(saveGuildsTree[guildId].channels).find(v => v.name == "bot操作记录日志");
+        const guildInfo = saveGuildsTree[guildId];
+        const channel = Object.values(guildInfo.channels).find(v => v.name == "bot操作记录日志");
         if (!channel) continue;
-        if (devEnv && guildId != "9919414431536104110") continue;
+        if (devEnv && guildId != "2175103623165659414") continue;
 
         await client.memberApi.memberAddRole(guildId, "5", opUserId, channel.id).catch(err => {
             log.error(err);
             return sendToAdmin(`updateEventId memberAddRole` +
-                `\n${strFormat({ err, guild: saveGuildsTree[guildId], })}`.replaceAll(".", ","))
+                `\n${strFormat({ err, guild: guildInfo, })}`.replaceAll(".", ","))
                 .catch(err => log.error(err));
         });
     }
