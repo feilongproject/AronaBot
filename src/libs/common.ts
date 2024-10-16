@@ -51,16 +51,28 @@ export async function callWithRetry<T extends (...args: A) => Promise<R>, R, A e
                 args[0].markdown.params = undefined;
             }
         }
-
+        if (err && (err as any).code === 304023 || (err as any)?.message?.includes("push message is waiting for audit now")) {
+            removeParams();
+            log.error(`等待主动推送\n`, strFormat(args[0]));
+            return { result: {} as R, errors };
+        }
         if (err && (err as any).code === 304003 || ((err as any)?.msg as string | null)?.includes("url not allowed")) {
+            removeParams();
             log.error(`url 不被允许:\n`, strFormat(args[0]));
             throw { errors };
         }
+        if (err && (err as any).code === 40054010 || (err as any)?.message?.includes("消息发送失败, 不允许发送url")) {
+            removeParams();
+            log.error(`不允许发送url\n`, strFormat(args[0]));
+            throw { errors };
+        }
         if (err && (err as any).code === 40014 || ((err as any)?.msg as string | null)?.includes("file too large")) {
+            removeParams();
             log.error(`文件过大\n`, strFormat(args[0]));
             throw { errors };
         }
         if (err && (err as any).code === 304020 || ((err as any)?.msg as string | null)?.includes("file size exceeded")) {
+            removeParams();
             log.error(`文件超过大小\n`, strFormat(args[0]));
             throw { errors };
         }
@@ -69,9 +81,14 @@ export async function callWithRetry<T extends (...args: A) => Promise<R>, R, A e
             log.error(`模版参数中不能含有 markdown 语法\n`, strFormat(args[0]));
             throw { errors };
         }
-        if (err && (err as any).code === 40054010 || (err as any)?.message?.includes("消息发送失败, 不允许发送url")) {
+        if (err && (err as any).code === 304039 || (err as any)?.message?.includes("keyboard unmarshal error")) {
             removeParams();
-            log.error(`不允许发送url\n`, strFormat(args[0]));
+            log.error(`keyboard发送失败\n`, strFormat(args[0]));
+            throw { errors };
+        }
+        if (err && (err as any).code === 40034005 || (err as any)?.message?.includes("回复消息msg_id已过期")) {
+            removeParams();
+            log.error(`回复消息msg_id已过期\n`, strFormat(args[0]));
             throw { errors };
         }
         if (retries < config.retryTime - 1) {
