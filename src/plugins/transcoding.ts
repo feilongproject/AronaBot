@@ -22,7 +22,7 @@ export async function loadFile(msg: IMessageC2C) {
 
     const { filename, size, url: fileUrl } = msg.attachments[0];
     const ext = filename.split(".").pop() || "";
-    if (!["mkv", "ass", "mp4"].includes(ext)) return msg.sendMsgEx({ content: `不支持的文件格式` });
+    if (!["mkv", "ass", "mp4", "webm"].includes(ext)) return msg.sendMsgEx({ content: `不支持的文件格式` });
 
 
     const runningJob = await redis.hGetAll("transcoding") as any as TranscodingRedis;
