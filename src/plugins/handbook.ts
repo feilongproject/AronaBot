@@ -356,7 +356,7 @@ export async function searchHandbook(msg: IMessageGUILD | IMessageDIRECT | IMess
 }
 
 export async function studentEvaluation(content: string): Promise<{ type: HandbookMatches.Type; desc: string; fuzzy?: SearchPinyin[]; }> {
-    const studentName = content.replace(handbookMatches.names.studentEvaluation.reg, "").trim();
+    const studentName = fixName(content.replace(handbookMatches.names.studentEvaluation.reg, "").trim());
     if (!studentName || studentName == "all") return { type: HandbookMatches.Type.ALL, desc: "", };
     const findedInfo = await import("./studentInfo").then(module => module.findStudentInfo(studentName));
     if (findedInfo) return { type: findedInfo.devName as any, desc: findedInfo.name[0] };
