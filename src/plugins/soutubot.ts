@@ -10,7 +10,7 @@ import { IMessageC2C, IMessageGROUP } from "../libs/IMessageEx";
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0";
 let M = 4556179899441;
 const MinSimilar = 25;
-const MAX_LEN = 4;
+const MAX_LEN = 3;
 export async function soutubot(msg: IMessageGROUP | IMessageC2C) {
     if (await notCanUse(msg)) return msg.sendMsgEx({ content: `无权限使用` });
     if (msg.attachments?.length !== 1) return msg.sendMsgEx({ content: `图片数量只能为一张，不可少图不可多图` });
@@ -109,7 +109,8 @@ export async function soutubot(msg: IMessageGROUP | IMessageC2C) {
     });
 
     // debugger;
-
+    await msg.sendMsgEx({ content: `搜索结果: https://soutubot\u200b.moe/results/${json.id}` });
+    // return;
     await msg.sendMarkdown({
         params_omnipotent: [
             `搜索完成，共 ${filterData.length} 条结果，其中 ${resData.length - filterData.length} 条被过滤\r`,
@@ -125,7 +126,7 @@ export async function soutubot(msg: IMessageGROUP | IMessageC2C) {
         keyboard: {
             content: {
                 rows: [
-                    { buttons: [genKeyboard("搜索结果页面", `https://soutubot.moe/results/${json.id}`, "result-page")] },
+                    // { buttons: [genKeyboard("搜索结果页面", `https://soutubot.moe/results/${json.id}`, "result-page")] },
                     ...keyBoardRows,
                 ],
             }
@@ -135,6 +136,7 @@ export async function soutubot(msg: IMessageGROUP | IMessageC2C) {
 
 async function notCanUse(msg: IMessageC2C | IMessageGROUP): Promise<boolean> {
     if (adminId.includes(msg.author.id)) return false;
+    if (msg instanceof IMessageGROUP && ["963547B9CDEF3C2F51F2C02AC06B808B"].includes(msg.group_id)) return false;
     if (await redis.sIsMember(`auth:usebot:soutu:user`, msg.author.id)) return false;
     if (msg instanceof IMessageGROUP && await redis.sIsMember(`auth:usebot:soutu:group`, msg.group_id)) return false;
     return true;
