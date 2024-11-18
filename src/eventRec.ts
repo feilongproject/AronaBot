@@ -117,6 +117,9 @@ type PluginFnc = (msg: IMessageDIRECT | IMessageGUILD | IMessageGROUP | IMessage
 
 
 export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
+    if (await redis.exists(`received:${event.eventType}:${event.eventId}`) && !devEnv) return;
+    await redis.setEx(`received:${event.eventType}:${event.eventId}`, 60, "1");
+
     switch (event.eventRootType) {
         case AvailableIntentsEventsEnum.GUILD_MESSAGES:
         case AvailableIntentsEventsEnum.PUBLIC_GUILD_MESSAGES: {
