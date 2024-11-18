@@ -4,6 +4,7 @@ import COS from "cos-nodejs-sdk-v5";
 import { RedisClientType } from "redis";
 import { PoolConnection } from "mariadb";
 import { IChannel, IMember, IUser, createWebsocket, IOpenAPI, AvailableIntentsEventsEnum } from "qq-bot-sdk";
+import { MessageType } from "../libs/IMessageEx";
 import { StudentNameAlias, StudentInfo } from "../libs/globalVar";
 import config from "../../config/config";
 
@@ -54,9 +55,30 @@ declare global {
     type CosPutObjectParams = Omit<COS.PutObjectParams, keyof Omit<COS.ObjectParams, "Key">>;
 
     type InstanceWithReload = { reload: () => void };
-    type ClassWithReload<T = any> = {
+    type ClassWithReload = {
         new(...args: any[]): InstanceWithReload;
     };
+
+    // 命令设置
+    var commandConfig: CommandConfig.Root;
+    namespace CommandConfig {
+        export interface Root {
+            desc: string;
+            command: CommandsList;
+            channelAllows: Record<string, { id: string; name: string; }[]>;
+        }
+        type CommandsList = Record<string, CommandPart>;
+        type CommandPart = Record<string, Command>;
+        interface Command {
+            reg: RegExp;
+            fnc: string;
+            channelAllows?: string[];
+            data?: string;
+            type: MessageType[],
+            describe: string;
+            export?: string;
+        }
+    }
 
 
     // 结巴分词后判断与source的相关性

@@ -401,22 +401,4 @@ export default {
         ],
         AvalonSystem: [{ id: "519695851", name: "碧蓝档案_阿瓦隆(13281105882878427654)-指令中枢(519695851)" }]
     }
-} as ConfigOpts;
-
-interface ConfigOpts {
-    desc: string;
-    command: Commands;
-    channelAllows: Record<string, { id: string; name: string; }[]>;
-}
-
-type Commands = Record<string, CommandFather>;
-type CommandFather = Record<string, CommandPart>;
-interface CommandPart {
-    reg: RegExp;
-    fnc: string;
-    channelAllows?: string[];
-    data?: string;
-    type: MessageType[],
-    describe: string;
-    export?: string;
-};
+} as CommandConfig.Root;

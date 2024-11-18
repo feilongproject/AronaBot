@@ -60,6 +60,8 @@ init().then(() => {
                 body: rawBody,
             }).catch(err => { });
         }
+        ctx.body = { msg: "ok" };
+        ctx.status = 200;
     }).get("/", (ctx, next) => {
         ctx.body = { msg: "hello world" };
     });
@@ -72,7 +74,7 @@ init().then(() => {
     app.use(router.routes());
     app.use(router.allowedMethods());
     app.listen(PORT, async () => {
-        log.info("webhook 服务运行中......");
+        log.info(`webhook PORT: ${PORT} 服务运行中......`);
     });
 
 });
@@ -118,7 +120,7 @@ const EventMap = {
         IntentEventType.MESSAGE_AUDIT_PASS,
         IntentEventType.MESSAGE_AUDIT_REJECT,
     ],
-    INTERACTION: [IntentEventType.INTERACTION_CREATE]
+    INTERACTION: [IntentEventType.INTERACTION_CREATE],
 }
 
 interface EventBody {

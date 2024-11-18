@@ -42,6 +42,10 @@ export async function init() {
         process.exit();
     }
     global.allowMarkdown = config.bots[botType].allowMarkdown;
+    log.info(`初始化: botType: ${botType}, allowMarkdown: ${allowMarkdown}`);
+
+    log.info(`初始化: 正在加载命令设置`);
+    global.commandConfig = (await import("../config/opts")).default;
 
     log.info(`初始化: 正在创建热加载监听`);
     for (const hotloadConfig of config.hotLoadConfigs) {
@@ -64,7 +68,7 @@ export async function init() {
     hotloadJson.push({ p: config.studentNameAlias, classVar: studentNameAlias });
     for (const { p, classVar } of hotloadJson) {
         const constructorName = Object.getPrototypeOf(classVar).constructor.name;
-        log.info(`初始化: 正在创建热加载监听: ${constructorName}`);
+        log.info(`初始化: 正在创建全局变量监听: ${constructorName}`);
         chokidar.watch(p).on("change", async (filepath, stats) => {
             log.mark(`${constructorName} 正在进行热更新`);
             classVar.reload();
@@ -74,7 +78,7 @@ export async function init() {
     log.info(`初始化: 正在连接腾讯 COS`);
     global.cos = new COS(config.cos);
 
-    log.info(`初始化: 正在连接数据库`);
+    log.info(`初始化: 正在连接 redis 数据库`);
     const connectRedis = async (init = true, retry = 0) => {
         global.redis = createClient(config.redis);
         await global.redis.connect().then(() => redis.ping()).then(pong => {
@@ -90,13 +94,8 @@ export async function init() {
         })
     };
     await connectRedis();
-    // setInterval(async () => {
-    //     const _ = await redis.ping().catch(err => {
-    //         log.error(err);
-    //     });;
-    //     log.debug(_);
-    // }, 1000 * 5);
 
+    log.info(`初始化: 正在连接 mariadb 数据库`);
     const connectMariadb = async (init = true, retry = 0) => {
         global.mariadb = await createPool({
             ...config.mariadb,
@@ -159,7 +158,7 @@ export async function init() {
     log.info(`初始化: 正在创建定时任务`);
     if (devEnv) {
         await redis.setEx("devEnv", 10, "1");
-        schedule.scheduleJob("*/10 * * * * ? ", () => redis.setEx("devEnv", 10, "1"));
+        schedule.scheduleJob("*/10 * * * * ? ", () => redis.setEx("devEnv", 10, botType));
         // schedule.scheduleJob("0 */5 * * * ?", () => import("./plugins/pusher").then(module => module.updateGithubVersion()));
         // schedule.scheduleJob("0 */3 * * * ?", () => import("./plugins/admin").then(module => module.updateEventId()));
     } else if (botType == "AronaBot") {
@@ -172,12 +171,10 @@ export async function init() {
         }));
     }
 
-
     if (await redis.exists(`isRestart:${meId}`)) {
         await redis.del(`isRestart:${meId}`);
         return sendToAdmin(`${botType} 重启成功`);
     } else if (!devEnv) return sendToAdmin(`${botType} 启动成功`);
-
 }
 
 export async function loadGuildTree(init?: boolean): Promise<any>;

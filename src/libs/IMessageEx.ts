@@ -6,6 +6,38 @@ import { callWithRetry, pushToDB } from "./common";
 import config from '../../config/config';
 
 
+export function findOpts(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C): FindedData | null {
+    if (typeof msg.content !== "string") return null;
+
+    const commandFathers = commandConfig.command;
+    const channelAllows = commandConfig.channelAllows;
+
+    for (const keyFather in commandFathers)
+        for (const keyChild in commandFathers[keyFather]) {
+            const opt = commandFathers[keyFather][keyChild];
+            // if (devEnv) allowKeys.push("dev");
+            if ((typeof opt == "function") || !opt.type.includes(msg.messageType)) continue;
+            if (!RegExp(opt.reg).test(msg.content.replace(/<@!\d*>/g, "").trim())) continue;
+
+            if (msg instanceof IMessageGROUP || msg instanceof IMessageC2C) {
+                return { path: keyFather, keyChild, ...opt };
+            }
+
+            const allowChannels = opt.channelAllows || ["common"];
+            const channelAllow: () => boolean = () => {
+                for (const allowChannelKey of allowChannels) for (const channel of channelAllows[allowChannelKey])
+                    if (channel.id == msg.channel_id) return true;
+                return false;
+            }
+            if (devEnv || msg.guild_id == "5237615478283154023" || msg.messageType == MessageType.DIRECT || allowChannels[0] == "all" || channelAllow()) {
+                return { path: keyFather, keyChild, ...opt };
+            }
+        }
+
+    return null;
+}
+
+
 class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
     id: string;
     channel_id: string;
@@ -22,6 +54,7 @@ class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
 
     _atta: string;
     messageType: MessageType;
+    opts: FindedData | null;
 
     constructor(msg: IntentMessage.MessageChannelCommon, messageType: MessageType) {
         this.id = msg.id;
@@ -38,6 +71,7 @@ class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
 
         this.messageType = messageType;
         this._atta = this.attachments ? `[图片${this.attachments.length + "张"}]` : "";
+        this.opts = null;
     }
 
     async sendMsgExRef(options: Partial<SendOption.Channel>) {
@@ -168,6 +202,7 @@ export class IMessageGUILD extends IMessageChannelCommon implements IntentMessag
         if (!register) return;
 
         log.info(`频公{${this.guildName}}[${this.channelName}|${this.channel_id}](${this.author.username}|${this.author.id})${this._atta}: ${this.content}`);
+        this.opts = findOpts(this);
 
         const mention: string[] = [];
         if (this.mentions) for (const user of this.mentions) mention.push(user.id);
@@ -190,6 +225,7 @@ export class IMessageDIRECT extends IMessageChannelCommon implements IntentMessa
         if (!register) return;
 
         log.info(`频私{${this.guild_id}}(${this.author.username}|${this.author.id})${this._atta}: ${this.content}`);
+        this.opts = findOpts(this);
         this.pushToDB({ srcGid: this.src_guild_id });
     }
 }
@@ -199,12 +235,14 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
     author: { id: string; member_openid?: string; user_openid?: string; };
     content: string;
     timestamp: string;
-    messageType: MessageType;
     attachments: IntentMessage.Attachment[];
-    _atta: string;
     seq = 1;
-    sendToId?: string;
     event_id: string;
+
+    _atta: string;
+    sendToId?: string;
+    messageType: MessageType;
+    opts: FindedData | null;
 
     constructor(msg: IntentMessage.MessageChatCommon & Partial<{ group_id: string; group_openid: string; }>, meaasgeType: MessageType) {
         this.id = msg.id;
@@ -216,6 +254,7 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         this.attachments = msg.attachments || [];
         this._atta = this.attachments.length ? `[图片${this.attachments.length + "张"}]` : "";
         this.sendToId = this.messageType == MessageType.GROUP ? (msg.group_id || msg.group_openid) : (msg.author.id || msg.author.user_openid);
+        this.opts = null;
     }
 
     async pushToDB(another: Record<string, string>) {
@@ -375,6 +414,7 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
 
         if (!register) return;
         log.info(`群聊[${this.group_id}](${this.author.id}): ${this.content}`);
+        this.opts = findOpts(this);
         this.pushToDB({ gid: this.group_id });
     }
 }
@@ -390,9 +430,11 @@ export class IMessageC2C extends IMessageChatCommon implements IntentMessage.C2C
         if (!register) return;
 
         log.info(`私聊(${this.author.id})${this._atta}: ${this.content}`);
+        this.opts = findOpts(this);
         this.pushToDB({});
     }
 }
+
 
 async function getMarkdown(options: SendOption.MarkdownPublic, kbCustom = false): Promise<SendOption.MarkdownOrgin | null> {
     const markdownNameId = Object.keys(options).find(v => v.startsWith("params_")) as `params_${string}` | undefined;
@@ -420,6 +462,14 @@ async function getMarkdown(options: SendOption.MarkdownPublic, kbCustom = false)
     };
     if (!ret.keyboard.id && !ret.keyboard.content) ret.keyboard = undefined as any;
     return ret;
+}
+
+
+interface FindedData {
+    path: string;
+    fnc: string;
+    keyChild: string;
+    data?: string;
 }
 
 namespace SendOption {

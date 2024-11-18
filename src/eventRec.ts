@@ -3,7 +3,6 @@ import nodemailer from "nodemailer";
 import { readFileSync, writeFileSync } from "fs";
 import { AvailableIntentsEventsEnum, IChannel, IGuild } from "qq-bot-sdk";
 import { loadGuildTree } from "./init";
-import { findOpts } from "./libs/findOpts";
 import { pushToDB, sendToAdmin } from "./libs/common";
 import { IMessageGROUP, IMessageDIRECT, IMessageGUILD, IMessageC2C } from "./libs/IMessageEx";
 import config from "../config/config";
@@ -15,22 +14,22 @@ async function executeChannel(msg: IMessageDIRECT | IMessageGUILD) {
         if (adminId.includes(msg.author.id) && !devEnv && (await redis.get("devEnv"))) return;
         if (msg instanceof IMessageGUILD && msg.mentions?.find(v => v.bot && v.id != meId && !msg.mentions?.find(m => m.id == meId))) return;
 
-        const opt = await findOpts(msg);
-        if (!opt) return;
+        const { opts } = msg;
+        if (!opts) return;
         if (await isBan(msg)) return;
-        if (await redis.sIsMember(`ban:opt:guild`, `${opt.path}:${opt.keyChild}:${msg.guild_id}`))
-            return msg.sendMsgExRef({ content: `命令 ${opt.path} ${opt.keyChild} 在该频道未启用` });
+        if (await redis.sIsMember(`ban:opt:guild`, `${opts.path}:${opts.keyChild}:${msg.guild_id}`))
+            return msg.sendMsgExRef({ content: `命令 ${opts.path} ${opts.keyChild} 在该频道未启用` });
 
-        if (global.devEnv) log.debug(`${_path}/src/plugins/${opt.path}:${opt.fnc}`);
-        const plugin = await import(`./plugins/${opt.path}.ts`);
-        if (typeof plugin[opt.fnc] != "function") log.error(`not found function ${opt.fnc}() at "${global._path}/src/plugins/${opt.path}.ts"`);
-        else await (plugin[opt.fnc] as PluginFnc)(msg);
+        if (global.devEnv) log.debug(`${_path}/src/plugins/${opts.path}:${opts.fnc}`);
+        const plugin = await import(`./plugins/${opts.path}.ts`);
+        if (typeof plugin[opts.fnc] != "function") log.error(`not found function ${opts.fnc}() at "${global._path}/src/plugins/${opts.path}.ts"`);
+        else await (plugin[opts.fnc] as PluginFnc)(msg);
 
         await pushToDB("executeRecord", {
             mid: msg.id,
             type: String(Object.getPrototypeOf(msg).constructor.name),
-            optFather: opt.path,
-            optChild: opt.fnc,
+            optFather: opts.path,
+            optChild: opts.fnc,
             gid: msg.guild_id,
             cid: msg.channel_id,
             cName: (msg as IMessageGUILD).channelName || "",
@@ -48,15 +47,15 @@ async function executeChannel(msg: IMessageDIRECT | IMessageGUILD) {
 
 async function executeChat(msg: IMessageGROUP | IMessageC2C) {
     try {
-        const opt = await findOpts(msg);
-        if (!opt) return;
+        const { opts } = msg;
+        if (!opts) return;
         if (adminId.includes(msg.author.id) && !devEnv && (await redis.get("devEnv"))) return;
         if (await isBan(msg)) return;
-        if (global.devEnv) log.debug(`${_path}/src/plugins/${opt.path}:${opt.fnc}`);
+        if (global.devEnv) log.debug(`${_path}/src/plugins/${opts.path}:${opts.fnc}`);
 
-        const plugin = await import(`./plugins/${opt.path}.ts`);
-        if (typeof plugin[opt.fnc] != "function") log.error(`not found function ${opt.fnc}() at "${global._path}/src/plugins/${opt.path}.ts"`);
-        else await (plugin[opt.fnc] as PluginFnc)(msg);
+        const plugin = await import(`./plugins/${opts.path}.ts`);
+        if (typeof plugin[opts.fnc] != "function") log.error(`not found function ${opts.fnc}() at "${global._path}/src/plugins/${opts.path}.ts"`);
+        else await (plugin[opts.fnc] as PluginFnc)(msg);
 
     } catch (err) {
         await mailerError(msg, err instanceof Error ? err : new Error(JSON.stringify(err)))
