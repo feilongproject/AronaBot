@@ -90,10 +90,7 @@ export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessag
         imageUrl: lastestImage?.url,
         // fallback 部分
     }).catch(async err => {
-        await msg.sendMsgEx({
-            content: getErrorMessage + (err.errors.length ? (err.errors as string[]).join("\n") : strFormat(err)).replaceAll(".", ",")
-        });
-        (await import("../eventRec")).mailerError({ hbMatched, lastestImage }, err);
+        (await import("../eventRec")).mailerError({ hbMatched, lastestImage, msg }, err);
     });
 
 }
