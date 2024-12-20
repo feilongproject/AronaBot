@@ -47,9 +47,9 @@ export async function init() {
     log.info(`初始化: 正在加载命令设置`);
     global.commandConfig = (await import("../config/opts")).default;
 
-    log.info(`初始化: 正在创建热加载监听`);
+    log.info(`初始化: 正在创建模块热加载监听`);
     for (const hotloadConfig of config.hotLoadConfigs) {
-        log.info(`初始化: 正在创建热加载监听: ${hotloadConfig.type}`);
+        log.info(`初始化: 正在创建模块热加载监听: ${hotloadConfig.type}`);
         chokidar.watch(hotloadConfig.path).on("change", async (filepath, stats) => {
             if (!devEnv && !hotLoadStatus) return;
             if (require.cache[filepath]) {
@@ -62,13 +62,13 @@ export async function init() {
         });
     }
 
-    log.info(`初始化: 正在创建全局变量监听`);
+    log.info(`初始化: 正在创建全局变量热加载监听`);
     const hotloadJson: { p: string, classVar: InstanceWithReload }[] = [];
     hotloadJson.push({ p: config.studentInfo, classVar: studentInfo });
     hotloadJson.push({ p: config.studentNameAlias, classVar: studentNameAlias });
     for (const { p, classVar } of hotloadJson) {
         const constructorName = Object.getPrototypeOf(classVar).constructor.name;
-        log.info(`初始化: 正在创建全局变量监听: ${constructorName}`);
+        log.info(`初始化: 正在创建全局变量热加载监听: ${constructorName}`);
         chokidar.watch(p).on("change", async (filepath, stats) => {
             log.mark(`${constructorName} 正在进行热更新`);
             classVar.reload();

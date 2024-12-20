@@ -14,6 +14,7 @@ async function executeChannel(msg: IMessageDIRECT | IMessageGUILD) {
         if (adminId.includes(msg.author.id) && !devEnv && (await redis.get("devEnv"))) return;
         if (msg instanceof IMessageGUILD && msg.mentions?.find(v => v.bot && v.id != meId && !msg.mentions?.find(m => m.id == meId))) return;
 
+        global.commandConfig = (await import("../config/opts")).default;
         const { opts } = msg;
         if (!opts) return;
         if (await isBan(msg)) return;
@@ -47,6 +48,7 @@ async function executeChannel(msg: IMessageDIRECT | IMessageGUILD) {
 
 async function executeChat(msg: IMessageGROUP | IMessageC2C) {
     try {
+        global.commandConfig = (await import("../config/opts")).default;
         const { opts } = msg;
         if (!opts) return;
         if (adminId.includes(msg.author.id) && !devEnv && (await redis.get("devEnv"))) return;
