@@ -17,20 +17,20 @@ const userAgent = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (
 export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
     if (await redis.get("devEnv") && !devEnv) return;
 
-    msg?.sendMsgEx({ content: "checking" });
+    await msg?.sendMsgEx({ content: `${devEnv},checking` });
 
     const cookies = await getCookie().catch(err => {
         log.error(err);
         const _err = typeof err == "object" ? strFormat(err) : String(err);
         return (msg ? msg.sendMsgEx({ content: _err }) : sendToAdmin(_err)).catch(() => { }) as any;
     });
-    if (typeof cookies != "string") return msg?.sendMsgEx({ content: `cookies 未找到` });
+    if (typeof cookies != "string") return await msg?.sendMsgEx({ content: `cookies 未找到` });
 
     const dynamicPushList: DynamicPushList.Root = (await import(dynamicPushFilePath)).pushList; // 推送列表
 
     for (const bUser of dynamicPushList) {
         const { id: userId } = bUser;
-        if (!bUser.list.length) { await sleep(10 * 1000); continue; }
+        if (!bUser.list.length) { await sleep(5 * 1000); continue; }
 
         const dynamicItems = await getUserDynamics(userId, cookies).catch(err => {
             if (devEnv) log.error(bUser, userId, err);
@@ -46,23 +46,25 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT | IMessageG
         for (const item of dynamicItems) { // 检查每个动态
             const { id_str: dynamicId } = item;
             const isAllPushed = await redis.hExists(`biliMessage:allPushed:${userId}`, dynamicId); // 检查该动态是否全部推送完毕
-            if (isAllPushed) { await sleep(10 * 1000); continue; }
+            // if (isAllPushed) { await sleep(10 * 1000); continue; }
+            if (isAllPushed) continue;
 
             const idPushed = await redis.hmGet(`biliMessage:idPushed:${dynamicId}`, bUser.list.map(v => v.id));
             const notPushedList = bUser.list.filter((_, i) => !idPushed[i]).filter(v => v.enable);
             if (!notPushedList.length) {
+                if (devEnv) log.debug(`biliMessage:allPushed ${userId}-${dynamicId}`);
                 await redis.hSet(`biliMessage:allPushed:${userId}`, dynamicId, "pushed: " + bUser.list.map(v => v.id).join());
-                await sleep(10 * 1000); continue;
+                continue;
             } // 已经全部推送完毕，进行标记并结束
 
             // debugger;
 
-            if (await redis.exists(`dynamicPushing:${dynamicId}`)) { await sleep(10 * 1000); continue; }
+            if (await redis.exists(`dynamicPushing:${dynamicId}`) && !devEnv) { await sleep(5 * 1000); continue; }
             await redis.setEx(`dynamicPushing:${dynamicId}`, 60 * 2, "1"); // 开始推送，设置2分钟的锁
-
+            if (devEnv) log.debug(`pushing ${userId}-${dynamicId}`);
             const imageKey = `${userId}-${dynamicId}-${new Date().getTime()}.png`;
             try {
-
+                await msg?.sendMsgEx({ content: `开始截图 ${dynamicId}` });
                 const imageBuffer = await screenshot(dynamicId, item.modules.module_author.pub_ts.toString(), 30);
                 if (!imageBuffer || !imageBuffer.length) {
                     log.error(`screenshot(${dynamicId}) not return buff, div not found`);
@@ -75,7 +77,7 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT | IMessageG
 
                 for (const pushInfo of notPushedList) { // 检查未推送的
                     await dynamicPush(dynamicId, pushInfo, item, imageKey, imageBuffer);
-                    await sleep(10 * 1000);
+                    await sleep(5 * 1000);
                 }
 
             } catch (err) {
@@ -116,7 +118,7 @@ async function dynamicPush(dynamicId: string, pushInfo: DynamicPushList.PushInfo
             });
 
             if (devEnv) { log.debug(dynamicId, pushInfo); break; }
-            else await sleep(60 * 1000);
+            else await sleep(10 * 1000);
         }
         return;
     }
