@@ -152,7 +152,7 @@ async function dynamicPush(dynamicId: string, pushInfo: DynamicPushList.PushInfo
 export async function getUserCard(userId: string) {
     // https://api.bilibili.com/x/web-interface/card?mid=1
     return fetch(`https://api.bilibili.com/x/web-interface/card?mid=${userId}`, {
-
+        headers: { "User-Agent": userAgent },
     }).then(res => res.json() as Promise<BiliUserCard.Root>);
 }
 
