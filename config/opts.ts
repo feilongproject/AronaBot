@@ -387,6 +387,14 @@ export default {
                 describe: "soutubot"
             },
         },
+        chatbot: {
+            chatbot: {
+                reg: /^chat/,
+                fnc: "chatbot",
+                type: [MessageType.FRIEND, MessageType.GROUP],
+                describe: "deepseekAI对话",
+            },
+        },
     },
     channelAllows: {
         common: [

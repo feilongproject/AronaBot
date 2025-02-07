@@ -49,6 +49,7 @@ async function executeChannel(msg: IMessageDIRECT | IMessageGUILD) {
 async function executeChat(msg: IMessageGROUP | IMessageC2C) {
     try {
         global.commandConfig = (await import("../config/opts")).default;
+        aiAllow(msg);
         const { opts } = msg;
         if (!opts) return;
         if (adminId.includes(msg.author.id) && !devEnv && (await redis.get("devEnv"))) return;
@@ -275,6 +276,18 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             break;
         }
     }
+}
+
+function aiAllow(msg: IMessageGROUP | IMessageC2C) {
+    const allowGroup = ["E06A1951FA9B96870654B7919DCF2F5C", "C677AE4F115CC3FB4ED3AA1CCEF6ABC1"];
+    if (!(msg instanceof IMessageGROUP) || msg.opts) return;
+    if (!allowGroup.includes(msg.group_id)) return;
+
+    msg.opts = {
+        path: 'chatbot',
+        fnc: "chatbot",
+        keyChild: "chatbot",
+    };
 }
 
 
