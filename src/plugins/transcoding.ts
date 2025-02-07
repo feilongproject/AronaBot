@@ -14,7 +14,7 @@ const GROUP_MAP = {
     "1041893514": ["1F510A252BECEB3C3001755939CCF289", "E06A1951FA9B96870654B7919DCF2F5C"],
     "446808751": ["57A9BFF9A91410926173B10A33E18E3D"],
 };
-const AUTH_KEY = "1145141919810helloworld";
+const AUTH_KEY = "你好喵";
 
 export async function loadFile(msg: IMessageC2C) {
     if (!msg.attachments || !msg.attachments.length) return;
@@ -27,11 +27,14 @@ export async function loadFile(msg: IMessageC2C) {
 
     const runningJob = await redis.hGetAll("transcoding") as any as TranscodingRedis;
 
+    runningJob.tmpdir = runningJob.tmpdir || fs.mkdtempSync(path.join(os.tmpdir(), "transcoding-"));
+    if (!runningJob.tmpdir && !fs.existsSync(runningJob.tmpdir)) {
+        fs.mkdtempSync(path.join(os.tmpdir(), "transcoding-"));
+    }
+    await redis.hSet("transcoding", "tmpdir", runningJob.tmpdir);
+
     runningJob.uuid = runningJob.uuid || crypto.randomUUID();
     await redis.hSet("transcoding", "uuid", runningJob.uuid);
-
-    runningJob.tmpdir = runningJob.tmpdir || fs.mkdtempSync(path.join(os.tmpdir(), "transcoding-"));
-    await redis.hSet("transcoding", "tmpdir", runningJob.tmpdir);
 
 
     await msg.sendMsgEx({ content: `下载文件中, 请稍后` });
