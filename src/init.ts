@@ -86,7 +86,7 @@ export async function init() {
         }).catch(err => {
             log.error((init ? "初始化: " : "重连: ") + `redis 数据库连接失败， retry: ${retry}\n`, err);
             if (retry > 5) process.exit();
-            else return connectMariadb(false, ++retry) as any;
+            else return connectRedis(false, ++retry) as any;
         });
 
         redis.on("error", err => {
@@ -173,8 +173,8 @@ export async function init() {
 
     if (await redis.exists(`isRestart:${meId}`)) {
         await redis.del(`isRestart:${meId}`);
-        return sendToAdmin(`${botType} 重启成功`);
-    } else if (!devEnv) return sendToAdmin(`${botType} 启动成功`);
+        return sendToAdmin(`${botType} 重启成功`).catch(() => { });
+    } else if (!devEnv) return sendToAdmin(`${botType} 启动成功`).catch(() => { });
 }
 
 export async function loadGuildTree(init?: boolean): Promise<any>;
@@ -230,7 +230,7 @@ Buffer.prototype.json = function () {
     return JSON.parse(this.toString());
 }
 
-global.strFormat = (obj: any) => [JSON.stringify(obj, undefined, "    "), String(obj)].reduce((a, b) => a.length > b.length ? a : b);;
+global.strFormat = (obj: any) => [JSON.stringify(obj, undefined, " ".repeat(4)), String(obj)].reduce((a, b) => a.length > b.length ? a : b);;
 global.sleep = (ms: number) => new Promise(resovle => { setTimeout(resovle, ms) });
 global.fixName = (name: string): string => {
     name = name.replace("（", "(").replace("）", ")").toLowerCase().replaceAll(" ", "").replace(/(国际?服|日服|​「|」|\+| |\.|。)/g, "");
