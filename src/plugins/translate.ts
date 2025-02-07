@@ -50,12 +50,7 @@ async function getTranslated(postData: ApiData.Req): Promise<ApiData.Res | strin
                 body: JSON.stringify(postData),
             });
             text = await res.text();
-            if (res.status != 200) {
-                (await import("../eventRec"))
-                    .mailerError({ postData, text }, new Error(JSON.stringify({ ...res, status: res.status, statusText: res.statusText })));
-                continue;
-            }
-            return JSON.parse(text);
+            if (res.status != 200) continue;
 
         } catch (err) {
             (await import("../eventRec")).mailerError({ postData, text }, new Error(err as any));
