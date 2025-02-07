@@ -206,7 +206,29 @@ export async function getCookie(): Promise<string> {
     else throw "newCookie not happy";
 }
 
-export async function screenshot(dynamicId: string, pubTs: string, quality = 50): Promise<Buffer | undefined> {
+export async function biliDynamicByid(msg: IMessageGROUP | IMessageC2C) {
+    const dynamicId = msg.content.match(/\d+/)?.[0];
+    if (!dynamicId) return;
+
+    const imageBuffer = await screenshot(dynamicId, "");
+    if (!imageBuffer) return msg.sendMsgEx({ content: `imageBuffer not found` });
+
+    const imageKey = `0000-${dynamicId}-${new Date().getTime()}.png`;
+
+    writeFileSync(`${config.imagesOut}/bili-${imageKey}`, imageBuffer);
+    await cosPutObject({ Key: `biliDynamic/${imageKey}`, Body: imageBuffer, });
+    if (devEnv) log.debug(`${config.imagesOut}/bili-${imageKey}`);
+
+    const imageUrl = cosUrl(`biliDynamic/${imageKey}`, imageBuffer.length < 4 * 1000 * 1000 ? "" : undefined);
+
+    await msg.sendMsgEx({
+        imageUrl: imageUrl,
+        content: `${imageKey}`,
+    });
+
+}
+
+async function screenshot(dynamicId: string, pubTs: string, quality = 50): Promise<Buffer | undefined> {
 
     if (!global.browser || !browser.connected) global.browser = await puppeteer.launch({
         // headless: true,
@@ -235,7 +257,9 @@ export async function screenshot(dynamicId: string, pubTs: string, quality = 50)
 
         document.querySelector(`body > div.geetest_panel.geetest_wind`)?.remove();//删除验证码遮罩
         const r = "#app > div > div";
-        // document.querySelector(r)?.remove();//删除nav
+        document.querySelector(`#app > div > m-open-app.m-open-app.fixed-openapp.dynamic-float-btn`)?.remove(); // 删除打开 app
+        document.querySelector(`#app > div > m-open-app.m-open-app.card-wrap > div > div.dyn-header > div.dyn-header__right > div`); // 删除关注按钮
+
         document.querySelector(`${r}.opus-nav`)?.remove();//删除nav
         document.querySelector(`${r}.m-navbar`)?.remove();//删除nav
         document.querySelector(`${r}.openapp-dialog.large`)?.remove();//删除阴影遮罩
@@ -250,20 +274,27 @@ export async function screenshot(dynamicId: string, pubTs: string, quality = 50)
         document.querySelector(`${r}.opus-modules > div.opus-module-content > div.opus-read-more`)?.remove();//删除"展开阅读全文"阴影 (opus)
         document.querySelector(`${r}.opus-modules > div.opus-module-content > div.link-card-para`)?.remove();//删除"相关游戏" (opus)
         document.querySelector(`${r}.opus-modules > div.opus-module-author > div.launch-app-btn.opus-module-author__action`)?.remove();//删除"关注"按钮 (opus)
+
+        document.getElementsByClassName("m-fixed-openapp")?.[0]?.remove();
+        document.getElementsByClassName("m-open-app")?.[0]?.remove();
+        document.getElementsByClassName("openapp-dialog")?.[0]?.remove();
     });
-    const _ = await page.$("#app > div > div");
+    debugger;
+    const _ = await page.$("#app > div");
     if (!_) { await page.close(); return undefined; }
+    const clip = {
+        x: 0, y: 0,
+        width: await _.evaluate((_: any) => _.scrollWidth || _?.offsetWidth),
+        height: Math.min(5000, await _.evaluate((_: any) => _.scrollHeight || _?.offsetHeight)),
+    };
 
     const b64 = await _.screenshot({
         type: "jpeg",
         encoding: "base64",
         quality,
-        clip: {
-            x: 0, y: 0,
-            width: await _.evaluate(_ => _.scrollWidth),
-            height: Math.min(5000, await _.evaluate(_ => _.scrollHeight)),
-        }
+        clip: clip,
     });
+    debugger;
     writeFileSync(browserCkFile, strFormat(await page.cookies()));
     if (!devEnv) await page.close();
     return Buffer.from(b64, "base64") || undefined;

@@ -269,7 +269,13 @@ export default {
                 fnc: "mainCheck",
                 type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
                 describe: "手动检查一次推送"
-            }
+            },
+            biliDynamicByid: {
+                reg: /bilidid/,
+                fnc: "biliDynamicByid",
+                type: [MessageType.GUILD, MessageType.DIRECT, MessageType.GROUP, MessageType.FRIEND],
+                describe: "使用指定动态id手动获取截图"
+            },
         },
         roleAssign: {
             createVirtualRole: {
