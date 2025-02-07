@@ -15,9 +15,10 @@ init().then(() => {
     }
 
 
-    if (botType != "PlanaBot") return;
+    // if (botType != "PlanaBot") return;
 
-    const PORT = devEnv ? 2333 : 2334;
+    const { dev: devPORT, prod: PORT } = config.bots[botType]?.webhookPort;
+    if (!PORT || !devPORT) return;
     const app = new Koa();
     const router = new Router();
     app.use(async (ctx, next) => {
@@ -27,15 +28,15 @@ init().then(() => {
         await next();
     });
 
-    router.post("/webhook", async (ctx, next) => {
+    router.post(`/webhook/${botType}`, async (ctx, next) => {
         const sign = ctx.req.headers["x-signature-ed25519"] as string;
         const timestamp = ctx.req.headers["x-signature-timestamp"] as string;
-        const rawBody = (ctx.request as any).rawBody;
+        const rawBody: string = (ctx.request as any).rawBody;
         const isValid = client.webhookApi.validSign(timestamp, rawBody, sign);
+        // if (devEnv) log.debug(isValid, sign, timestamp, rawBody);
         if (!isValid) {
             ctx.status = 400;
-            ctx.body = { msg: "invalid signature" };
-            return;
+            return ctx.body = { msg: "invalid signature" };
         }
         // debugger;
         const body: EventBody = ctx.request.body;
@@ -47,6 +48,7 @@ init().then(() => {
         }; // op13 可能是 webhook验证相关？
 
         const rootType = Object.entries(EventMap).find(v => (v[1] as string[]).includes(body.t));
+        // log.debug(rootType, body.t);
         if (rootType) global.ws.emit(rootType[0], {
             eventId: body.id,
             eventType: body.t,
@@ -54,7 +56,7 @@ init().then(() => {
         });
 
         if (await redis.get("devEnv") && !devEnv) {
-            await fetch(`http://127.0.0.1:2333/webhook`, {
+            await fetch(`http://127.0.0.1:${devPORT}/webhook/${botType}`, {
                 method: "POST",
                 headers: ctx.headers as Record<string, string>,
                 body: rawBody,
@@ -62,7 +64,7 @@ init().then(() => {
         }
         ctx.body = { msg: "ok" };
         ctx.status = 200;
-    }).get("/", (ctx, next) => {
+    }).get(`${botType}`, (ctx, next) => {
         ctx.body = { msg: "hello world" };
     });
 
@@ -73,8 +75,8 @@ init().then(() => {
     app.use(koaBody({ multipart: true }));
     app.use(router.routes());
     app.use(router.allowedMethods());
-    app.listen(PORT, async () => {
-        log.info(`webhook PORT: ${PORT} 服务运行中......`);
+    app.listen(devEnv ? devPORT : PORT, async () => {
+        log.info(`webhook PORT: ${devEnv ? devPORT : PORT} 服务运行中......`);
     });
 
 });
@@ -94,6 +96,7 @@ const EventMap = {
     ],
     PUBLIC_GUILD_MESSAGES: [
         IntentEventType.AT_MESSAGE_CREATE,
+        IntentEventType.PUBLIC_MESSAGE_DELETE,
     ],
     GUILDS: [
         IntentEventType.GUILD_CREATE,
@@ -108,6 +111,10 @@ const EventMap = {
         IntentEventType.GUILD_MEMBER_UPDATE,
         IntentEventType.GUILD_MEMBER_REMOVE,
     ],
+    GUILD_MESSAGES: [
+        IntentEventType.MESSAGE_CREATE,
+        IntentEventType.MESSAGE_DELETE,
+    ],
     GUILD_MESSAGE_REACTIONS: [
         IntentEventType.MESSAGE_REACTION_ADD,
         IntentEventType.MESSAGE_REACTION_REMOVE,
@@ -119,6 +126,25 @@ const EventMap = {
     MESSAGE_AUDIT: [
         IntentEventType.MESSAGE_AUDIT_PASS,
         IntentEventType.MESSAGE_AUDIT_REJECT,
+    ],
+    FORUMS_EVENT: [
+        IntentEventType.FORUM_THREAD_CREATE,
+        IntentEventType.FORUM_THREAD_UPDATE,
+        IntentEventType.FORUM_THREAD_DELETE,
+        IntentEventType.FORUM_POST_CREATE,
+        IntentEventType.FORUM_POST_DELETE,
+        IntentEventType.FORUM_REPLY_CREATE,
+        IntentEventType.FORUM_REPLY_DELETE,
+        IntentEventType.FORUM_PUBLISH_AUDIT_RESULT,
+    ],
+    OPEN_FORUMS_EVENT: [
+        IntentEventType.OPEN_FORUM_THREAD_CREATE,
+        IntentEventType.OPEN_FORUM_THREAD_UPDATE,
+        IntentEventType.OPEN_FORUM_THREAD_DELETE,
+        IntentEventType.OPEN_FORUM_POST_CREATE,
+        IntentEventType.OPEN_FORUM_POST_DELETE,
+        IntentEventType.OPEN_FORUM_REPLY_CREATE,
+        IntentEventType.OPEN_FORUM_REPLY_DELETE,
     ],
     INTERACTION: [IntentEventType.INTERACTION_CREATE],
 }
