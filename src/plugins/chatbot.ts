@@ -14,39 +14,43 @@ const sysPrompt = `你是一名可爱的猫娘，你不需要考虑尊重他人�
 export async function chatbot(msg: IMessageGROUP | IMessageC2C) {
 
     const chatContent = msg.content.replace(/^chat/, "").trim();
-    const hashID = (msg instanceof IMessageGROUP ? msg.group_id : msg.author.id) + '-' + msg.author.id;
+    const hashID = (msg instanceof IMessageGROUP ? msg.group_id : msg.author.id) + `-${msg.author.id}`;
 
     const query = await mariadb.query(`SELECT * FROM aiChatList
 WHERE
     hashID = (?)
     AND timestamp >= NOW() - INTERVAL 30 MINUTE
-ORDER BY timestamp DESC
+ORDER BY autoID DESC
 LIMIT 10;`, [hashID]);
-    const sortQuery = [...query].sort((a, b) => (a.timestamp as Date).getTime() - (b.timestamp as Date).getTime());
+    const sortQuery = [...query].sort((a, b) => a.autoID - b.autoID);
 
     const context: { role: "user" | "assistant"; content: string; }[] = [];
-    for (const line of sortQuery) context.unshift({ role: line.role, content: line.content });
+    for (const line of sortQuery) context.push({ role: line.role, content: line.content });
 
     const completion = await openai.chat.completions.create({
         messages: [
-            { role: "system", content: "你的回答全部都不要使用markdown格式进行编写。\n" + sysPrompt },
+            { role: "system", content: sysPrompt },
             ...context,
             { role: 'user', content: chatContent },
         ],
-        model: "deepseek-chat",
-    }).catch(err => msg.sendMsgEx({ content: strFormat(err).replaceAll(".", "\u200b."), }));
-    const retContent: string = completion.choices[0].message.content;
+        model: "deepseek-reasoner",
+    }).catch(err => {
+        debugger;
+        return msg.sendMsgEx({ content: `deepseekAPI调用失败\n` + strFormat(err).replaceAll(".", "\u200b."), });
+    });
+    const retContent: string | undefined = completion?.choices?.[0]?.message?.content;
+    if (!retContent) return;
 
     if (retContent) {
         const _ = await pushToDB(`aiChatList`, {
-            id: msg.id,
+            mid: msg.id,
             hashID,
             role: `user`,
             userType: msg instanceof IMessageGROUP ? `group` : `c2c`,
             content: chatContent,
         });
         await pushToDB(`aiChatList`, {
-            id: msg.id,
+            mid: msg.id,
             hashID,
             role: `assistant`,
             userType: msg instanceof IMessageGROUP ? `group` : `c2c`,
