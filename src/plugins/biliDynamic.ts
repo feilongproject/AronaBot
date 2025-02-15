@@ -11,7 +11,8 @@ import config from "../../config/config";
 
 const browserCkFile = `${_path}/data/ck.json`;
 const dynamicPushFilePath = `${_path}/data/dynamicPush.ts`;
-const userAgent = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36 Edg/126.0.0.0";
+const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 Edg/133.0.0.0";
+const userAgentAndroid = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36 Edg/126.0.0.0";
 
 
 export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
@@ -32,14 +33,15 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT | IMessageG
         const { id: userId } = bUser;
         if (!bUser.list.length) { await sleep(5 * 1000); continue; }
 
+        if (await redis.exists(`dynamicPushing:${userId}`) && !devEnv) continue; // 检测到锁时忽略当前用户
+        await redis.setEx(`dynamicPushing:${userId}`, 60 * 3, "1"); // 开始推送，设置3分钟的用户锁
+
         const dynamicItems = await getUserDynamics(userId, cookies).catch(err => {
             if (devEnv) log.error(bUser, userId, err);
             const _err = `api出错: ${bUser.name} ${userId} ${strFormat(err)}`.replaceAll(".", ",");
             return (msg ? msg.sendMsgEx({ content: _err }) : sendToAdmin(_err)).then(() => { });
         }).catch(err => { });
         if (!dynamicItems) break;
-
-        // debugger;
 
         if (devEnv) await msg?.sendMsgEx({ content: `开始检查 ${bUser.name}(${userId})的动态` });
         log.info(`开始检查 ${bUser.name}(${userId})的动态`);
@@ -57,10 +59,6 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT | IMessageG
                 continue;
             } // 已经全部推送完毕，进行标记并结束
 
-            // debugger;
-
-            if (await redis.exists(`dynamicPushing:${dynamicId}`) && !devEnv) { await sleep(5 * 1000); continue; }
-            await redis.setEx(`dynamicPushing:${dynamicId}`, 60 * 2, "1"); // 开始推送，设置2分钟的锁
             if (devEnv) log.debug(`pushing ${userId}-${dynamicId}`);
             const imageKey = `${userId}-${dynamicId}-${new Date().getTime()}.png`;
             try {
@@ -86,11 +84,10 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT | IMessageG
                     .catch(err => log.error(err));
                 await sleep(10 * 1000); continue;
             }
-
-            await redis.del("dynamicPushing");
             await sleep(5 * 1000);
         }
 
+        await redis.del(`dynamicPushing:${userId}`); // 检查完毕，删除锁
         await sleep(10 * 1000);
     }
 
@@ -177,7 +174,6 @@ export async function getCookie(): Promise<string> {
             "Accept-Encoding": "gzip, deflate, br",
             "Accept-Language": "zh-CN,zh;q=0.9",
             "Cache-Control": "no-cache",
-            // "Content-Length": "6244",
             "Content-Type": "application/json;charset=UTF-8",
             "Dnt": "1",
             "Origin": "https://space.bilibili.com",
@@ -240,7 +236,7 @@ async function screenshot(dynamicId: string, pubTs: string, quality = 50): Promi
     const page = await browser.newPage();
     const cookies: puppeteer.Cookie[] = JSON.parse(readFileSync(browserCkFile).toString() || "[]");
     await page.setCookie(...cookies);
-    await page.setUserAgent(userAgent);
+    await page.setUserAgent(userAgentAndroid);
     await page.setViewport({
         width: 500,
         height: 800,
@@ -248,10 +244,14 @@ async function screenshot(dynamicId: string, pubTs: string, quality = 50): Promi
         isMobile: true,
     });
     await page.goto(`https://t.bilibili.com/${dynamicId}`, {
-        waitUntil: "networkidle0",
+        waitUntil: ["networkidle0", "domcontentloaded"],
     });
     if (await page.$("#app > div > div > div.launch-app-btn.opus-module-blocked"))
-        await page.reload({ waitUntil: "networkidle0" });
+        await page.reload({ waitUntil: ["networkidle0", "domcontentloaded"] });
+    await page.waitForNetworkIdle({
+        idleTime: 1000,
+        concurrency: 0,
+    });
 
     await page.evaluate(() => {
 
@@ -276,11 +276,11 @@ async function screenshot(dynamicId: string, pubTs: string, quality = 50): Promi
         document.querySelector(`${r}.opus-modules > div.opus-module-author > div.launch-app-btn.opus-module-author__action`)?.remove();//删除"关注"按钮 (opus)
 
         document.getElementsByClassName("m-fixed-openapp")?.[0]?.remove();
-        document.getElementsByClassName("m-open-app")?.[0]?.remove();
         document.getElementsByClassName("openapp-dialog")?.[0]?.remove();
+        document.getElementsByClassName("dyn-header__following")?.[0]?.remove();
     });
-    debugger;
-    const _ = await page.$("#app > div");
+    // debugger;
+    const _ = await page.$(".dyn-card") || await page.$(".opus-modules") || await page.$("#app > div");
     if (!_) { await page.close(); return undefined; }
     const clip = {
         x: 0, y: 0,
@@ -294,7 +294,7 @@ async function screenshot(dynamicId: string, pubTs: string, quality = 50): Promi
         quality,
         clip: clip,
     });
-    debugger;
+    // debugger;
     writeFileSync(browserCkFile, strFormat(await page.cookies()));
     if (!devEnv) await page.close();
     return Buffer.from(b64, "base64") || undefined;
