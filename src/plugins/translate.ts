@@ -41,7 +41,7 @@ export async function translate(msg: IMessageGROUP) {
 
 async function getTranslated(postData: ApiData.Req): Promise<ApiData.Res | string> {
 
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 5; i++) {
         let text;
         try {
             const res = await fetch(config.aiTranslate.proxyUrl, {
@@ -51,6 +51,7 @@ async function getTranslated(postData: ApiData.Req): Promise<ApiData.Res | strin
             });
             text = await res.text();
             if (res.status != 200) continue;
+            else return JSON.parse(text);
 
         } catch (err) {
             (await import("../eventRec")).mailerError({ postData, text }, new Error(err as any));
