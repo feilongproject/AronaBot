@@ -22,12 +22,6 @@ export default {
             }
         },
         pusher: {
-            updateGithubVersion: {
-                reg: /^\/?update$/,
-                fnc: "updateGithubVersion",
-                type: [MessageType.DIRECT, MessageType.FRIEND],
-                describe: "检查SchaleDB镜像仓库是否更新"
-            }
         },
         admin: {
             dmsMe: {
