@@ -56,8 +56,9 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT | IMessageG
             if (!notPushedList.length) {
                 if (devEnv) log.debug(`biliMessage:allPushed ${userId}-${dynamicId}`);
                 await redis.hSet(`biliMessage:allPushed:${userId}`, dynamicId, "pushed: " + bUser.list.map(v => v.id).join());
+                await redis.del(`biliMessage:idPushed:${dynamicId}`);
                 continue;
-            } // 已经全部推送完毕，进行标记并结束
+            } // 已经全部推送完毕, 进行标记并结束, 删除推送记录
 
             if (devEnv) log.debug(`pushing ${userId}-${dynamicId}`);
             const imageKey = `${userId}-${dynamicId}-${new Date().getTime()}.png`;
