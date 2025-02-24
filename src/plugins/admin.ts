@@ -43,7 +43,7 @@ export async function status(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP
         `\n系统内存：${(os.freemem() / 1024 / 1024).toFixed()}MB/${(os.totalmem() / 1024 / 1024).toFixed()}MB (free/total)` +
         `\n系统已开机：${timeConver(os.uptime() * 1000)}`;
     if (devEnv) log.debug(`\n` + content);
-    return msg.sendMsgEx({ content: `\n` + content });
+    return msg.sendMsgEx(`\n${content}`);
 }
 export async function dmsMe(msg: IMessageGUILD) {
     const dmsInfo = await client.directMessageApi.createDirectMessage({ source_guild_id: msg.guild_id, recipient_id: msg.author.id });
@@ -53,7 +53,7 @@ export async function dmsMe(msg: IMessageGUILD) {
 export async function ping(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
     // if (!adminId.includes(msg.author.id)) return;
     // log.debug(msg);
-    return msg.sendMsgEx({ content: await global.redis.ping() });
+    return msg.sendMsgEx(await global.redis.ping());
 }
 
 export async function hotLoad(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
@@ -61,13 +61,13 @@ export async function hotLoad(msg: IMessageGUILD | IMessageDIRECT | IMessageGROU
     // if (devEnv) return;
     const times = /\/?热(加载|更新)\s*(?<times>-?\d+)$/.exec(msg.content)?.groups?.times;
     hotLoadStatus = Number(times);
-    return msg.sendMsgEx({ content: `${devEnv} 已${msg.content}` });
+    return msg.sendMsgEx(`${devEnv} 已${msg.content}`);
 }
 
 export async function restart(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
     if (!adminId.includes(msg.author.id)) return;
     await redis.set(`isRestart:${meId}`, "T");
-    await msg.sendMsgEx({ content: "开始重启" });
+    await msg.sendMsgEx("开始重启");
     process.exit();
 }
 
@@ -80,7 +80,7 @@ export async function sendTopMessage(msg: IMessageGUILD) {
     const msgId = result.result?.id;
     if (!msgId) throw new Error("sendTopMessage未找到msgId");
 
-    return client.pinsMessageApi.putPinsMessage(channelId, msgId).then(() => msg.sendMsgEx({ content: `已发送消息至 ${channelId}` }));
+    return client.pinsMessageApi.putPinsMessage(channelId, msgId).then(() => msg.sendMsgEx(`已发送消息至 ${channelId}`));
 }
 
 export async function directToAdmin(msg: IMessageDIRECT) {

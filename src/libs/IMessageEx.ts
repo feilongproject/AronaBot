@@ -79,7 +79,12 @@ class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
         return this.sendMsgEx(options);
     }
 
-    async sendMsgEx(options: Partial<SendOption.Channel>) {
+    async sendMsgEx(_options: string): Promise<RetryResult<any>>
+    async sendMsgEx(_options: Partial<SendOption.Base>): Promise<RetryResult<any>>
+    async sendMsgEx(_options: Partial<SendOption.Channel>): Promise<RetryResult<any>>
+    async sendMsgEx(_options: Partial<SendOption.Channel> | string): Promise<RetryResult<any>> {
+        const options = typeof _options === 'string' ? { content: _options } : _options;
+
         global.botStatus.msgSendNum++;
         options.msgId = options.msgId || this.id || await redis.get(`lastestMsgId:${botType}`) || undefined;
         options.guildId = options.guildId || this.guild_id;
@@ -276,7 +281,12 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         return this.sendMsgEx(options);
     }
 
-    async sendMsgEx(options: Partial<SendOption.Chat>) {
+    async sendMsgEx(_options: string): Promise<RetryResult<any>>
+    async sendMsgEx(_options: Partial<SendOption.Base>): Promise<RetryResult<any>>
+    async sendMsgEx(_options: Partial<SendOption.Chat>): Promise<RetryResult<any>>
+    async sendMsgEx(_options: Partial<SendOption.Chat> | string): Promise<RetryResult<any>> {
+        const options = typeof _options === 'string' ? { content: _options } : _options;
+
         global.botStatus.msgSendNum++;
         options.msgId = options.msgId || this.id || undefined;
         options.sendToId = options.sendToId || this.sendToId;
@@ -291,7 +301,7 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         if ((options.fileType as number) == -1) options.fileType = undefined;
         if (options.fileType || options.fileInfo || options.fileUrl || options.imageUrl) options.msgType = 7;
         if ((options.fileUrl || options.imageUrl)?.endsWith("/random")) options.fileType = 1;
-        return callWithRetry(this._sendMsgEx, [options]) as any;
+        return callWithRetry(this._sendMsgEx, [options]);
     }
 
     private _sendMsgEx = async (options: Partial<SendOption.Chat>) => {
@@ -343,8 +353,6 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         const redisKey = `fileInfo:cache:${sendToId}:${fUrl}`.replace(/https?:\/\//, "");
         const fileInfo = await redis.get(redisKey);
         if (fileInfo && !force) return fileInfo;
-        // if (fUrl.includes("cdn.arona.schale.top") && !fileInfo) await fetch(fUrl).then(res => res.buffer()).then(buff => { });
-        // if (!new URL(fUrl).pathname.startsWith("/p/gacha/")) log.mark(`资源 ${fUrl} 获取中, 存在: ${!!fileInfo}`);
         const fileRes = await (this.messageType == MessageType.GROUP ? client.groupApi.postFile(sendToId, {
             file_type: fileType,
             file_data: fileData,
@@ -473,18 +481,21 @@ interface FindedData {
 }
 
 namespace SendOption {
-    export interface Channel {
-        ref?: boolean;
-        imageFile?: Buffer;
+
+    export interface Base {
+        content?: string;
         imagePath?: string;
         imageUrl?: string;
-        content?: string;
-        sendType: MessageType;
+        imageFile?: Buffer;
         msgId?: string;
         eventId?: string;
+        ark?: Ark;
+    }
+    export interface Channel extends Base {
+        ref?: boolean;
+        sendType: MessageType;
         guildId?: string;
         channelId: string;
-        ark?: Ark;
     }
 
     export interface MarkdownPublic extends MarkdownParams {
@@ -501,22 +512,13 @@ namespace SendOption {
         keyboard?: MessageKeyboard;
     }
 
-    export interface Chat {
+    export interface Chat extends Base {
         // ref?: boolean;
         msgType: 0 | 1 | 2 | 3 | 4 | 7;// 0: 文本 1: 图文混排 2: markdown 3: ark 4: embed 7: media
-        imageFile?: Buffer;
         fileInfo?: string;
-        imagePath?: string;
-        imageUrl?: string;
         fileUrl?: string;
         fileData?: string;
         fileType?: 1 | 2 | 3; // 1 图片，2 视频，3 语音，4 文件（暂不开放）
-        content?: string;
-        // sendType: MessageType;
-        msgId?: string;
-        eventId?: string;
-        ark: Ark;
-
         sendToId?: string;
     }
 }
