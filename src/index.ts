@@ -66,6 +66,8 @@ init().then(() => {
         ctx.status = 200;
     }).get(`${botType}`, (ctx, next) => {
         ctx.body = { msg: "hello world" };
+    }).get(`/ping`, (ctx, next) => {
+        ctx.body = `pong`;
     });
 
     app.use(async (ctx, next) => {
