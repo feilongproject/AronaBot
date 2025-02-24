@@ -36,9 +36,9 @@ LIMIT 10;`, [hashID]);
         model: "deepseek-reasoner",
     }).catch(err => {
         debugger;
-        return msg.sendMsgEx({ content: `deepseekAPI调用失败\n` + strFormat(err).replaceAll(".", "\u200b."), });
+        return msg.sendMsgEx(`deepseekAPI调用失败\n` + strFormat(err).replaceAll(".", "\u200b.")).then((() => { }));
     });
-    const retContent: string | undefined = completion?.choices?.[0]?.message?.content;
+    const retContent: string = completion?.choices?.[0]?.message?.content || "";
     if (!retContent) return;
 
     if (retContent) {
