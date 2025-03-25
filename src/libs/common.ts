@@ -48,7 +48,7 @@ export async function callWithRetry<T extends (...args: A) => Promise<R>, R, A e
         const removeParams = () => {
             if (Array.isArray(args[0]?.params)) {
                 args[0].params = (args[0]?.params as string[]).filter(v => v !== "\u200b");
-                args[0].markdown.params = undefined;
+                if (args[0].markdown) args[0].markdown.params = undefined;
             }
         }
         if (err && (err as any).code === 304023 || (err as any)?.message?.includes("push message is waiting for audit now")) {
