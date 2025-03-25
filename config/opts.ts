@@ -403,7 +403,7 @@ export default {
                 describe: "选择今日老婆",
             },
             wifuDelete: {
-                reg: /^\/?\s*今日离婚/,
+                reg: /^\/?\s*(今日)?离婚/,
                 fnc: "wifuDelete",
                 type: [MessageType.GROUP],
                 describe: "与今日老婆离婚",
