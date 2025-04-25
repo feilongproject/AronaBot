@@ -1,28 +1,26 @@
 import fs from "fs";
 import imageSize from "image-size";
 import { Button, MessageKeyboard } from "qq-bot-sdk";
-import { IMessageGROUP, MessageType } from "../libs/IMessageEx";
-import { DynamicPushList } from "../types/Dynamic";
-import config from "../../config/config";
 import { sendToAdmin } from "../libs/common";
+import { DynamicPushList } from "../types/Dynamic";
+import { IMessageGROUP, MessageType } from "../libs/IMessageEx";
+import config from "../../config/config";
 
 
-export const commandMap: Record<string, (event: IntentMessage.INTERACTION) => Promise<void>> = {
+export const commandMap: Record<string, (event: CommandArg) => Promise<any>> = {
     dynamicPush,
     echo,
+};
+
+interface CommandArg {
+    eventId: string;
+    groupId: string;
+    btnData: string;
 }
 
-function convertEvent(event: IntentMessage.INTERACTION) {
-    return {
-        eventId: event.eventId,
-        groupId: event.msg.group_openid,
-        btnData: event.msg.data.resolved.button_data,
-    };
-}
 
-
-async function dynamicPush(event: IntentMessage.INTERACTION) {
-    const { eventId, groupId, btnData, } = convertEvent(event);
+async function dynamicPush(args: CommandArg) {
+    const { eventId, groupId, btnData, } = args;
     if (devEnv) log.debug("btnData:", btnData);
     if (await redis.get("devEnv") && !devEnv) return;
 
@@ -43,7 +41,7 @@ async function dynamicPush(event: IntentMessage.INTERACTION) {
 
     if (devEnv) {
         // log.debug(dynamicId, bUserId, pushList);
-        await echo(event);
+        await echo(args);
     }
     debugger;
 
@@ -97,18 +95,99 @@ async function dynamicPush(event: IntentMessage.INTERACTION) {
 }
 
 
-async function echo(event: IntentMessage.INTERACTION) {
+async function echo(args: CommandArg) {
+    const { eventId, groupId, btnData } = args;
 
-    const { groupId, btnData, } = convertEvent(event);
+    if (devEnv) console.log("echo.args", args);
 
-    if (devEnv) console.log("postMessage", btnData);
-
-    await client.groupApi.postMessage(groupId, {
+    return await client.groupApi.postMessage(groupId, {
         msg_type: 0,
         content: btnData,
-        event_id: event.eventId,
+        event_id: eventId,
     } as any).then(data => {
         if (devEnv) log.debug(data.data);
+        return data.data;
     }).catch(err => log.error(err));
 
+}
+
+export async function sendToGroupHandler(type: string, data: string, groupUid?: string) {
+    const callbackGroupUid = groupUid || await redis.hGet("config", `callbackGroup`) as string;
+    const groupId = Object.entries(config.bots[botType].groupMap).find(v => v[1] === callbackGroupUid)?.[0];
+    if (!groupId) return;
+    const eventId = await redis.get(`groupLastestEventId:${botType}:${groupId}`);
+    if (!eventId) return;
+
+    const cmdKey = commandMap[type];
+    if (typeof cmdKey === 'function') return await cmdKey({
+        eventId: eventId,
+        groupId: groupId,
+        btnData: data,
+    });
+
+}
+
+/// -----------
+
+export async function syncgroup(msg: IMessageGROUP) {
+    const groupUid = config.bots[botType].groupMap[msg.group_id];
+    if (!groupUid) return msg.sendMsgEx(`未设置群组实际群号uid`);
+
+    const buttonKeys = `sync-${groupUid}-${Math.round(Math.random() * 10000)}`;
+    await redis.set(`syncGroupButtonId:${botType}:${groupUid}`, buttonKeys);
+    await redis.del(`buttonData:${botType}:${groupUid}`);
+
+    await msg.sendMarkdown({
+        params_omnipotent: [
+            `检测id中, 本群uid: ${groupUid}`,
+        ],
+        keyboard: {
+            content: {
+                rows: [{
+                    buttons: [{
+                        id: buttonKeys,
+                        render_data: { label: `btn-t1-label-${new Date().getTime()}`, visited_label: "btn-t1-label-c" },
+                        action: {
+                            type: 1,
+                            data: "123456",
+                            permission: { type: 2 },
+                        },
+                    }]
+                }]
+            },
+
+        },
+        content: `md发送失败`,
+    });
+
+    await sleep(1000 * 5);
+    const buttonData = await redis.get(`buttonData:${botType}:${groupUid}`);
+    if (buttonData) return msg.sendMsgEx(`已获取(5s): ${buttonData}`);
+
+    await sleep(1000 * 5);
+    const buttonData1 = await redis.get(`buttonData:${botType}:${groupUid}`);
+    if (buttonData1) return msg.sendMsgEx(`已获取(10s): ${buttonData1}`);
+
+    return msg.sendMsgEx(`获取buttonData失败`);
+
+}
+
+export async function callButton() {
+    const callbackGroupUid = await redis.hGet("config", `callbackGroup`) as string;
+    const buttonId = await redis.get(`syncGroupButtonId:${botType}:${callbackGroupUid}`);
+    const buttonData = await redis.get(`buttonData:${botType}:${callbackGroupUid}`);
+    if (!buttonId || !buttonData) return;
+
+    return fetch(config.groupPush.url, {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${config.groupPush.llobKey}`,
+        },
+        body: JSON.stringify({
+            "g": callbackGroupUid,
+            "a": config.groupPush.appId,
+            "b": buttonId,
+            "d": buttonData,
+        }),
+    }).then(res => res.text()).catch(_ => log.error(`callButton失败`));
 }

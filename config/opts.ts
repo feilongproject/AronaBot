@@ -409,6 +409,14 @@ export default {
                 describe: "与今日老婆离婚",
             },
         },
+        interaction: {
+            syncgroup: {
+                reg: /^\/?\s*syncgroup/,
+                fnc: "syncgroup",
+                type: [MessageType.GROUP],
+                describe: "同步当前群聊groupId",
+            }
+        },
     },
     channelAllows: {
         common: [

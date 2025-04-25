@@ -4,7 +4,7 @@ import imageSize from "image-size";
 import * as puppeteer from "puppeteer";
 import { readFileSync, writeFileSync } from "fs";
 import { BiliDynamic, DynamicPushList, BiliUserCard } from "../types/Dynamic";
-import { sendToAdmin, sendToGroup } from "../libs/common";
+import { sendToAdmin } from "../libs/common";
 import { IMessageC2C, IMessageDIRECT, IMessageGROUP, IMessageGUILD, MessageType } from "../libs/IMessageEx";
 import config from "../../config/config";
 
@@ -103,17 +103,19 @@ async function dynamicPush(dynamicId: string, pushInfo: DynamicPushList.PushInfo
             // debugger;
 
             if (!devEnv && await redis.hExists(`biliMessage:idPushed:${dynamicId}`, pushInfo.id)) return;
-            await sendToGroup(`dynamicPush`, `${pushInfo.id},${imageKey}`, pushInfo.id).then(text => {
-                if (devEnv) log.debug("fetch结果: ", imageKey, text);
-            }).catch(async err => {
-                log.error(err);
-                try {
-                    const m = await import("../eventRec");
-                    return await m.mailerError({ dynamicId }, new Error(strFormat(err)));
-                } catch (err_1) {
-                    return log.error(err_1);
-                }
-            });
+            await (await import('../plugins/interaction'))
+                .sendToGroupHandler(`dynamicPush`, `${pushInfo.id},${imageKey}`, pushInfo.id)
+                .then(text => {
+                    if (devEnv) log.debug("fetch结果: ", imageKey, text);
+                }).catch(async err => {
+                    log.error(err);
+                    try {
+                        const m = await import("../eventRec");
+                        return await m.mailerError({ dynamicId }, new Error(strFormat(err)));
+                    } catch (err_1) {
+                        return log.error(err_1);
+                    }
+                });
 
             if (devEnv) { log.debug(dynamicId, pushInfo); break; }
             else await sleep(10 * 1000);
