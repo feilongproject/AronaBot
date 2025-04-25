@@ -42,7 +42,8 @@ export async function init() {
         process.exit();
     }
     global.allowMarkdown = config.bots[botType].allowMarkdown;
-    log.info(`初始化: botType: ${botType}, allowMarkdown: ${allowMarkdown}`);
+    global.meAppId = config.bots[botType].appID;
+    log.info(`初始化: botType: ${botType}, allowMarkdown: ${allowMarkdown}, meAppId: ${meAppId}`);
 
     log.info(`初始化: 正在加载命令设置`);
     global.commandConfig = (await import("../config/opts")).default;
