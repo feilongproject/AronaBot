@@ -66,9 +66,46 @@ init().then(() => {
         ctx.status = 200;
     }).get(`${botType}`, (ctx, next) => {
         ctx.body = { msg: "hello world" };
+    }).post(`/sync`, async (ctx, next) => {
+        const raw = ctx.request.body?.raw;
+
+        if (!raw) return ctx.body = { status: 404 };
+        const { peerUid: groupUid, peerUin } = raw;
+        if (groupUid !== peerUin) return;
+        const syncGroupButtonId = await redis.get(`syncGroupButtonId:${botType}:${groupUid}`);
+        if (!syncGroupButtonId) return;
+
+        for (const element of raw.elements) {
+            if (element.elementType !== 17 || !element.inlineKeyboardElement) continue;
+            const keyboard = element.inlineKeyboardElement;
+            const appid = keyboard.botAppid;
+            if (appid != meAppId) continue;
+
+            for (const row of keyboard.rows) {
+                for (const button of row.buttons) {
+                    if (button.type != 1) continue;
+                    if (syncGroupButtonId != button.id) continue;
+                    // console.log(button);
+                    const buttonData = button.data;
+                    await redis.set(`buttonData:${botType}:${groupUid}`, buttonData);
+                    log.info(`已为 ${botType} 在群 ${groupUid} 中绑定按钮id: ${buttonData}`);
+                }
+            }
+        }
+
+        ctx.body = {
+            status: 200,
+        };
+    }).post(`/sendToGroupHandler`, async (ctx, next) => {
+        const { type, data, groupUid } = ctx.request.body || {};
+        if (!type || !data) return ctx.body = { message: `type or data is unset` };
+        const result = await (await import('./plugins/interaction')).sendToGroupHandler(type, data, groupUid);
+        ctx.body = result;
+
     }).get(`/ping`, (ctx, next) => {
         ctx.body = `pong`;
     });
+
 
     app.use(async (ctx, next) => {
         await next();
