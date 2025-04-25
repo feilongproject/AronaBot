@@ -1,0 +1,9 @@
+{
+    "ignore": [".git", "node_modules/**/node_modules", "src/plugins/", "config/opts.ts"],
+    "execMap": {
+        "ts": "tsc"
+    },
+    "watch": ["config/", "src/init.ts", "src/index.ts", "src/libs/", "src/types/"],
+    "exec": "ts-node src/index.ts --dev",
+    "ext": "ts,json"
+}

@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "outDir": "./dist",
+        "module": "commonjs",
+        "target": "es2021",
+        "lib": ["es2021", "es2016", "es2015"],
+        "moduleResolution": "node",
+        "alwaysStrict": true,
+        "strict": true,
+        "preserveConstEnums": true,
+        "sourceMap": true,
+        "esModuleInterop": true,
+        "resolveJsonModule": true,
+        "types": ["node"]
+    },
+    "include": ["src/", "script/", "test/**/*", "data/"],
+    "typeRoots": ["./src/types"],
+    "ts-node": {
+        "files": true
+    },
+    "exclude": ["node_modules", "dist", "test"]
+    // "extends": "@tsconfig/node18/tsconfig.json"
+}
