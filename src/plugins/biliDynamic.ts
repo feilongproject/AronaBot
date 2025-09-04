@@ -124,7 +124,8 @@ async function dynamicPush(dynamicId: string, pushInfo: DynamicPushList.PushInfo
     }
 
     const userCard = await getUserCard(item.modules.module_author.mid.toString());
-    const userName = userCard.data.card.name;
+    const userName = userCard.data?.card?.name;
+    if (typeof userName != 'string') throw new Error(`unknow userName, cardData: ${JSON.stringify(userCard)}`);
 
     const guildId = Object.values(saveGuildsTree).find(v => Object.values(v.channels).find(v => v.id === pushInfo.id)?.id)?.id;
     const msg = new IMessageGUILD({ id: await redis.get(`lastestMsgId:${botType}`), guildId, channel_id: pushInfo.id, } as any, false);
