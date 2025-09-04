@@ -287,9 +287,15 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
 }
 
 function aiAllow(msg: IMessageGROUP | IMessageC2C) {
-    const allowGroup = ["E06A1951FA9B96870654B7919DCF2F5C", "C677AE4F115CC3FB4ED3AA1CCEF6ABC1"];
+    const allowGroup = [
+        "E06A1951FA9B96870654B7919DCF2F5C",
+        "C677AE4F115CC3FB4ED3AA1CCEF6ABC1",
+        "2EA07C40CCAA6E3358A2DB5EA5527D8A",
+        "FCD8D4FF03575F550D495003F48A3D01",
+    ];
     if (!(msg instanceof IMessageGROUP) || msg.opts) return;
     if (!allowGroup.includes(msg.group_id)) return;
+    if (/^[0-9a-zA-Z\/<>@!]+$/.test(msg.content)) return;
 
     msg.opts = {
         path: 'chatbot',

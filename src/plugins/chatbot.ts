@@ -21,7 +21,7 @@ WHERE
     hashID = (?)
     AND timestamp >= NOW() - INTERVAL 30 MINUTE
 ORDER BY autoID DESC
-LIMIT 10;`, [hashID]);
+LIMIT 20;`, [hashID]);
     const sortQuery = [...query].sort((a, b) => a.autoID - b.autoID);
 
     const context: { role: "user" | "assistant"; content: string; }[] = [];
@@ -33,7 +33,7 @@ LIMIT 10;`, [hashID]);
             ...context,
             { role: 'user', content: chatContent },
         ],
-        model: "deepseek-reasoner",
+        model: "deepseek-chat",
     }).catch(err => {
         debugger;
         return msg.sendMsgEx(`deepseekAPI调用失败\n` + strFormat(err).replaceAll(".", "\u200b.")).then((() => { }));
