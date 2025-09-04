@@ -112,11 +112,25 @@ async function echo(args: CommandArg) {
 }
 
 export async function sendToGroupHandler(type: string, data: string, groupUid?: string) {
+    if (devEnv) log.debug(botType, type, data);
+
+    if (botType !== 'PlanaBot') {
+        return fetch(`http://127.0.0.1:${config.bots.PlanaBot.webhookPort[devEnv ? 'dev' : 'prod']}/sendToGroupHandler`, {
+            method: "POST",
+            body: JSON.stringify({
+                "type": type,
+                "data": data,
+            }),
+            headers: { 'Content-Type': 'application/json' },
+        }).catch(err => log.error(err));
+    }
+
     const callbackGroupUid = groupUid || await redis.hGet("config", `callbackGroup`) as string;
     const groupId = Object.entries(config.bots[botType].groupMap).find(v => v[1] === callbackGroupUid)?.[0];
-    if (!groupId) return;
+    if (devEnv) log.debug(callbackGroupUid, groupId);
+    if (!groupId) return 'not found groupId';
     const eventId = await redis.get(`groupLastestEventId:${botType}:${groupId}`);
-    if (!eventId) return;
+    if (!eventId) return 'not found groupLastestEventId';
 
     const cmdKey = commandMap[type];
     if (typeof cmdKey === 'function') return await cmdKey({
@@ -142,7 +156,7 @@ export async function syncgroup(msg: IMessageGROUP) {
             `检测id中, 本群uid: ${groupUid}`,
         ],
         keyboard: {
-            content: {
+            content: botType === 'AronaBot' ? undefined : {
                 rows: [{
                     buttons: [{
                         id: buttonKeys,
@@ -155,6 +169,7 @@ export async function syncgroup(msg: IMessageGROUP) {
                     }]
                 }]
             },
+            id: "102024160_1745511246",
 
         },
         content: `md发送失败`,
@@ -177,6 +192,7 @@ export async function callButton() {
     const buttonId = await redis.get(`syncGroupButtonId:${botType}:${callbackGroupUid}`);
     const buttonData = await redis.get(`buttonData:${botType}:${callbackGroupUid}`);
     if (!buttonId || !buttonData) return;
+    if (devEnv) log.debug("callButton", callbackGroupUid, buttonId, buttonData);
 
     return fetch(config.groupPush.url, {
         method: "POST",

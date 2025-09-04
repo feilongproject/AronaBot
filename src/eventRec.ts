@@ -180,6 +180,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
         }
         case AvailableIntentsEventsEnum.GUILD_MEMBERS: {
             if (botType != "AronaBot") return;
+            if (devEnv) log.debug("GUILD_MEMBERS", event);
             import("./plugins/admin").then(module => module.updateEventId(event as IntentMessage.GUILD_MEMBERS)).catch(err => log.error(err));
             if (devEnv) return;
             const msg = (event as IntentMessage.GUILD_MEMBERS).msg;
@@ -247,23 +248,30 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
         case AvailableIntentsEventsEnum.INTERACTION: {
             if (await redis.get("devEnv") && !devEnv) return;
 
-            const { msg } = event as IntentMessage.INTERACTION;
+            const { msg, eventId } = event as IntentMessage.INTERACTION;
             if (devEnv) log.debug(event, msg.data);
-            if (!("group_openid" in msg)) return;
 
+            const groupId = msg?.group_openid;
+            if (!groupId) return;
+            const groupUid = config.bots[botType].groupMap[groupId];
+            if (!groupUid) return;
+
+            const syncButtonId = await redis.get(`syncGroupButtonId:${botType}:${groupUid}`);
             const { button_id: buttonId } = msg.data.resolved;
-            const [authKey = "", commandKey = ""] = buttonId.split(":");
-            if (authKey != config.groupPush.authKey) return;
+            if (buttonId !== syncButtonId) return;
+            await redis.setEx(`groupLastestEventId:${botType}:${groupId}`, 60 * 3.5, eventId);
+            // const [authKey = "", commandKey = ""] = buttonId.split(":");
+            // if (authKey != config.groupPush.authKey) return;
 
-            const interaction = await import('./plugins/interaction');
-            const func = interaction.commandMap[commandKey];
-            if (func) await func(event as IntentMessage.INTERACTION).catch(async (err: Error) => {
-                try {
-                    return await mailerError(event, err);
-                } catch (err_1) {
-                    return log.error(err_1);
-                }
-            });
+            // const interaction = await import('./plugins/interaction');
+            // const func = interaction.commandMap[commandKey];
+            // if (func) await func(event as IntentMessage.INTERACTION).catch(async (err: Error) => {
+            //     try {
+            //         return await mailerError(event, err);
+            //     } catch (err_1) {
+            //         return log.error(err_1);
+            //     }
+            // });
 
 
             // await client.interactionApi.putInteraction(msg.id, { code: 0 }).then(data => {

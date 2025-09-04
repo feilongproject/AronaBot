@@ -98,9 +98,10 @@ init().then(() => {
         };
     }).post(`/sendToGroupHandler`, async (ctx, next) => {
         const { type, data, groupUid } = ctx.request.body || {};
+        if (devEnv) log.debug(`${botType}.sendToGroupHandler`, type, data, groupUid);
         if (!type || !data) return ctx.body = { message: `type or data is unset` };
         const result = await (await import('./plugins/interaction')).sendToGroupHandler(type, data, groupUid);
-        ctx.body = result;
+        ctx.body = result || { message: "ok" };
 
     }).get(`/ping`, (ctx, next) => {
         ctx.body = `pong`;
@@ -132,6 +133,7 @@ const EventMap = {
         IntentEventType.C2C_MSG_REJECT,
         IntentEventType.FRIEND_ADD,
         IntentEventType.FRIEND_DEL,
+        IntentEventType.SUBSCRIBE_MESSAGE_STATUS,
     ],
     PUBLIC_GUILD_MESSAGES: [
         IntentEventType.AT_MESSAGE_CREATE,
@@ -148,6 +150,7 @@ const EventMap = {
     GUILD_MEMBERS: [
         IntentEventType.GUILD_MEMBER_ADD,
         IntentEventType.GUILD_MEMBER_UPDATE,
+        IntentEventType.GUILD_MEMBER_REMOVE,
         IntentEventType.GUILD_MEMBER_REMOVE,
     ],
     GUILD_MESSAGES: [

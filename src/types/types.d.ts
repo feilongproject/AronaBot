@@ -17,6 +17,7 @@ declare global {
     var client: IOpenAPI;
     var ws: ReturnType<typeof createWebsocket>;
     var meId: string;
+    var meAppId: string;
     var redis: RedisClientType;
     var mariadb: PoolConnection;
     var browser: Browser;
@@ -46,7 +47,7 @@ declare global {
 
 
     var strFormat: (d: any) => string;
-    var sleep: (time: number) => Promise<any>;
+    var sleep: (ms: number) => Promise<any>;
     var fixName: (name: string) => string;
 
     var cosUrl: (key: string, fix?: string) => string;
@@ -351,6 +352,7 @@ declare global {
         FRIEND_DEL = "FRIEND_DEL",
 
         INTERACTION_CREATE = "INTERACTION_CREATE",
+        SUBSCRIBE_MESSAGE_STATUS = "SUBSCRIBE_MESSAGE_STATUS",
     }
 
     interface StudentDataNet {
