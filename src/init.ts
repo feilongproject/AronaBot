@@ -167,6 +167,8 @@ export async function init() {
             log.error(err);
             return sendToAdmin((typeof err == "object" ? strFormat(err) : String(err)).replaceAll(".", ",")).catch(() => { });
         }));
+    } else if (botType === 'PlanaBot') {
+        schedule.scheduleJob("0 */3 * * * ?", () => import("./plugins/interaction").then(module => module.callButton()));
     }
 
     if (await redis.exists(`isRestart:${meId}`)) {

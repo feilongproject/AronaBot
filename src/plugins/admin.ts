@@ -10,7 +10,7 @@ import config from "../../config/config";
 
 export async function updateEventId(event?: IntentMessage.GUILD_MEMBERS) {
     const opUserId = "15874984758683127001";
-    // if (devEnv) log.debug(event?.eventId);
+    if (devEnv) log.debug("updateEventId", event?.eventId);
     if (event?.msg.user.id == opUserId) {
         return redis.setEx(`lastestEventId:${meId}:${event.msg.guild_id}`, 60 * 4, event.eventId);
     }
@@ -22,11 +22,13 @@ export async function updateEventId(event?: IntentMessage.GUILD_MEMBERS) {
         if (!channel) continue;
         if (devEnv && guildId != "2175103623165659414") continue;
 
-        await client.memberApi.memberAddRole(guildId, "5", opUserId, channel.id).catch(err => {
+        await client.memberApi.memberAddRole(guildId, "5", opUserId, channel.id).then(res => {
+            if (devEnv) log.debug("memberAddRole", res.status, res.statusText);
+        }).catch(err => {
             log.error(err);
             return sendToAdmin(`updateEventId memberAddRole` +
-                `\n${strFormat({ err, guild: guildInfo, })}`.replaceAll(".", ","))
-                .catch(err => log.error(err));
+                `\n${strFormat({ err, guild: guildInfo, })}`.replaceAll(".", ",")
+            ).catch(err => log.error(err));
         });
     }
 }

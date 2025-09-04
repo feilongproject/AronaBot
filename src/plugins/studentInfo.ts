@@ -141,7 +141,7 @@ export async function reloadStudentInfo(type: "net" | "local"): Promise<"net ok"
                 devName: devName,
                 descName: d?.PathName || d.DevName,
                 star: d.DefaultStarGrade as 1 | 2 | 3,
-                limitedType: d?.IsLimited ?? -1,
+                limitedType: d?.IsLimited ?? [],
             };
 
             const nameAlis = () => {
