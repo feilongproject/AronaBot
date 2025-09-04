@@ -4,7 +4,7 @@ import path from "path";
 import crypto from "crypto";
 import fetch from "node-fetch";
 import FormData from "form-data";
-import { sendToAdmin, sendToGroup } from "../libs/common";
+import { sendToAdmin } from "../libs/common";
 import { IMessageC2C, IMessageGROUP } from "../libs/IMessageEx";
 
 
@@ -245,9 +245,9 @@ async function check(msg?: IMessageGROUP | IMessageC2C) {
     const runningJob = await redis.hGetAll("transcoding") as any as TranscodingRedis;
     const sendGroup = Object.entries(GROUP_MAP).find(v => v[1].includes(runningJob.groupId || ""))?.[0];
     const nowJob: NowjobRes = await fetch(`${REMOTE_URL}/nowjob?id=${runningJob.remoteUUID}`).then(res => res.json());
-    if (nowJob.status === 100) return await sendToGroup("echo", `${sendGroup ? "" : `(未找到发送group)\n`}${nowJob.body}\n${nowJob.process}`, sendGroup);
+    if (nowJob.status === 100) return await await (await import('../plugins/interaction')).sendToGroupHandler("echo", `${sendGroup ? "" : `(未找到发送group)\n`}${nowJob.body}\n${nowJob.process}`, sendGroup);
 
-    await sendToGroup("echo",
+    await (await import('../plugins/interaction')).sendToGroupHandler("echo",
         `等待已结束${sendGroup ? "" : `(未找到发送group)`}`
         + `\nstatus: ${nowJob.status}`
         + `\nintervalID: ${runningJob.intervalID}`
