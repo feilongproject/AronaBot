@@ -100,7 +100,7 @@ declare global {
         descName: string;
         devName: string;
         star: 1 | 2 | 3;
-        limitedType: number;
+        limitedType: number[];
     }
 
     interface SaveGuild {
@@ -361,7 +361,7 @@ declare global {
         DevName: string;
         PathName: string;
         StarGrade: 1 | 2 | 3;
-        IsLimited: number;
+        IsLimited: number[];
         IsReleased: [boolean, boolean, boolean];
     }
 

@@ -213,7 +213,7 @@ async function gachaReload(type: "net" | "local") {
             if (!isNumStr(id)) continue;
             const d = studentInfo[id];
             for (key in nameToId)
-                if (d.releaseStatus[nameToId[key]] && !d.limitedType) _gachaPoolInfo[key].common[d.star].push(Number(id));
+                if (d.releaseStatus[nameToId[key]] && !d.limitedType[nameToId[key]]) _gachaPoolInfo[key].common[d.star].push(Number(id));
         }// common
 
         const schaleDBConfig: SchaleDB.Root = await fetch("https://schaledb.com/data/config.min.json").then(res => res.json()).catch(err => log.error(err));
