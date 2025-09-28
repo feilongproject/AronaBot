@@ -1,4 +1,5 @@
 /// <reference lib="dom" />
+import axios from "axios";
 import fetch from "node-fetch";
 import imageSize from "image-size";
 import * as puppeteer from "puppeteer";
@@ -12,7 +13,7 @@ import config from "../../config/config";
 const browserCkFile = `${_path}/data/ck.json`;
 const dynamicPushFilePath = `${_path}/data/dynamicPush.ts`;
 const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 Edg/133.0.0.0";
-const userAgentAndroid = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36 Edg/126.0.0.0";
+const userAgentAndroid = "Mozilla/5.0 (Linux; Android 8.0.0; SM-G955U Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36";
 
 
 export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
@@ -20,80 +21,61 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT | IMessageG
 
     await msg?.sendMsgEx({ content: `${devEnv},checking` });
 
-    const cookies = await getCookie().catch(err => {
-        log.error(err);
-        const _err = typeof err == "object" ? strFormat(err) : String(err);
-        return (msg ? msg.sendMsgEx({ content: _err }) : sendToAdmin(_err)).catch(() => { }) as any;
-    });
-    if (typeof cookies != "string") return await msg?.sendMsgEx({ content: `cookies 未找到` });
-
     const dynamicPushList: DynamicPushList.Root = (await import(dynamicPushFilePath)).pushList; // 推送列表
 
-    for (const bUser of dynamicPushList) {
-        const { id: userId } = bUser;
-        if (!bUser.list.length) { await sleep(5 * 1000); continue; }
+    const dynamicItems = await getNewDynamic().catch(err => {
+        if (devEnv) log.error(err);
+        const _err = `api出错: ${strFormat(err)}`.replaceAll(".", ",");
+        return (msg ? msg.sendMsgEx({ content: _err }) : sendToAdmin(_err)).then(() => { });
+    }).catch(err => { });
+    if (!dynamicItems) return await msg?.sendMsgEx(`未获取到动态列表: ${JSON.stringify(dynamicItems)}`);
 
-        if (await redis.exists(`dynamicPushing:${userId}`) && !devEnv) continue; // 检测到锁时忽略当前用户
-        await redis.setEx(`dynamicPushing:${userId}`, 60 * 3, "1"); // 开始推送，设置3分钟的用户锁
+    if (devEnv) await msg?.sendMsgEx({ content: `检测到 ${dynamicItems.items.length} 个动态` });
+    // debugger;
 
-        const dynamicItems = await getUserDynamics(userId, cookies).catch(err => {
-            if (devEnv) log.error(bUser, userId, err);
-            const _err = `api出错: ${bUser.name} ${userId} ${strFormat(err)}`.replaceAll(".", ",");
-            return (msg ? msg.sendMsgEx({ content: _err }) : sendToAdmin(_err)).then(() => { });
-        }).catch(err => { });
-        if (!dynamicItems) break;
+    for (const item of dynamicItems.items) {  // 检查每个动态
+        const { id_str: dynamicId } = item;
+        const userId = item.modules.module_author.mid;
+        const bUser = dynamicPushList.find(v => v.id.toString() === userId.toString());
+        if (!bUser) continue; // 不在列表中跳过
 
-        if (devEnv) await msg?.sendMsgEx({ content: `开始检查 ${bUser.name}(${userId})的动态` });
-        log.info(`开始检查 ${bUser.name}(${userId})的动态`);
-        for (const item of dynamicItems) { // 检查每个动态
-            const { id_str: dynamicId } = item;
-            const isAllPushed = await redis.hExists(`biliMessage:allPushed:${userId}`, dynamicId); // 检查该动态是否全部推送完毕
-            // if (isAllPushed) { await sleep(10 * 1000); continue; }
-            if (isAllPushed) continue;
+        const idPushed = await redis.hmGet(`biliMessage:idPushed:${dynamicId}`, bUser.list.map(v => v.id));
+        const notPushedList = bUser.list.filter((_, i) => !idPushed[i]).filter(v => v.enable);
+        if (!notPushedList.length) continue; // 跳过已推送完毕列表
+        log.info(`正在推送 ${bUser.name} ${dynamicId}`);
 
-            const idPushed = await redis.hmGet(`biliMessage:idPushed:${dynamicId}`, bUser.list.map(v => v.id));
-            const notPushedList = bUser.list.filter((_, i) => !idPushed[i]).filter(v => v.enable);
-            if (!notPushedList.length) {
-                if (devEnv) log.debug(`biliMessage:allPushed ${userId}-${dynamicId}`);
-                await redis.hSet(`biliMessage:allPushed:${userId}`, dynamicId, "pushed: " + bUser.list.map(v => v.id).join());
-                await redis.del(`biliMessage:idPushed:${dynamicId}`);
-                continue;
-            } // 已经全部推送完毕, 进行标记并结束, 删除推送记录
+        if (devEnv) log.debug(`pushing ${userId}-${dynamicId}`);
+        const imageKey = `${userId}-${dynamicId}-${new Date().getTime()}.png`;
 
-            if (devEnv) log.debug(`pushing ${userId}-${dynamicId}`);
-            const imageKey = `${userId}-${dynamicId}-${new Date().getTime()}.png`;
-            try {
-                await msg?.sendMsgEx({ content: `开始截图 ${dynamicId}` });
-                const imageBuffer = await screenshot(dynamicId, item.modules.module_author.pub_ts.toString(), 30);
-                if (!imageBuffer || !imageBuffer.length) {
-                    log.error(`screenshot(${dynamicId}) not return buff, div not found`);
-                    await sendToAdmin(`screenshot(${dynamicId}) not return buff, div not found`);
-                    return;
-                }
-                writeFileSync(`${config.imagesOut}/bili-${imageKey}`, imageBuffer);
-                await cosPutObject({ Key: `biliDynamic/${imageKey}`, Body: imageBuffer, });
-                if (devEnv) log.debug(`${config.imagesOut}/bili-${imageKey}`);
-
-                for (const pushInfo of notPushedList) { // 检查未推送的
-                    await dynamicPush(dynamicId, pushInfo, item, imageKey, imageBuffer);
-                    await sleep(5 * 1000);
-                }
-
-            } catch (err) {
-                await import("../eventRec")
-                    .then(m => m.mailerError({ bUser, dynamicId, imageKey, notPushedList, idPushed, item, }, err instanceof Error ? err : new Error(strFormat(err))))
-                    .catch(err => log.error(err));
-                await sleep(10 * 1000); continue;
+        try {
+            await msg?.sendMsgEx({ content: `开始截图 ${dynamicId}` });
+            const imageBuffer = await screenshot(dynamicId, item.modules.module_author.pub_ts.toString(), 30);
+            debugger;
+            if (!imageBuffer || !imageBuffer.length) {
+                log.error(`screenshot(${dynamicId}) not return buff, div not found`);
+                await sendToAdmin(`screenshot(${dynamicId}) not return buff, div not found`);
+                return;
             }
-            await sleep(5 * 1000);
+            writeFileSync(`${config.imagesOut}/bili-${imageKey}`, imageBuffer);
+            await cosPutObject({ Key: `biliDynamic/${imageKey}`, Body: imageBuffer, });
+            if (devEnv) log.debug(`${config.imagesOut}/bili-${imageKey}`);
+
+            for (const pushInfo of notPushedList) { // 检查未推送的
+                await dynamicPush(dynamicId, pushInfo, item, imageKey, imageBuffer);
+                await sleep(5 * 1000);
+            }
+
+        } catch (err) {
+            await import("../eventRec")
+                .then(m => m.mailerError({ bUser, dynamicId, imageKey, notPushedList, idPushed, item, }, err instanceof Error ? err : new Error(strFormat(err))))
+                .catch(err => log.error(err));
+            await sleep(10 * 1000); continue;
         }
 
-        await redis.del(`dynamicPushing:${userId}`); // 检查完毕，删除锁
-        await sleep(10 * 1000);
+
     }
 
     delete require.cache[dynamicPushFilePath];
-
 }
 
 async function dynamicPush(dynamicId: string, pushInfo: DynamicPushList.PushInfo, item: BiliDynamic.Item, imageKey: string, imageBuffer: Buffer) {
@@ -150,6 +132,28 @@ async function dynamicPush(dynamicId: string, pushInfo: DynamicPushList.PushInfo
     return redis.hSet(`biliMessage:idPushed:${dynamicId}`, pushInfo.id, pushInfo.id);
 }
 
+async function getNewDynamic(type = "all", page = 1) {
+
+    const list = await axios<BiliDynamic.SpaceListRoot>({
+        url: `https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/all`,
+        params: {
+            "timezone_offset": "-480",
+            "type": type,
+            "page": page,
+            "features": "itemOpusStyle",
+        },
+        headers: {
+            Cookie: await getCookie(),
+            "User-Agent": userAgent,
+        },
+        timeout: 10 * 1000,
+    }).then(res => res.data);
+
+    if (list.code !== 0) throw new Error(JSON.stringify(list));
+
+    return list.data;
+}
+
 export async function getUserCard(userId: string) {
     // https://api.bilibili.com/x/web-interface/card?mid=1
     return fetch(`https://api.bilibili.com/x/web-interface/card?mid=${userId}`, {
@@ -160,50 +164,10 @@ export async function getUserCard(userId: string) {
 //参考: https://github.com/SocialSisterYi/bilibili-API-collect/issues/686
 export async function getCookie(): Promise<string> {
     const biliCookie = await redis.get("biliCookie") || "";
-    const happy = await getUserDynamics("1", biliCookie).then(items => items.length != 0).catch(err => false);
-    // log.debug(`happy ${happy}`);
-    if (happy) return biliCookie;
+    const ck = Object.fromEntries(biliCookie.split(";").map(v => v.trim()).map(v => v.split("=")));
+    if (!ck["SESSDATA"] || !ck["bili_jct"]) throw "cookie关键参数 SESSDATA 或 bili_jct 未找到";
 
-    const newCookie = await fetch("https://space.bilibili.com/1/dynamic", {
-        headers: { "User-Agent": userAgent },
-    }).then(res => res.headers.raw()["set-cookie"]).then(rawCookies => rawCookies.map(k => k.split(";")[0].trim()).join("; "));
-    if (!newCookie) throw "not get Cookie in headers";
-
-    const payload = readFileSync(`${_path}/data/biliPayload.txt`).toString();
-    const checkJson = await fetch("https://api.bilibili.com/x/internal/gaia-gateway/ExClimbWuzhi", {
-        headers: {
-            "Cookie": newCookie,
-            "User-Agent": userAgent,
-            "Accept": "*/*",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Accept-Language": "zh-CN,zh;q=0.9",
-            "Cache-Control": "no-cache",
-            "Content-Type": "application/json;charset=UTF-8",
-            "Dnt": "1",
-            "Origin": "https://space.bilibili.com",
-            "Pragma": "no-cache",
-            "Referer": "https://space.bilibili.com/1/dynamic",
-            "Sec-Ch-Ua": `"Not.A/Brand";v="8", "Chromium";v="114", "Microsoft Edge";v="114"`,
-            "Sec-Ch-Ua-Mobile": "?0",
-            "Sec-Ch-Ua-Platform": "Windows",
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-site",
-        },
-        method: "POST",
-        body: payload,
-    }).then(res => res.json());
-    if (checkJson.code == 0 || checkJson.message == "0")
-        await redis.set("biliCookie", newCookie).then(() => sendToAdmin("new cookie got it"));
-
-    const newHappy = await getUserDynamics("1", newCookie).then(items => items.length != 0).catch(err => {
-        log.error(err);
-        return false;
-    });
-    if (devEnv) log.debug(`newHappy ${newHappy}`);
-
-    if (newHappy) return newCookie;
-    else throw "newCookie not happy";
+    return biliCookie;
 }
 
 export async function biliDynamicByid(msg: IMessageGROUP | IMessageC2C) {
@@ -340,7 +304,7 @@ export async function getDynamicInfo(dynamicId: string): Promise<BiliDynamic.Inf
     return fetch(`https://api.bilibili.com/x/polymer/web-dynamic/v1/detail?id=${dynamicId}`, {
         headers: {
             "User-Agent": userAgent,// userAgent,
-            "Cookie": await getCookie(), //`SESSDATA=feilongproject.com;${cookies}`,
+            "Cookie": await getCookie(),
             "accept-language": "en,zh-CN;q=0.9,zh;q=0.8",
         }
     }).then(res => res.json());
