@@ -163,7 +163,7 @@ export async function init() {
     } else if (botType == "AronaBot") {
         schedule.scheduleJob("0 * * * * ? ", () => redis.save().then(v => log.mark(`保存数据库:${v}`)));
         schedule.scheduleJob("0 */3 * * * ?", () => import("./plugins/admin").then(module => module.updateEventId()));
-        schedule.scheduleJob("0 */10 * * * ? ", () => import("./plugins/biliDynamic").then(module => module.mainCheck()).catch(err => {
+        schedule.scheduleJob("0 */3 * * * ? ", () => import("./plugins/biliDynamic").then(module => module.mainCheck()).catch(err => {
             log.error(err);
             return sendToAdmin((typeof err == "object" ? strFormat(err) : String(err)).replaceAll(".", ",")).catch(() => { });
         }));
