@@ -2,8 +2,8 @@ import fetch from "node-fetch";
 import { UpdateRoleRes } from "qq-bot-sdk";
 import { sendToAdmin } from "../libs/common";
 import { IMessageGUILD } from "../libs/IMessageEx";
-import { emojiMap } from "../eventRec";
 import config from "../../config/config";
+import { EmojiMap } from "../constants/EmojiMap";
 
 
 export async function roleAssign(event: IntentMessage.GUILD_MESSAGE_REACTIONS) {
@@ -79,7 +79,7 @@ export async function createVirtualRole(msg: IMessageGUILD) {
         content:
             `已设置虚拟身份组`
             + `\n${roleTypeDesc}(${roleType}) ${roleTypeColor}`
-            + `\n表情: ${emojiMap[emojiId] || `<emoji:${emojiId}>`}`
+            + `\n表情: ${EmojiMap[emojiId] || `<emoji:${emojiId}>`}`
     });
 }
 
@@ -89,7 +89,7 @@ export async function createRoleAssignMsg(msg: IMessageGUILD) {
     const m = await msg.sendMsgEx({
         content: `使用表情领取身份组` +
             `\n目前已采用智能分流, 若身份组已满则会自动创建相同的新身份组\n` +
-            allBind.map(v => `选择 ${emojiMap[v.field] || `<emoji:${v.field}>`} 领取 【${v.desc}】身份组`).join("\n"),
+            allBind.map(v => `选择 ${EmojiMap[v.field] || `<emoji:${v.field}>`} 领取 【${v.desc}】身份组`).join("\n"),
     });
     if (!m.result) return sendToAdmin(`createRoleAssignMsg 失败\n${JSON.stringify(m.errors)}`);
 

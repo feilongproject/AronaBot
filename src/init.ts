@@ -5,6 +5,7 @@ import { createPool } from 'mariadb';
 import { createClient } from 'redis';
 import { encode, decode } from "js-base64";
 import { mkdirSync, existsSync } from "fs";
+import amqp, { Connection, Channel } from 'amqplib';
 import { IChannel, IGuild, createOpenAPI, createWebsocket } from "qq-bot-sdk";
 import { sendToAdmin } from './libs/common';
 import { StudentInfo, StudentNameAlias } from "./libs/globalVar";
@@ -16,9 +17,13 @@ export async function init() {
     console.log(`机器人准备运行，正在初始化`);
     if (!existsSync(config.imagesOut)) mkdirSync(config.imagesOut);
 
-    global.adminId = ["7681074728704576201", "15874984758683127001", "2975E2CA5AE779F1899A0AED2D4FA9FD",
+    global.adminId = [
+        "2975E2CA5AE779F1899A0AED2D4FA9FD", // PlanaBot+大号
+        "1728904631",
+        "7681074728704576201", "15874984758683127001", // 频道？
         "21EE2355F1D4106219EC134842203DF6",
-        "D8893EE07438D29FC12B776139EBEC6D"];
+        "D8893EE07438D29FC12B776139EBEC6D",
+    ];
     global.botStatus = {
         startTime: new Date(),
         msgSendNum: 0,
@@ -116,29 +121,10 @@ export async function init() {
     };
     if (config.bots[botType].allowMariadb) await connectMariadb();
 
-    // setInterval(async () => {
-    //     const _ = await mariadb.query("SHOW DATABASES;").catch(err => {
-    //         // if(err instanceof SqlError)mariadb.isValid
-    //         log.error(err);
-    //     });;
-    //     log.debug(_);
-    // }, 1000 * 5);
 
-    // mariadb.on("end", () => {
-    //     log.error("mariadb end");
-    //     process.exit();
-    // });
-    // setTimeout(async () => {
-    //     await mariadb.end();
-    //     await mariadb.destroy();
-    // }, 5 * 1000);
-    // setTimeout(() => {
-    //     mariadb.query(`SELECT * FROM biliMessage WHERE userId = ?`, "297972654").then(data => {
-    //         log.debug(data);
-    //     }).catch(err => {
-    //         log.error(err);
-    //     });
-    // }, 10 * 1000);
+    // log.info(`初始化: 正在连接 rabbitmq 数据库`);
+    // global.mqconn = await amqp.connect("amqp://localhost");
+
 
     log.info(`初始化: 正在创建 client 与 ws`);
     global.client = createOpenAPI(config.bots[botType]);
@@ -151,6 +137,7 @@ export async function init() {
     await loadGuildTree(true);
 
     await global.client.meApi.me().then(res => global.meId = res.data.id);
+    global.meRealId = config.bots[botType].meRealId;
 
     await import("./plugins/studentInfo").then(module => module.reloadStudentInfo("local")).then(d => {
         log.info(`学生数据加载完毕 ${d}`);
@@ -168,7 +155,7 @@ export async function init() {
             return sendToAdmin((typeof err == "object" ? strFormat(err) : String(err)).replaceAll(".", ",")).catch(() => { });
         }));
     } else if (botType === 'PlanaBot') {
-        schedule.scheduleJob("0 */3 * * * ?", () => import("./plugins/interaction").then(module => module.callButton()));
+        schedule.scheduleJob("0 */3 * * * ?", () => import("./plugins/interaction").then(module => module.callbackPushButton()));
     }
 
     if (await redis.exists(`isRestart:${meId}`)) {

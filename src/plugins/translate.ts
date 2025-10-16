@@ -1,31 +1,34 @@
-import fs from "fs";
-import fetch from "node-fetch";
+import OpenAI from "openai";
+import { APIPromise } from "openai/core";
+import { ChatCompletion, ChatCompletionCreateParamsNonStreaming } from "openai/resources";
+import { mailerError } from "../libs/mailer";
 import { IMessageGROUP } from "../libs/IMessageEx";
 import config from "../../config/config";
 
 
+const openai = new OpenAI(
+    {
+        apiKey: config.aiTranslate.apiKey,
+        baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    }
+);
+
 export async function translate(msg: IMessageGROUP) {
     if (!["E06A1951FA9B96870654B7919DCF2F5C", "57A9BFF9A91410926173B10A33E18E3D"].includes(msg.group_id)) return;
-
-    // const { translateContent } = mg.exec(msg.content)?.groups || {};
+    const postData: ChatCompletionCreateParamsNonStreaming = JSON.parse(JSON.stringify(config.aiTranslate.createParams));
 
 
     const translateContent = msg.content.replace(/\/?.?翻译/, "");
     if (devEnv) log.debug(translateContent);
     if (!translateContent) return msg.sendMsgEx({ content: `请输入需要翻译的内容` });
-    await msg.sendMsgEx({ content: `正在翻译中，请稍后` }).catch(err => log.error(err));
+    await msg.sendMsgEx({ content: `正在翻译中，请稍后\n(使用模型: ${postData.model})` }).catch(err => log.error(err));
 
-    const postData: ApiData.Req = JSON.parse(JSON.stringify(config.aiTranslate.system));
-    postData.system = fs.readFileSync(config.aiTranslate.systemPromptFile).toString();
-    postData.messages.push({
-        role: "user",
-        content: [{ type: "text", text: translateContent }],
-    });
+    postData.messages.push({ role: "user", content: translateContent });
 
     const translated = await getTranslated(postData);
     if (typeof translated == "string") return msg.sendMsgEx({ content: translated });
 
-    const text: string = formalizeQuotation(translated.content[0].text)
+    const text: string = formalizeQuotation(translated.choices[0].message.content || "")
         .replaceAll("...", "…")
         .replaceAll(".", "。")
         .replaceAll(",", "，");
@@ -39,22 +42,15 @@ export async function translate(msg: IMessageGROUP) {
     });
 }
 
-async function getTranslated(postData: ApiData.Req): Promise<ApiData.Res | string> {
+async function getTranslated(postData: ChatCompletionCreateParamsNonStreaming): Promise<APIPromise<ChatCompletion> | string> {
 
     for (let i = 0; i < 5; i++) {
         let text;
         try {
-            const res = await fetch(config.aiTranslate.proxyUrl, {
-                method: "POST",
-                headers: config.aiTranslate.headers,
-                body: JSON.stringify(postData),
-            });
-            text = await res.text();
-            if (res.status != 200) continue;
-            else return JSON.parse(text);
-
+            const completion = await openai.chat.completions.create(postData);
+            return completion;
         } catch (err) {
-            (await import("../eventRec")).mailerError({ postData, text }, new Error(err as any));
+            mailerError({ postData, text }, new Error(err as any));
         }
 
     }
@@ -124,37 +120,4 @@ interface ContentToken {
     value: string;
 }
 
-namespace ApiData {
-
-    export interface Req {
-        model: string;
-        max_tokens: number;
-        temperature: number;
-        system: string;
-        messages: {
-            role: string;
-            content: {
-                type: string;
-                text: string;
-            }[];
-        }[];
-    }
-
-    export interface Res {
-        id: string;
-        type: string;
-        role: string;
-        model: string;
-        content: {
-            type: string;
-            text: string;
-        }[];
-        stop_reason: string;
-        stop_sequence: null;
-        usage: {
-            input_tokens: number;
-            output_tokens: number;
-        };
-    }
-}
 
