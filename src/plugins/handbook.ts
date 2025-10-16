@@ -3,6 +3,7 @@ import fetch from "node-fetch";
 import format from "date-format";
 import * as cheerio from "cheerio";
 import imageSize from "image-size";
+import { mailerError } from "../libs/mailer";
 import { sendToAdmin, settingUserConfig } from "../libs/common";
 import { IMessageC2C, IMessageDIRECT, IMessageGROUP, IMessageGUILD } from "../libs/IMessageEx";
 import config from "../../config/config";
@@ -90,7 +91,7 @@ export async function handbookMain(msg: IMessageGUILD | IMessageDIRECT | IMessag
         imageUrl: lastestImage?.url,
         // fallback 部分
     }).catch(async err => {
-        (await import("../eventRec")).mailerError({ hbMatched, lastestImage, msg }, err);
+        mailerError({ hbMatched, lastestImage, msg }, err);
     });
 
 }

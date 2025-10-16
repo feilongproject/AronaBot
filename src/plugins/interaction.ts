@@ -144,6 +144,8 @@ export async function sendToGroupHandler(type: string, data: string, groupUid?: 
 /// -----------
 
 export async function syncgroup(msg: IMessageGROUP) {
+    if (!adminId.includes(msg.author.id)) return;
+
     const groupUid = config.bots[botType].groupMap[msg.group_id];
     if (!groupUid) return msg.sendMsgEx(`未设置群组实际群号uid`);
 
@@ -175,11 +177,11 @@ export async function syncgroup(msg: IMessageGROUP) {
         content: `md发送失败`,
     });
 
-    await sleep(1000 * 5);
+    await sleep(1000 * 10);
     const buttonData = await redis.get(`buttonData:${botType}:${groupUid}`);
     if (buttonData) return msg.sendMsgEx(`已获取(5s): ${buttonData}`);
 
-    await sleep(1000 * 5);
+    await sleep(1000 * 10);
     const buttonData1 = await redis.get(`buttonData:${botType}:${groupUid}`);
     if (buttonData1) return msg.sendMsgEx(`已获取(10s): ${buttonData1}`);
 
@@ -187,12 +189,50 @@ export async function syncgroup(msg: IMessageGROUP) {
 
 }
 
-export async function callButton() {
+/// -----------
+
+export async function callbackPushButton() {
     const callbackGroupUid = await redis.hGet("config", `callbackGroup`) as string;
-    const buttonId = await redis.get(`syncGroupButtonId:${botType}:${callbackGroupUid}`);
-    const buttonData = await redis.get(`buttonData:${botType}:${callbackGroupUid}`);
+
+    return callbackButton(callbackGroupUid);
+}
+
+export async function awaitGroupEventId(groupRealId: string): Promise<string | null> {
+
+    const groupId = Object.entries(config.bots[botType].groupMap).find(v => v[1] === groupRealId)?.[0];
+    if (!groupId) return null;
+
+    let eventId = await redis.get(`groupLastestEventId:${botType}:${groupId}`);
+    if (eventId) return eventId;
+
+    // 等候5s获取id
+    await callbackButton(groupRealId);
+    await sleep(5000);
+    eventId = await redis.get(`groupLastestEventId:${botType}:${groupId}`);
+    if (eventId) return eventId; if (devEnv) log.debug("awaitGroupEventId. 5s no eventId");
+
+    // 等候5s获取id
+    await callbackButton(groupRealId);
+    await sleep(5000);
+    eventId = await redis.get(`groupLastestEventId:${botType}:${groupId}`);
+    if (eventId) return eventId; if (devEnv) log.debug("awaitGroupEventId. 10s no eventId");
+
+    // 等候5s获取id
+    await callbackButton(groupRealId);
+    await sleep(5000);
+    eventId = await redis.get(`groupLastestEventId:${botType}:${groupId}`);
+    if (eventId) return eventId; if (devEnv) log.debug("awaitGroupEventId. 15s no eventId");
+
+    log.error(`awaitGroupEventId 15s 未找到 groupLastestEventId`);
+    return null;
+}
+
+async function callbackButton(groupRealId: string) {
+
+    const buttonId = await redis.get(`syncGroupButtonId:${botType}:${groupRealId}`);
+    const buttonData = await redis.get(`buttonData:${botType}:${groupRealId}`);
     if (!buttonId || !buttonData) return;
-    if (devEnv) log.debug("callButton", callbackGroupUid, buttonId, buttonData);
+    if (devEnv) log.debug("callButton", groupRealId, buttonId, buttonData);
 
     return fetch(config.groupPush.url, {
         method: "POST",
@@ -200,7 +240,7 @@ export async function callButton() {
             Authorization: `Bearer ${config.groupPush.llobKey}`,
         },
         body: JSON.stringify({
-            "g": callbackGroupUid,
+            "g": groupRealId,
             "a": config.groupPush.appId,
             "b": buttonId,
             "d": buttonData,

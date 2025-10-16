@@ -1,12 +1,14 @@
 import fetch from "node-fetch";
-import nodemailer from "nodemailer";
-import { readFileSync, writeFileSync } from "fs";
 import { AvailableIntentsEventsEnum, IChannel, IGuild } from "qq-bot-sdk";
 import { loadGuildTree } from "./init";
+import { mailerError } from "./libs/mailer";
 import { pushToDB, sendToAdmin } from "./libs/common";
 import { IMessageGROUP, IMessageDIRECT, IMessageGUILD, IMessageC2C } from "./libs/IMessageEx";
 import config from "../config/config";
+import { EmojiMap } from "./constants/EmojiMap";
 
+
+type PluginFnc = (msg: IMessageDIRECT | IMessageGUILD | IMessageGROUP | IMessageC2C, data?: string | number) => Promise<any>;
 
 async function executeChannel(msg: IMessageDIRECT | IMessageGUILD) {
     try {
@@ -67,58 +69,6 @@ async function executeChat(msg: IMessageGROUP | IMessageC2C) {
 
 }
 
-export async function mailerError(msg: any, err: Error) {
-    log.error(err);
-    // if (devEnv) return;
-
-    const host = await redis.hGet("config", "sendMail:host");
-    const user = await redis.hGet("config", "sendMail:user");
-    const pass = await redis.hGet("config", "sendMail:pass");
-    const to = await redis.hGet("config", "sendMail:to");
-    if (!host || !user || !pass || !to) return;
-
-    const html = readFileSync(config.errorMessageTemaple).toString()
-        .replace("%message%", strFormat(msg))
-        .replace("%errorName%", err.name)
-        .replace("%errorMessage%", err.message)
-        .replace("%errorStack%", err.stack || "");
-
-    // writeFileSync("/tmp/html/index.html", html);
-
-    const transporter = nodemailer.createTransport({
-        host,
-        port: 465,
-        secure: true,
-        auth: { user, pass },
-    });
-    return transporter.sendMail({
-        subject: `エラー発生。${err.message}`.slice(0, 60),
-        from: `"${botType}" <${user}>`, to, html,
-    }).catch(err => log.error(err));
-}
-
-async function isBan(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C): Promise<boolean> {
-    const t = msg instanceof IMessageGROUP ? "群聊" : (msg instanceof IMessageGUILD ? "频道" : "私聊");
-    const isUserBan = await redis.hGet(`ban:use:user`, msg.author.id);
-    const isGroupBan = msg instanceof IMessageGROUP ? await redis.hGet(`ban:use:group`, msg.group_id) : undefined;
-    const isGuildBan = msg instanceof IMessageGUILD ? await redis.hGet(`ban:use:guild`, msg.guild_id) : undefined;
-
-    if (isUserBan || isGroupBan || isGuildBan) {
-        await msg.sendMsgEx({ content: `因「${isUserBan || isGroupBan || isGuildBan}」行为，禁止使用该命令` }).catch(err => log.error(err));
-        await sendToAdmin(
-            `被封禁${t}检测到使用命令行为\n`
-            + ((msg instanceof IMessageGROUP || msg instanceof IMessageC2C) ? `用户: ${msg.author.id}` : `用户: ${msg.author.username} (${msg.author.id})`) + "\n"
-            + (msg instanceof IMessageC2C ? `消息列表: ${msg.author.id}` : msg instanceof IMessageGROUP ? `群聊: ${msg.group_id}` : `${"channelName" in msg ? `子频道: ${msg.channelName}` : ">私聊<"} (${msg.channel_id})`)
-        ).catch(err => log.error(err));
-        return true;
-    }
-    return false;
-}
-
-type PluginFnc = (msg: IMessageDIRECT | IMessageGUILD | IMessageGROUP | IMessageC2C, data?: string | number) => Promise<any>
-
-
-
 export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
     if (await redis.exists(`received:${event.eventType}:${event.eventId}`) && !devEnv) return;
     await redis.setEx(`received:${event.eventType}:${event.eventId}`, 60, "1");
@@ -151,8 +101,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             if (event.eventType == IntentEventType.GROUP_AT_MESSAGE_CREATE) {
                 const data = event.msg as any as IntentMessage.GROUP_MESSAGE_body;
                 if (devEnv && !adminId.includes(data.author.id)) return;
-                // if (devEnv) log.debug(event);
-                const msg = new IMessageGROUP(data);
+                const msg = new IMessageGROUP(data, true, data.isOffical ?? true);
                 return executeChat(msg);
             } else if (event.eventType == IntentEventType.C2C_MESSAGE_CREATE) {
                 const data = event.msg as any as IntentMessage.C2C_MESSAGE_body;
@@ -213,7 +162,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
                     `\n频道: ${saveGuildsTree[msg.guild_id].name}(${msg.guild_id})` +
                     `\n子频道: ${saveGuildsTree[msg.guild_id]?.channels[msg.channel_id]?.name}(${msg.channel_id})` +
                     `\n目标消息: ${msg.target.id} -> ${msg.target.type}` +
-                    `\n表情: ${msg.emoji.type == 2 ? emojiMap[msg.emoji.id] : `<emoji:${msg.emoji.id}>`}(${msg.emoji.id}) -> ${msg.emoji.type}`
+                    `\n表情: ${msg.emoji.type == 2 ? EmojiMap[msg.emoji.id] : `<emoji:${msg.emoji.id}>`}(${msg.emoji.id}) -> ${msg.emoji.type}`
                 );
             }).catch(() => { });
 
@@ -243,13 +192,51 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             if (!aid || !uidMatch || !uidMatch.uid || uidMatch.uid == "0") return;
 
             await redis.hSet("guild:aid->uid", aid, uidMatch.uid);
-            break;
+
+            if (!adminId.includes(aid)) return;
+
+            if (event.eventType == "FORUM_POST_CREATE") {
+                /** FORUM_POST_CREATE
+                post_info: {
+                    content: '{"paragraphs":[{"elems":[{"text":{"text":"123456"},"type":1}],"props":{}}]}',
+                    date_time: '2024-03-22T15:07:37+08:00',
+                    post_id: 'c_392efd65c4d10c001441152193843183750X60',
+                    thread_id: 'B_bb26fd65519f03001441152189223925810X60'
+                } */
+
+                /**
+                 * FORUM_REPLY_CREATE
+                 * ```
+                 * reply_info: {  
+                 *     content: '{"paragraphs":[{"elems":[{"text":{"text":"123456"},"type":1}],"props":{}}]}',  
+                 *     date_time: '2024-03-22T15:11:20+08:00',  
+                 *     post_id: 'c_392efd65c4d10c001441152193843183750X60',  
+                 *     reply_id: 'r_182ffd65b97401001441152193843183750X60',  
+                 *     thread_id: 'B_bb26fd65519f03001441152189223925810X60'  
+                 * }
+                 * ```
+                 */
+                const threadContent: PostInfo.Root = await fetch(`https://api.sgroup.qq.com/channels/${msg.channel_id}/threads/${msg.post_info?.thread_id}`, {
+                    headers: {
+                        "Authorization": `Bot ${config.bots[botType].appID}.${config.bots[botType].token}`,
+                    },
+                }).then(res => res.json()).then(json => JSON.parse(json.thread.thread_info.content));
+
+                log.debug(threadContent.paragraphs.find(v => v.elems.find(v => v.text?.text.includes("举报晒卡"))));
+            }
+
+
+
+
+
+
+            return;
         }
         case AvailableIntentsEventsEnum.INTERACTION: {
             if (await redis.get("devEnv") && !devEnv) return;
 
             const { msg, eventId } = event as IntentMessage.INTERACTION;
-            if (devEnv) log.debug(event, msg.data);
+            // if (devEnv) log.debug(event, msg.data);
 
             const groupId = msg?.group_openid;
             if (!groupId) return;
@@ -286,6 +273,24 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
     }
 }
 
+async function isBan(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C): Promise<boolean> {
+    const t = msg instanceof IMessageGROUP ? "群聊" : (msg instanceof IMessageGUILD ? "频道" : "私聊");
+    const isUserBan = await redis.hGet(`ban:use:user`, msg.author.id);
+    const isGroupBan = msg instanceof IMessageGROUP ? await redis.hGet(`ban:use:group`, msg.group_id) : undefined;
+    const isGuildBan = msg instanceof IMessageGUILD ? await redis.hGet(`ban:use:guild`, msg.guild_id) : undefined;
+
+    if (isUserBan || isGroupBan || isGuildBan) {
+        await msg.sendMsgEx({ content: `因「${isUserBan || isGroupBan || isGuildBan}」行为，禁止使用该命令` }).catch(err => log.error(err));
+        await sendToAdmin(
+            `被封禁${t}检测到使用命令行为\n`
+            + ((msg instanceof IMessageGROUP || msg instanceof IMessageC2C) ? `用户: ${msg.author.id}` : `用户: ${msg.author.username} (${msg.author.id})`) + "\n"
+            + (msg instanceof IMessageC2C ? `消息列表: ${msg.author.id}` : msg instanceof IMessageGROUP ? `群聊: ${msg.group_id}` : `${"channelName" in msg ? `子频道: ${msg.channelName}` : ">私聊<"} (${msg.channel_id})`)
+        ).catch(err => log.error(err));
+        return true;
+    }
+    return false;
+}
+
 function aiAllow(msg: IMessageGROUP | IMessageC2C) {
     const allowGroup = [
         "E06A1951FA9B96870654B7919DCF2F5C",
@@ -302,59 +307,4 @@ function aiAllow(msg: IMessageGROUP | IMessageC2C) {
         fnc: "chatbot",
         keyChild: "chatbot",
     };
-}
-
-
-export const emojiMap: Record<string, string> = {
-    "9728": "☀",
-    "9749": "☕",
-    "9786": "☺",
-    "10024": "✨",
-    "10060": "❌",
-    "10068": "❔",
-    "127801": "🌹",
-    "127817": "🍉",
-    "127822": "🍎",
-    "127827": "🍓",
-    "127836": "🍜",
-    "127838": "🍞",
-    "127847": "🍧",
-    "127866": "🍺",
-    "127867": "🍻",
-    "127881": "🎉",
-    "128027": "🐛",
-    "128046": "🐮",
-    "128051": "🐳",
-    "128053": "🐵",
-    "128074": "👊",
-    "128076": "👌",
-    "128077": "👍",
-    "128079": "👏",
-    "128089": "👙",
-    "128102": "👦",
-    "128104": "👨",
-    "128147": "💓",
-    "128157": "💝",
-    "128164": "💤",
-    "128166": "💦",
-    "128168": "💨",
-    "128170": "💪",
-    "128235": "📫",
-    "128293": "🔥",
-    "128513": "😁",
-    "128514": "😂",
-    "128516": "😄",
-    "128522": "😊",
-    "128524": "😌",
-    "128527": "😏",
-    "128530": "😒",
-    "128531": "😓",
-    "128532": "😔",
-    "128536": "😘",
-    "128538": "😚",
-    "128540": "😜",
-    "128541": "😝",
-    "128557": "😭",
-    "128560": "😰",
-    "128563": "😳",
 }

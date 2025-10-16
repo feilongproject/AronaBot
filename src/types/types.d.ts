@@ -18,6 +18,7 @@ declare global {
     var ws: ReturnType<typeof createWebsocket>;
     var meId: string;
     var meAppId: string;
+    var meRealId: string;
     var redis: RedisClientType;
     var mariadb: PoolConnection;
     var browser: Browser;
@@ -261,6 +262,8 @@ declare global {
         type GROUP_MESSAGE_body = MessageChatCommon & {
             group_id: string;
             group_openid: string;
+            isOffical?: boolean;
+            pushEventId?: string;
         }
 
         type C2C_MESSAGE = EventRespose<C2C_MESSAGE_body>;

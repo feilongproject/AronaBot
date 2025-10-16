@@ -10,7 +10,7 @@ export namespace DynamicPushList {
     }
 
     export interface PushInfo {
-        id: string;
+        id: string; // 群uid
         name: string;
         type: MessageType;
         enable: boolean;

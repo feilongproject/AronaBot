@@ -415,7 +415,13 @@ export default {
                 fnc: "syncgroup",
                 type: [MessageType.GROUP],
                 describe: "同步当前群聊groupId",
-            }
+            },
+            callButton: {
+                reg: /^\/?\s*callbtn/,
+                fnc: "callButton",
+                type: [MessageType.GROUP],
+                describe: "测试call回调",
+            },
         },
     },
     channelAllows: {

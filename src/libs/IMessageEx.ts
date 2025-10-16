@@ -1,5 +1,6 @@
 import fs from "fs";
 import fetch from "node-fetch";
+import format from "date-format";
 import FormData from 'form-data';
 import { Ark, GMessageRec, IMember, IMessage, IUser, MessageAttachment, MessageKeyboard, MessageReference, MessageMarkdown } from "qq-bot-sdk";
 import { callWithRetry, pushToDB } from "./common";
@@ -61,7 +62,7 @@ class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
         this.channel_id = msg.channel_id;
         this.guild_id = msg.guild_id;
         this.content = msg.content || "";
-        this.timestamp = msg.timestamp;
+        this.timestamp = format.asString("yyyy-MM-dd hh:mm:ss", new Date(msg.timestamp));
         this.author = msg.author;
         this.member = msg.member;
         this.attachments = msg.attachments;
@@ -244,22 +245,25 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
     seq = 1;
     event_id: string;
 
+    isOffical: boolean;
+    pushEventId?: string;
     _atta: string;
     sendToId?: string;
     messageType: MessageType;
     opts: FindedData | null;
 
-    constructor(msg: IntentMessage.MessageChatCommon & Partial<{ group_id: string; group_openid: string; }>, meaasgeType: MessageType) {
+    constructor(msg: IntentMessage.MessageChatCommon & Partial<{ group_id: string; group_openid: string; }>, meaasgeType: MessageType, isOffical = true) {
         this.id = msg.id;
         this.author = msg.author;
         this.content = msg.content;
         this.event_id = msg.event_id;
-        this.timestamp = msg.timestamp;
+        this.timestamp = format.asString("yyyy-MM-dd hh:mm:ss", new Date(msg.timestamp));
         this.messageType = meaasgeType;
         this.attachments = msg.attachments || [];
         this._atta = this.attachments.length ? `[图片${this.attachments.length + "张"}]` : "";
         this.sendToId = this.messageType == MessageType.GROUP ? (msg.group_id || msg.group_openid) : (msg.author.id || msg.author.user_openid);
         this.opts = null;
+        this.isOffical = isOffical;
     }
 
     async pushToDB(another: Record<string, string>) {
@@ -291,7 +295,7 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         options.msgId = options.msgId || this.id || undefined;
         options.sendToId = options.sendToId || this.sendToId;
         options.msgType = options.msgType || (options.ark ? 3 : 0);
-        options.eventId = options.eventId || this.event_id;
+        options.eventId = this.pushEventId || options.eventId || this.event_id;
         // option.guildId = option.guildId || this.guild_id;
         // option.channelId = option.channelId || this.channel_id;
         // option.sendType = option.sendType || this.messageType;
@@ -310,14 +314,14 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         const fileInfo = options.fileInfo || (msgType == 7 ? await this._sendFile(options, (options.fileUrl || options.imageUrl)?.endsWith("/random")) : null);
         // return 
         if (this.messageType == MessageType.GROUP) return client.groupApi.postMessage(sendToId, {
-            content: content ? ("\n" + content) : "",
+            content: content || "",
             msg_type: msgType || 0,
             msg_id: msgId,
             event_id: eventId,
             media: (msgType == 7 && fileInfo) ? {
                 file_info: fileInfo,
             } : undefined,
-            msg_seq: this.seq++,
+            msg_seq: ++this.seq,
             ark,
         }).then(res => {
             (res.data as any)["x-tps-trace-id"] = res.headers["x-tps-trace-id"];
@@ -414,15 +418,18 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
     group_openid: string;
     author: { id: string; member_openid: string; };
 
-    constructor(msg: IntentMessage.GROUP_MESSAGE_body, register = true) {
-        super(msg, MessageType.GROUP);
+    constructor(msg: IntentMessage.GROUP_MESSAGE_body, register = true, isOffical = true) {
+        super(msg, MessageType.GROUP, isOffical);
         this.author = msg.author as any;
         this.group_id = msg.group_id;
         this.group_openid = msg.group_openid;
+        this.pushEventId = msg.pushEventId;
 
         if (!register) return;
-        log.info(`群聊[${this.group_id}](${this.author.id}): ${this.content}`);
+        log.info(`群聊[${isOffical ? this.group_id : this.group_openid}](${this.author.id}): ${this.content}`);
         this.opts = findOpts(this);
+
+        if (!isOffical) return;
         this.pushToDB({ gid: this.group_id });
     }
 }

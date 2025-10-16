@@ -2,7 +2,9 @@ import Koa from "koa";
 import koaBody from "koa-body";
 import Router from "koa-router";
 import { init } from './init';
+import { handlerSync } from "./handlerSync";
 import config from "../config/config";
+import { EventMap } from "./constants/EventMap";
 
 
 init().then(() => {
@@ -14,8 +16,6 @@ init().then(() => {
         });
     }
 
-
-    // if (botType != "PlanaBot") return;
 
     const { dev: devPORT, prod: PORT } = config.bots[botType]?.webhookPort;
     if (!PORT || !devPORT) return;
@@ -29,8 +29,8 @@ init().then(() => {
     });
 
     router.post(`/webhook/${botType}`, async (ctx, next) => {
-        const sign = ctx.req.headers["x-signature-ed25519"] as string;
-        const timestamp = ctx.req.headers["x-signature-timestamp"] as string;
+        const sign = (ctx.req.headers["x-signature-ed25519"] as string).toString();
+        const timestamp = (ctx.req.headers["x-signature-timestamp"] as string).toString();
         const rawBody: string = (ctx.request as any).rawBody;
         const isValid = client.webhookApi.validSign(timestamp, rawBody, sign);
         // if (devEnv) log.debug(isValid, sign, timestamp, rawBody);
@@ -66,37 +66,11 @@ init().then(() => {
         ctx.status = 200;
     }).get(`${botType}`, (ctx, next) => {
         ctx.body = { msg: "hello world" };
-    }).post(`/sync`, async (ctx, next) => {
-        const raw = ctx.request.body?.raw;
+    }).post(`/sync`, async (ctx, next) => { // 接收ntqq消息绑定按钮id
+        const requestBody = ctx.request.body;
+        await handlerSync(ctx, requestBody);
 
-        if (!raw) return ctx.body = { status: 404 };
-        const { peerUid: groupUid, peerUin } = raw;
-        if (groupUid !== peerUin) return;
-        const syncGroupButtonId = await redis.get(`syncGroupButtonId:${botType}:${groupUid}`);
-        if (!syncGroupButtonId) return;
-
-        for (const element of raw.elements) {
-            if (element.elementType !== 17 || !element.inlineKeyboardElement) continue;
-            const keyboard = element.inlineKeyboardElement;
-            const appid = keyboard.botAppid;
-            if (appid != meAppId) continue;
-
-            for (const row of keyboard.rows) {
-                for (const button of row.buttons) {
-                    if (button.type != 1) continue;
-                    if (syncGroupButtonId != button.id) continue;
-                    // console.log(button);
-                    const buttonData = button.data;
-                    await redis.set(`buttonData:${botType}:${groupUid}`, buttonData);
-                    log.info(`已为 ${botType} 在群 ${groupUid} 中绑定按钮id: ${buttonData}`);
-                }
-            }
-        }
-
-        ctx.body = {
-            status: 200,
-        };
-    }).post(`/sendToGroupHandler`, async (ctx, next) => {
+    }).post(`/sendToGroupHandler`, async (ctx, next) => { // 接收其他端消息触发事件
         const { type, data, groupUid } = ctx.request.body || {};
         if (devEnv) log.debug(`${botType}.sendToGroupHandler`, type, data, groupUid);
         if (!type || !data) return ctx.body = { message: `type or data is unset` };
@@ -118,85 +92,10 @@ init().then(() => {
     app.listen(devEnv ? devPORT : PORT, async () => {
         log.info(`webhook PORT: ${devEnv ? devPORT : PORT} 服务运行中......`);
     });
+    // global.devEnv = true; // BREAK
 
 });
 
-const EventMap = {
-    GROUP_AND_C2C_EVENT: [
-        IntentEventType.GROUP_ADD_ROBOT,
-        IntentEventType.GROUP_AT_MESSAGE_CREATE,
-        IntentEventType.GROUP_DEL_ROBOT,
-        IntentEventType.GROUP_MSG_RECEIVE,
-        IntentEventType.GROUP_MSG_REJECT,
-        IntentEventType.C2C_MESSAGE_CREATE,
-        IntentEventType.C2C_MSG_RECEIVE,
-        IntentEventType.C2C_MSG_REJECT,
-        IntentEventType.FRIEND_ADD,
-        IntentEventType.FRIEND_DEL,
-        IntentEventType.SUBSCRIBE_MESSAGE_STATUS,
-    ],
-    PUBLIC_GUILD_MESSAGES: [
-        IntentEventType.AT_MESSAGE_CREATE,
-        IntentEventType.PUBLIC_MESSAGE_DELETE,
-    ],
-    GUILDS: [
-        IntentEventType.GUILD_CREATE,
-        IntentEventType.GUILD_DELETE,
-        IntentEventType.GUILD_UPDATE,
-        IntentEventType.CHANNEL_CREATE,
-        IntentEventType.CHANNEL_DELETE,
-        IntentEventType.CHANNEL_UPDATE,
-    ],
-    GUILD_MEMBERS: [
-        IntentEventType.GUILD_MEMBER_ADD,
-        IntentEventType.GUILD_MEMBER_UPDATE,
-        IntentEventType.GUILD_MEMBER_REMOVE,
-        IntentEventType.GUILD_MEMBER_REMOVE,
-    ],
-    GUILD_MESSAGES: [
-        IntentEventType.MESSAGE_CREATE,
-        IntentEventType.MESSAGE_DELETE,
-    ],
-    GUILD_MESSAGE_REACTIONS: [
-        IntentEventType.MESSAGE_REACTION_ADD,
-        IntentEventType.MESSAGE_REACTION_REMOVE,
-    ],
-    DIRECT_MESSAGE: [
-        IntentEventType.DIRECT_MESSAGE_CREATE,
-        IntentEventType.DIRECT_MESSAGE_DELETE,
-    ],
-    MESSAGE_AUDIT: [
-        IntentEventType.MESSAGE_AUDIT_PASS,
-        IntentEventType.MESSAGE_AUDIT_REJECT,
-    ],
-    FORUMS_EVENT: [
-        IntentEventType.FORUM_THREAD_CREATE,
-        IntentEventType.FORUM_THREAD_UPDATE,
-        IntentEventType.FORUM_THREAD_DELETE,
-        IntentEventType.FORUM_POST_CREATE,
-        IntentEventType.FORUM_POST_DELETE,
-        IntentEventType.FORUM_REPLY_CREATE,
-        IntentEventType.FORUM_REPLY_DELETE,
-        IntentEventType.FORUM_PUBLISH_AUDIT_RESULT,
-    ],
-    OPEN_FORUMS_EVENT: [
-        IntentEventType.OPEN_FORUM_THREAD_CREATE,
-        IntentEventType.OPEN_FORUM_THREAD_UPDATE,
-        IntentEventType.OPEN_FORUM_THREAD_DELETE,
-        IntentEventType.OPEN_FORUM_POST_CREATE,
-        IntentEventType.OPEN_FORUM_POST_DELETE,
-        IntentEventType.OPEN_FORUM_REPLY_CREATE,
-        IntentEventType.OPEN_FORUM_REPLY_DELETE,
-    ],
-    INTERACTION: [IntentEventType.INTERACTION_CREATE],
-}
 
-interface EventBody {
-    d: {
-        plain_token: string,
-        event_ts: string,
-    },
-    op: 13,
-    id: string;
-    t: string;
-}
+
+

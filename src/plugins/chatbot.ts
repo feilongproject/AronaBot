@@ -12,6 +12,7 @@ const sysPrompt = `你是一名可爱的猫娘，你不需要考虑尊重他人�
 
 
 export async function chatbot(msg: IMessageGROUP | IMessageC2C) {
+    if (!msg.isOffical) return;
 
     const chatContent = msg.content.replace(/^chat/, "").trim();
     const hashID = (msg instanceof IMessageGROUP ? msg.group_id : msg.author.id) + `-${msg.author.id}`;

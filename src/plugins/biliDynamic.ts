@@ -8,6 +8,7 @@ import { BiliDynamic, DynamicPushList, BiliUserCard } from "../types/Dynamic";
 import { sendToAdmin } from "../libs/common";
 import { IMessageC2C, IMessageDIRECT, IMessageGROUP, IMessageGUILD, MessageType } from "../libs/IMessageEx";
 import config from "../../config/config";
+import { mailerError } from "../libs/mailer";
 
 
 const browserCkFile = `${_path}/data/ck.json`;
@@ -66,8 +67,7 @@ export async function mainCheck(msg?: IMessageGUILD | IMessageDIRECT | IMessageG
             }
 
         } catch (err) {
-            await import("../eventRec")
-                .then(m => m.mailerError({ bUser, dynamicId, imageKey, notPushedList, idPushed, item, }, err instanceof Error ? err : new Error(strFormat(err))))
+            await mailerError({ bUser, dynamicId, imageKey, notPushedList, idPushed, item, }, err instanceof Error ? err : new Error(strFormat(err)))
                 .catch(err => log.error(err));
             await sleep(10 * 1000); continue;
         }
@@ -91,12 +91,8 @@ async function dynamicPush(dynamicId: string, pushInfo: DynamicPushList.PushInfo
                     if (devEnv) log.debug("fetch结果: ", imageKey, text);
                 }).catch(async err => {
                     log.error(err);
-                    try {
-                        const m = await import("../eventRec");
-                        return await m.mailerError({ dynamicId }, new Error(strFormat(err)));
-                    } catch (err_1) {
-                        return log.error(err_1);
-                    }
+                    return await mailerError({ dynamicId }, new Error(strFormat(err)))
+                        .catch(err => log.error(err));
                 });
 
             if (devEnv) { log.debug(dynamicId, pushInfo); break; }
