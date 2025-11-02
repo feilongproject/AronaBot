@@ -187,21 +187,6 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             if (botType != 'AronaBot') return;
             const msg = (event as IntentMessage.GUILD_MESSAGE_REACTIONS).msg;
             if (global.devEnv && !adminId.includes(msg.user_id)) return;
-            await import('./plugins/roleAssign')
-                .then((module) => module.roleAssign(event as IntentMessage.GUILD_MESSAGE_REACTIONS))
-                .catch((err) => {
-                    log.error(err);
-                    log.error(event);
-                    return sendToAdmin(
-                        `roleAssign 失败` +
-                            `\n用户: ${msg.user_id}` +
-                            `\n频道: ${saveGuildsTree[msg.guild_id].name}(${msg.guild_id})` +
-                            `\n子频道: ${saveGuildsTree[msg.guild_id]?.channels[msg.channel_id]?.name}(${msg.channel_id})` +
-                            `\n目标消息: ${msg.target.id} -> ${msg.target.type}` +
-                            `\n表情: ${msg.emoji.type == 2 ? EmojiMap[msg.emoji.id] : `<emoji:${msg.emoji.id}>`}(${msg.emoji.id}) -> ${msg.emoji.type}`,
-                    );
-                })
-                .catch(() => {});
 
             await pushToDB('GUILD_MESSAGE_REACTIONS', {
                 cid: msg.channel_id,
