@@ -11,14 +11,14 @@ declare interface SyncMessageBody {
         card: string;
         role: string;
         title: string;
-    },
+    };
     raw_message: string;
     font: number;
     sub_type: string;
     message: string;
     message_format: string;
     post_type: string;
-    raw: SyncMessageRaw.Root,
+    raw: SyncMessageRaw.Root;
     group_id: number;
 }
 
@@ -34,57 +34,57 @@ declare namespace SyncMessageRaw {
         sendType: number;
         senderUid: string;
         peerUid: string;
-        channelId: '',
-        guildId: '',
+        channelId: '';
+        guildId: '';
         guildCode: string;
         fromUid: string;
         fromAppid: string;
         msgTime: string;
         msgMeta: string;
         sendStatus: number;
-        sendRemarkName: '',
+        sendRemarkName: '';
         sendMemberName: string;
-        sendNickName: '',
-        guildName: '',
-        channelName: '',
-        elements: Element[],
-        records: [],
-        emojiLikesList: [],
+        sendNickName: '';
+        guildName: '';
+        channelName: '';
+        elements: Element[];
+        records: [];
+        emojiLikesList: [];
         commentCnt: string;
         directMsgFlag: number;
-        directMsgMembers: [],
+        directMsgMembers: [];
         peerName: string;
-        freqLimitInfo: null,
-        editable: false,
-        avatarMeta: '',
-        avatarPendant: '',
-        feedId: '',
+        freqLimitInfo: null;
+        editable: false;
+        avatarMeta: '';
+        avatarPendant: '';
+        feedId: '';
         roleId: string;
         timeStamp: string;
-        clientIdentityInfo: null,
-        isImportMsg: false,
+        clientIdentityInfo: null;
+        isImportMsg: false;
         atType: number;
         roleType: number;
-        fromChannelRoleInfo: { roleId: string; color: 0 },
-        fromGuildRoleInfo: { roleId: string; color: 0 },
-        levelRoleInfo: { roleId: string; color: 0 },
+        fromChannelRoleInfo: { roleId: string; color: 0 };
+        fromGuildRoleInfo: { roleId: string; color: 0 };
+        levelRoleInfo: { roleId: string; color: 0 };
         recallTime: string;
-        isOnlineMsg: true,
+        isOnlineMsg: true;
         generalFlags: string;
         clientSeq: string;
-        fileGroupSize: null,
-        foldingInfo: null,
-        multiTransInfo: null,
+        fileGroupSize: null;
+        foldingInfo: null;
+        multiTransInfo: null;
         senderUin: string;
         peerUin: string;
-        msgAttrs: {},
-        anonymousExtInfo: null,
+        msgAttrs: {};
+        anonymousExtInfo: null;
         nameType: number;
         avatarFlag: number;
-        extInfoForUI: null,
-        personalMedal: null,
+        extInfoForUI: null;
+        personalMedal: null;
         categoryManage: number;
-        msgEventInfo: null
+        msgEventInfo: null;
     }
 
     interface Element {
@@ -94,11 +94,11 @@ declare namespace SyncMessageRaw {
     }
 
     interface TextElement {
-        content: string;   // "@星奈"
-        atType: number;    // 2
-        atUid: string;     // "2854207579"
-        atTinyId: string;  // "0",
-        atNtUid: string;   // "u_HwRM8zM122Z1ykRkkeH2JQ"
+        content: string; // "@星奈"
+        atType: number; // 2
+        atUid: string; // "2854207579"
+        atTinyId: string; // "0",
+        atNtUid: string; // "u_HwRM8zM122Z1ykRkkeH2JQ"
         subElementType: number;
         atChannelId: string;
         linkInfo: null;
@@ -122,7 +122,4 @@ declare namespace SyncMessageRaw {
         id: string;
         data: string;
     }
-
 }
-
-

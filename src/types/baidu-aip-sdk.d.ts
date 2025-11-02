@@ -1,8 +1,10 @@
 declare module 'baidu-aip-sdk' {
-
     class contentCensor {
         constructor(APP_ID: string, API_KEY: string, SECRET_KEY: string);
-        textCensorUserDefined(content: string, options?: { userId?: string; userIp?: string; strategyId?: number; }): Promise<TextCensorUserDefined.Root>;
+        textCensorUserDefined(
+            content: string,
+            options?: { userId?: string; userIp?: string; strategyId?: number },
+        ): Promise<TextCensorUserDefined.Root>;
     }
 
     namespace TextCensorUserDefined {
@@ -12,7 +14,7 @@ declare module 'baidu-aip-sdk' {
             error_code?: number;
             error_msg?: string;
         } & {
-            conclusion?: "合规" | "不合规" | "疑似" | "审核失败";
+            conclusion?: '合规' | '不合规' | '疑似' | '审核失败';
             conclusionType?: 1 | 2 | 3 | 4;
             data?: Daum[];
             isHitMd5?: boolean; // 何时来的
@@ -40,6 +42,4 @@ declare module 'baidu-aip-sdk' {
             positions: number[][];
         }
     }
-
 }
-

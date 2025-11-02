@@ -2,7 +2,7 @@
     "compilerOptions": {
         "outDir": "./dist",
         "module": "commonjs",
-        "target": "es2021",
+        "target": "esnext",
         "lib": ["es2021", "es2016", "es2015"],
         "moduleResolution": "node",
         "alwaysStrict": true,

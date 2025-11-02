@@ -1,13 +1,12 @@
-import format from "date-format";
-import { ParameterizedContext } from "koa";
-import { IRouterParamContext } from "koa-router";
-import config from "../config/config";
+import format from 'date-format';
+import { ParameterizedContext } from 'koa';
+import { RouterParamContext } from '@koa/router';
+import config from '../config/config';
 
-
-type Ctx = ParameterizedContext<any, IRouterParamContext<any, {}>, any>;
+type Ctx = ParameterizedContext<any, RouterParamContext<any, {}>, any>;
 
 export async function handlerSync(ctx: Ctx, requestBody: SyncMessageBody) {
-    // if (devEnv) log.debug(JSON.stringify(requestBody));
+    if (devEnv) log.debug(JSON.stringify(requestBody));
     try {
         await syncButton(ctx, requestBody);
         await syncMessage(ctx, requestBody);
@@ -24,7 +23,7 @@ export async function handlerSync(ctx: Ctx, requestBody: SyncMessageBody) {
 async function syncButton(ctx: Ctx, requestBody: SyncMessageBody) {
     const raw = requestBody?.raw;
 
-    if (!raw) return ctx.body = { status: 404 };
+    if (!raw) return (ctx.body = { status: 404 });
     const { peerUid: groupUid, peerUin } = raw;
     if (groupUid !== peerUin) return;
     const syncGroupButtonId = await redis.get(`syncGroupButtonId:${botType}:${groupUid}`);
@@ -51,22 +50,26 @@ async function syncButton(ctx: Ctx, requestBody: SyncMessageBody) {
 
 async function syncMessage(ctx: Ctx, requestBody: SyncMessageBody) {
     const groupRealId = requestBody.group_id.toString();
-    if (requestBody.message_type !== "group") return;
-    if (requestBody.raw.elements.find(v => v.textElement?.atUid == meRealId)) return; // @bot的忽略
+    if (requestBody.message_type !== 'group') return;
+    if (requestBody.raw.elements.find((v) => v.textElement?.atUid == meRealId)) return; // @bot的忽略
     if (requestBody.sender.user_id.toString() == meRealId) return; // bot发送的忽略
 
-    const groupId = Object.entries(config.bots[botType].groupMap).find(v => v[1] == groupRealId)?.[0];
-    if (devEnv) log.debug("syncMessage.group_id", groupRealId, groupId);
+    const groupId = Object.entries(config.bots[botType].groupMap).find(
+        (v) => v[1] == groupRealId,
+    )?.[0];
+    if (devEnv) log.debug('syncMessage.group_id', groupRealId, groupId);
     if (!groupId) return;
 
-    const eventId = await import("./plugins/interaction").then(m => m.awaitGroupEventId(groupRealId));
-    if (devEnv) log.debug("syncMessage.eventId", eventId);
+    const eventId = await import('./plugins/interaction').then((m) =>
+        m.awaitGroupEventId(groupRealId),
+    );
+    if (devEnv) log.debug('syncMessage.eventId', eventId);
     if (!eventId) return;
 
     const messageId = requestBody.raw.msgId;
     const msg: IntentMessage.GROUP_MESSAGE_body = {
         event_id: messageId,
-        id: "",
+        id: '',
         author: {
             id: requestBody.sender.user_id.toString(),
         },
@@ -78,11 +81,9 @@ async function syncMessage(ctx: Ctx, requestBody: SyncMessageBody) {
         pushEventId: eventId,
     };
 
-    global.ws.emit("GROUP_AND_C2C_EVENT", {
+    global.ws.emit('GROUP_AND_C2C_EVENT', {
         eventId: eventId,
         eventType: IntentEventType.GROUP_AT_MESSAGE_CREATE,
         msg: msg,
     });
-
-
 }

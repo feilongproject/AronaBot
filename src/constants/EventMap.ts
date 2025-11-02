@@ -30,22 +30,13 @@ export const EventMap = {
         IntentEventType.GUILD_MEMBER_REMOVE,
         IntentEventType.GUILD_MEMBER_REMOVE,
     ],
-    GUILD_MESSAGES: [
-        IntentEventType.MESSAGE_CREATE,
-        IntentEventType.MESSAGE_DELETE,
-    ],
+    GUILD_MESSAGES: [IntentEventType.MESSAGE_CREATE, IntentEventType.MESSAGE_DELETE],
     GUILD_MESSAGE_REACTIONS: [
         IntentEventType.MESSAGE_REACTION_ADD,
         IntentEventType.MESSAGE_REACTION_REMOVE,
     ],
-    DIRECT_MESSAGE: [
-        IntentEventType.DIRECT_MESSAGE_CREATE,
-        IntentEventType.DIRECT_MESSAGE_DELETE,
-    ],
-    MESSAGE_AUDIT: [
-        IntentEventType.MESSAGE_AUDIT_PASS,
-        IntentEventType.MESSAGE_AUDIT_REJECT,
-    ],
+    DIRECT_MESSAGE: [IntentEventType.DIRECT_MESSAGE_CREATE, IntentEventType.DIRECT_MESSAGE_DELETE],
+    MESSAGE_AUDIT: [IntentEventType.MESSAGE_AUDIT_PASS, IntentEventType.MESSAGE_AUDIT_REJECT],
     FORUMS_EVENT: [
         IntentEventType.FORUM_THREAD_CREATE,
         IntentEventType.FORUM_THREAD_UPDATE,
@@ -66,4 +57,4 @@ export const EventMap = {
         IntentEventType.OPEN_FORUM_REPLY_DELETE,
     ],
     INTERACTION: [IntentEventType.INTERACTION_CREATE],
-}
+};
