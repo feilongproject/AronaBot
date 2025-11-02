@@ -1,12 +1,11 @@
-import { IMessageGROUP, IMessageGUILD, MessageType } from "../libs/IMessageEx";
+import { IMessageGROUP, IMessageGUILD, MessageType } from '../libs/IMessageEx';
 
-
-const typeMap = { GUILD: "频道", DIRECT: "频道私聊", GROUP: "群聊", FRIEND: "私聊" };
+const typeMap = { GUILD: '频道', DIRECT: '频道私聊', GROUP: '群聊', FRIEND: '私聊' };
 
 export async function help(msg: IMessageGUILD | IMessageGROUP) {
-    const opts = (await import("../../config/opts")).default.command;
+    const opts = (await import('../../config/opts')).default.command;
     const sendStr = [`当前场景下（${typeMap[msg.messageType]}）可用的命令有：`];
-    const split = `${" ".repeat(4)}===${" ".repeat(4)}`;
+    const split = `${' '.repeat(4)}===${' '.repeat(4)}`;
 
     for (const keyFather in opts) {
         const _: string[] = [];
@@ -15,15 +14,14 @@ export async function help(msg: IMessageGUILD | IMessageGROUP) {
             if (!opt.export) continue;
             if (!opt.type.includes(msg.messageType)) continue;
 
-            const examples = opt.export.split("\n");
-            examples.map(example => _.push(`    > ${example}${split}${opt.describe}`));
+            const examples = opt.export.split('\n');
+            examples.map((example) => _.push(`    > ${example}${split}${opt.describe}`));
         }
-        if (_.length) sendStr.push(..._,);
+        if (_.length) sendStr.push(..._);
     }
 
     sendStr.push(
-        `参数描述:` +
-        `    < > 包括在内的为必填参数`,
+        `参数描述:` + `    < > 包括在内的为必填参数`,
         `    [ ] 在内的为选填参数（有 | 存在时，参数只能选择 | 分割后的其中一个参数, 不存在时则为参数表述）`,
         `    所有命令实际使用均不包括 < > 或 [ ]`,
     );
@@ -36,9 +34,11 @@ export async function help(msg: IMessageGUILD | IMessageGROUP) {
     //     "测试帖子频道(14432713)",
     // );
 
-    return msg.sendMsgEx({
-        content: sendStr.join("\n"),
-    }).catch(err => {
-        throw new Error(strFormat(err));
-    });
+    return msg
+        .sendMsgEx({
+            content: sendStr.join('\n'),
+        })
+        .catch((err) => {
+            throw new Error(strFormat(err));
+        });
 }

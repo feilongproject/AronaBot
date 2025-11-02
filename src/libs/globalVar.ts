@@ -1,6 +1,5 @@
-import fs from "fs";
-import config from "../../config/config";
-
+import fs from 'fs';
+import config from '../../config/config';
 
 export class StudentNameAlias extends Array<string> {
     private _data: string[] = [];
@@ -11,25 +10,26 @@ export class StudentNameAlias extends Array<string> {
 
         return new Proxy(this, {
             get(target, property) {
-
-                if (typeof target[property as any] === "function" && target._data[property as any] === undefined)
+                if (
+                    typeof target[property as any] === 'function' &&
+                    target._data[property as any] === undefined
+                )
                     return Reflect.get(target, property);
 
                 if (target[property as any] !== Array.prototype[property as any])
                     return Reflect.get(target, property);
 
-                if (typeof property == "string" && Number(property).toString() === property) {
+                if (typeof property == 'string' && Number(property).toString() === property) {
                     const _ = Number(property);
-                    property = (_ < 0 ? (target._data.length + _) : _).toString();
+                    property = (_ < 0 ? target._data.length + _ : _).toString();
                 }
 
                 return Reflect.get(target._data, property);
             },
             set(target, property, value) {
-                return Reflect.set(property === "_data" ? target : target._data, property, value);
+                return Reflect.set(property === '_data' ? target : target._data, property, value);
             },
         });
-
     }
 
     public push(...item: string[]) {
@@ -47,7 +47,7 @@ export class StudentNameAlias extends Array<string> {
      * @param value 要删除的 value
      */
     public remove(value: string | undefined) {
-        this._data = this._data.filter(v => v != value);
+        this._data = this._data.filter((v) => v != value);
         this.save();
     }
 
@@ -58,9 +58,7 @@ export class StudentNameAlias extends Array<string> {
     async save() {
         fs.writeFileSync(config.studentNameAlias, strFormat(this._data));
     }
-
 }
-
 
 export class StudentInfo extends Object implements Record<`${number}`, StudentData> {
     private _data: Record<string, StudentData> = {};
@@ -73,7 +71,7 @@ export class StudentInfo extends Object implements Record<`${number}`, StudentDa
             get(target, property) {
                 const _p = property as keyof typeof target;
 
-                if (typeof target[_p] === "function" && target._data[property as any] === undefined)
+                if (typeof target[_p] === 'function' && target._data[property as any] === undefined)
                     return Reflect.get(target, property);
 
                 if (property in target && !(property in target._data))
@@ -82,7 +80,7 @@ export class StudentInfo extends Object implements Record<`${number}`, StudentDa
                 return Reflect.get(target._data, property);
             },
             set(target, property, value) {
-                return Reflect.set(property === "_data" ? target : target._data, property, value);
+                return Reflect.set(property === '_data' ? target : target._data, property, value);
             },
             ownKeys(target) {
                 return Reflect.ownKeys(target._data);
@@ -95,7 +93,6 @@ export class StudentInfo extends Object implements Record<`${number}`, StudentDa
             getOwnPropertyDescriptor(target, p) {
                 return Reflect.getOwnPropertyDescriptor(target._data, p);
             },
-
         });
     }
 

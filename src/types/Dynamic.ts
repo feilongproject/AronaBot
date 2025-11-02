@@ -1,4 +1,4 @@
-import { MessageType } from "../libs/IMessageEx";
+import { MessageType } from '../libs/IMessageEx';
 
 export namespace DynamicPushList {
     export type Root = PushUserInfo[];
@@ -17,7 +17,6 @@ export namespace DynamicPushList {
     }
 }
 
-
 export interface Common<T> {
     code: number;
     message: string;
@@ -26,7 +25,6 @@ export interface Common<T> {
 }
 
 export namespace BiliDynamic {
-
     export type SpaceListRoot = Common<SpaceList>;
 
     export interface SpaceList {
@@ -63,28 +61,28 @@ export namespace BiliDynamic {
     }
 
     export const enum DynamicTypeEnum {
-        DYNAMIC_TYPE_NONE = "DYNAMIC_TYPE_NONE",                 // 无效动态
-        DYNAMIC_TYPE_FORWARD = "DYNAMIC_TYPE_FORWARD",              // 动态转发	
-        DYNAMIC_TYPE_AV = "DYNAMIC_TYPE_AV",                   //投稿视频
-        DYNAMIC_TYPE_PGC = "DYNAMIC_TYPE_PGC",                  //剧集（番剧、电影、纪录片）
-        DYNAMIC_TYPE_COURSES = "DYNAMIC_TYPE_COURSES",
-        DYNAMIC_TYPE_WORD = "DYNAMIC_TYPE_WORD",                 //纯文字动态
-        DYNAMIC_TYPE_DRAW = "DYNAMIC_TYPE_DRAW",                 //带图动态
-        DYNAMIC_TYPE_ARTICLE = "DYNAMIC_TYPE_ARTICLE",              //投稿专栏
-        DYNAMIC_TYPE_MUSIC = "DYNAMIC_TYPE_MUSIC",                //音乐
-        DYNAMIC_TYPE_COMMON_SQUARE = "DYNAMIC_TYPE_COMMON_SQUARE",        // 装扮/剧集点评/普通分享
-        DYNAMIC_TYPE_COMMON_VERTICAL = "DYNAMIC_TYPE_COMMON_VERTICAL",
-        DYNAMIC_TYPE_LIVE = "DYNAMIC_TYPE_LIVE",                //直播间分享
-        DYNAMIC_TYPE_MEDIALIST = "DYNAMIC_TYPE_MEDIALIST",           //收藏夹
-        DYNAMIC_TYPE_COURSES_SEASON = "DYNAMIC_TYPE_COURSES_SEASON",      //课程
-        DYNAMIC_TYPE_COURSES_BATCH = "DYNAMIC_TYPE_COURSES_BATCH",
-        DYNAMIC_TYPE_AD = "DYNAMIC_TYPE_AD",
-        DYNAMIC_TYPE_APPLET = "DYNAMIC_TYPE_APPLET",
-        DYNAMIC_TYPE_SUBSCRIPTION = "DYNAMIC_TYPE_SUBSCRIPTION",
-        DYNAMIC_TYPE_LIVE_RCMD = "DYNAMIC_TYPE_LIVE_RCMD",          //直播开播
-        DYNAMIC_TYPE_BANNER = "DYNAMIC_TYPE_BANNER",
-        DYNAMIC_TYPE_UGC_SEASON = "DYNAMIC_TYPE_UGC_SEASON",         //合集更新
-        DYNAMIC_TYPE_SUBSCRIPTION_NEW = "DYNAMIC_TYPE_SUBSCRIPTION_NEW",
+        DYNAMIC_TYPE_NONE = 'DYNAMIC_TYPE_NONE', // 无效动态
+        DYNAMIC_TYPE_FORWARD = 'DYNAMIC_TYPE_FORWARD', // 动态转发
+        DYNAMIC_TYPE_AV = 'DYNAMIC_TYPE_AV', //投稿视频
+        DYNAMIC_TYPE_PGC = 'DYNAMIC_TYPE_PGC', //剧集（番剧、电影、纪录片）
+        DYNAMIC_TYPE_COURSES = 'DYNAMIC_TYPE_COURSES',
+        DYNAMIC_TYPE_WORD = 'DYNAMIC_TYPE_WORD', //纯文字动态
+        DYNAMIC_TYPE_DRAW = 'DYNAMIC_TYPE_DRAW', //带图动态
+        DYNAMIC_TYPE_ARTICLE = 'DYNAMIC_TYPE_ARTICLE', //投稿专栏
+        DYNAMIC_TYPE_MUSIC = 'DYNAMIC_TYPE_MUSIC', //音乐
+        DYNAMIC_TYPE_COMMON_SQUARE = 'DYNAMIC_TYPE_COMMON_SQUARE', // 装扮/剧集点评/普通分享
+        DYNAMIC_TYPE_COMMON_VERTICAL = 'DYNAMIC_TYPE_COMMON_VERTICAL',
+        DYNAMIC_TYPE_LIVE = 'DYNAMIC_TYPE_LIVE', //直播间分享
+        DYNAMIC_TYPE_MEDIALIST = 'DYNAMIC_TYPE_MEDIALIST', //收藏夹
+        DYNAMIC_TYPE_COURSES_SEASON = 'DYNAMIC_TYPE_COURSES_SEASON', //课程
+        DYNAMIC_TYPE_COURSES_BATCH = 'DYNAMIC_TYPE_COURSES_BATCH',
+        DYNAMIC_TYPE_AD = 'DYNAMIC_TYPE_AD',
+        DYNAMIC_TYPE_APPLET = 'DYNAMIC_TYPE_APPLET',
+        DYNAMIC_TYPE_SUBSCRIPTION = 'DYNAMIC_TYPE_SUBSCRIPTION',
+        DYNAMIC_TYPE_LIVE_RCMD = 'DYNAMIC_TYPE_LIVE_RCMD', //直播开播
+        DYNAMIC_TYPE_BANNER = 'DYNAMIC_TYPE_BANNER',
+        DYNAMIC_TYPE_UGC_SEASON = 'DYNAMIC_TYPE_UGC_SEASON', //合集更新
+        DYNAMIC_TYPE_SUBSCRIPTION_NEW = 'DYNAMIC_TYPE_SUBSCRIPTION_NEW',
     }
 
     export interface Modules {
@@ -182,24 +180,24 @@ export namespace BiliDynamic {
             title: string;
         };
         archive?: {
-            aid: number,
+            aid: number;
             badge: {
-                bg_color: string,
-                color: string,
-                text: string,
-            },
-            bvid: string,
-            cover: string,
-            desc: string,
-            disable_preview: number,
-            duration_text: string,
-            jump_url: string,
+                bg_color: string;
+                color: string;
+                text: string;
+            };
+            bvid: string;
+            cover: string;
+            desc: string;
+            disable_preview: number;
+            duration_text: string;
+            jump_url: string;
             stat: {
-                danmaku: string,
-                play: string,
-            },
-            title: string,
-            type: number,
+                danmaku: string;
+                play: string;
+            };
+            title: string;
+            type: number;
         };
         live?: {
             badge: {
@@ -217,7 +215,7 @@ export namespace BiliDynamic {
             title: string;
         };
         live_rcmd?: {
-            content: string;//被转义的json
+            content: string; //被转义的json
         };
         draw?: {
             id: number;
@@ -289,21 +287,21 @@ export namespace BiliDynamic {
     }
 
     export const enum MajorTypeEnum {
-        MAJOR_TYPE_NONE = "MAJOR_TYPE_NONE",
-        MAJOR_TYPE_ARCHIVE = "MAJOR_TYPE_ARCHIVE",
-        MAJOR_TYPE_PGC = "MAJOR_TYPE_PGC",
-        MAJOR_TYPE_COURSES = "MAJOR_TYPE_COURSES",
-        MAJOR_TYPE_DRAW = "MAJOR_TYPE_DRAW",
-        MAJOR_TYPE_ARTICLE = "MAJOR_TYPE_ARTICLE",
-        MAJOR_TYPE_MUSIC = "MAJOR_TYPE_MUSIC",
-        MAJOR_TYPE_COMMON = "MAJOR_TYPE_COMMON",
-        MAJOR_TYPE_LIVE = "MAJOR_TYPE_LIVE",
-        MAJOR_TYPE_MEDIALIST = "MAJOR_TYPE_MEDIALIST",
-        MAJOR_TYPE_APPLET = "MAJOR_TYPE_APPLET",
-        MAJOR_TYPE_SUBSCRIPTION = "MAJOR_TYPE_SUBSCRIPTION",
-        MAJOR_TYPE_LIVE_RCMD = "MAJOR_TYPE_LIVE_RCMD",
-        MAJOR_TYPE_UGC_SEASON = "MAJOR_TYPE_UGC_SEASON",
-        MAJOR_TYPE_SUBSCRIPTION_NEW = "MAJOR_TYPE_SUBSCRIPTION_NEW",
+        MAJOR_TYPE_NONE = 'MAJOR_TYPE_NONE',
+        MAJOR_TYPE_ARCHIVE = 'MAJOR_TYPE_ARCHIVE',
+        MAJOR_TYPE_PGC = 'MAJOR_TYPE_PGC',
+        MAJOR_TYPE_COURSES = 'MAJOR_TYPE_COURSES',
+        MAJOR_TYPE_DRAW = 'MAJOR_TYPE_DRAW',
+        MAJOR_TYPE_ARTICLE = 'MAJOR_TYPE_ARTICLE',
+        MAJOR_TYPE_MUSIC = 'MAJOR_TYPE_MUSIC',
+        MAJOR_TYPE_COMMON = 'MAJOR_TYPE_COMMON',
+        MAJOR_TYPE_LIVE = 'MAJOR_TYPE_LIVE',
+        MAJOR_TYPE_MEDIALIST = 'MAJOR_TYPE_MEDIALIST',
+        MAJOR_TYPE_APPLET = 'MAJOR_TYPE_APPLET',
+        MAJOR_TYPE_SUBSCRIPTION = 'MAJOR_TYPE_SUBSCRIPTION',
+        MAJOR_TYPE_LIVE_RCMD = 'MAJOR_TYPE_LIVE_RCMD',
+        MAJOR_TYPE_UGC_SEASON = 'MAJOR_TYPE_UGC_SEASON',
+        MAJOR_TYPE_SUBSCRIPTION_NEW = 'MAJOR_TYPE_SUBSCRIPTION_NEW',
     }
 }
 
@@ -426,5 +424,5 @@ export namespace BiliUserCard {
         icon_resource: IconResource;
     }
 
-    export interface IconResource { }
+    export interface IconResource {}
 }

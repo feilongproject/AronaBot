@@ -9,4 +9,4 @@ cd /root/RemoteDir/qbot/AronaBot
 
 # echo $PATH
 
-/root/.nvm/versions/node/v18.19.0/bin/node /root/.nvm/versions/node/v18.19.0/bin/pnpm run start:$1 >"log/$1_$(date +%F--%H:%M:%S).log" 2>&1 &
+/root/.nvm/versions/node/v24.11.0/bin/node /root/.nvm/versions/node/v24.11.0/bin/pnpm run start:$1 >"log/$1_$(date +%F--%H:%M:%S).log" 2>&1 &
