@@ -271,29 +271,6 @@ export default {
                 describe: "使用指定动态id手动获取截图"
             },
         },
-        roleAssign: {
-            createVirtualRole: {
-                reg: /^\/?创建虚拟身份组/,
-                fnc: "createVirtualRole",
-                type: [MessageType.GUILD],
-                channelAllows: ["all"],
-                describe: "创建一个虚拟身份组"
-            },
-            createRoleAssignMsg: {
-                reg: /^\/?创建身份组分配消息/,
-                fnc: "createRoleAssignMsg",
-                type: [MessageType.GUILD],
-                channelAllows: ["all"],
-                describe: "创建一个身份组分配消息"
-            },
-            deleteRoleAssign: {
-                reg: /^\/?删除虚拟身份组/,
-                fnc: "deleteRoleAssign",
-                type: [MessageType.GUILD],
-                channelAllows: ["all"],
-                describe: "删除虚拟身份组及相关内容"
-            }
-        },
         Tarot: {
             todayTarot: {
                 reg: /^\/?塔罗牌$/,
