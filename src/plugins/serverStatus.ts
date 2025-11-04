@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+import axios from 'axios';
 import format from 'date-format';
 import { readFileSync } from 'fs';
 import { IMessageC2C, IMessageDIRECT, IMessageGROUP, IMessageGUILD } from '../libs/IMessageEx';
@@ -6,27 +6,29 @@ import { IMessageC2C, IMessageDIRECT, IMessageGROUP, IMessageGUILD } from '../li
 export async function baServerStatus(
     msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C,
 ) {
-    const jpStatus = fetch('https://d3656gtd9j62z1.cloudfront.net/prod/index.json', {})
-        .then((res) => res.json() as Promise<ServerStatusJP>)
+    const jpStatus = axios<ServerStatusJP>('https://d3656gtd9j62z1.cloudfront.net/prod/index.json')
+        .then((res) => res.data)
         .catch((err) => log.error(err)); // prod-noticeindex.bluearchiveyostar.com
 
-    const globalStatus = fetch('https://d13o75oynjs6mz.cloudfront.net/sdk/enterToy.nx', {
+    const globalStatus = axios<ServerStatusGlobal>({
         // https://m-api.nexon.com/sdk/enterToy.nx
+        url: 'https://d13o75oynjs6mz.cloudfront.net/sdk/enterToy.nx',
         method: 'POST',
         headers: {
             // npparams: readFileSync(`${_path}/data/npparams`).toString(),
             // acceptLanguage: "zh_TW",
             'X-Forwarded-For': '8.8.8.8',
         },
-        body: readFileSync(`${_path}/data/getPromotion.nx`),
+        data: readFileSync(`${_path}/data/getPromotion.nx`),
     })
-        .then((res) => res.json() as Promise<ServerStatusGlobal>)
+        .then((res) => res.data)
         .catch((err) => log.error(err));
 
-    const cnStatus = await fetch(`https://ba.gamekee.com/v1/wiki/index`, {
+    const cnStatus = await axios<Gamekee.Index>({
+        url: `https://ba.gamekee.com/v1/wiki/index`,
         headers: { 'game-alias': 'ba' },
     })
-        .then((res) => res.json() as Promise<Gamekee.Index>)
+        .then((res) => res.data)
         .catch((err) => log.error(err));
 
     return Promise.all([jpStatus, globalStatus, cnStatus])

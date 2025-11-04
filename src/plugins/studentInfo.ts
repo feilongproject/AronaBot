@@ -1,6 +1,6 @@
 import fs from 'fs';
+import axios from 'axios';
 import pinyin from 'pinyin';
-import fetch from 'node-fetch';
 import { uniqBy } from 'lodash';
 import { Button } from 'qq-bot-sdk';
 import PinyinMatch from 'pinyin-match';
@@ -9,6 +9,7 @@ import { sendToAdmin } from '../libs/common';
 import { IMessageDIRECT, IMessageGROUP, IMessageGUILD } from '../libs/IMessageEx';
 import config from '../../config/config';
 import { StudentInfo } from '../libs/globalVar';
+import { CharacterExcelTable } from '../types/CharacterExcelTable';
 
 const nameToId = { jp: 0, global: 1 };
 var key: keyof typeof nameToId;
@@ -124,32 +125,32 @@ export async function reloadStudentInfo(
     if (type == 'net') {
         const [nStudentsDBcn, nStudentsDBzh, nStudentsElectricgoat, aStudentNameWeb] =
             await Promise.all([
-                fetch('https://schaledb.com/data/cn/students.min.json', {
+                axios<Record<string, StudentDataNet>>({
+                    url: 'https://schaledb.com/data/cn/students.min.json',
                     timeout: 30 * 1000,
                 })
-                    .then((res) => res.json())
-                    .then((json: Record<string, StudentDataNet>) =>
+                    .then((res) => res.data)
+                    .then((json) =>
                         Object.values(json).map((v) => ({ ...v, Name: fixName(v.Name) })),
                     )
                     .catch((err) => log.error(err)),
 
-                fetch('https://schaledb.com/data/zh/students.min.json', {
+                axios<Record<string, StudentDataNet>>({
+                    url: 'https://schaledb.com/data/zh/students.min.json',
                     timeout: 30 * 1000,
                 })
-                    .then((res) => res.json())
-                    .then((json: Record<string, StudentDataNet>) =>
+                    .then((res) => res.data)
+                    .then((json) =>
                         Object.values(json).map((v) => ({ ...v, Name: fixName(v.Name) })),
                     )
                     .catch((err) => log.error(err)),
 
-                fetch(
-                    `https://ghproxy.net/https://raw.githubusercontent.com/electricgoat/ba-data/jp/Excel/CharacterExcelTable.json`,
-                    {
-                        timeout: 60 * 1000,
-                    },
-                )
-                    .then((res) => res.json())
-                    .then((characterExcelTable: CharacterExcelTable.Root) => {
+                axios<CharacterExcelTable.Root>({
+                    url: `https://ghproxy.net/https://raw.githubusercontent.com/electricgoat/ba-data/jp/Excel/CharacterExcelTable.json`,
+                    timeout: 60 * 1000,
+                })
+                    .then((res) => res.data)
+                    .then((characterExcelTable) => {
                         return characterExcelTable.DataList.filter(
                             (v) =>
                                 v.TacticEntityType == 'Student' &&
@@ -159,23 +160,21 @@ export async function reloadStudentInfo(
                     })
                     .catch((err) => log.error(err)),
 
-                fetch(
-                    'https://ghproxy.net/https://raw.githubusercontent.com/lgc2333/bawiki-data/main/data/stu_alias.json',
-                    {
-                        timeout: 30 * 1000,
-                    },
-                )
-                    .then((res) => res.json())
-                    .then((json: Record<string, string[]>) => {
+                axios<Record<string, string[]>>({
+                    url: 'https://ghproxy.net/https://raw.githubusercontent.com/lgc2333/bawiki-data/main/data/stu_alias.json',
+                    timeout: 30 * 1000,
+                })
+                    .then((res) => res.data)
+                    .then((json) => {
                         for (const names in json) json[names] = json[names].map((v) => fixName(v));
                         return json;
                     })
                     .catch((err) => log.error(err)),
             ]);
-        if (!nStudentsDBcn) throw `can't fetch json:netStudentsSchaleDBcn`;
-        if (!nStudentsDBzh) throw `can't fetch json:netStudentsSchaleDBzh`;
-        if (!nStudentsElectricgoat) throw `can't fetch json:netStudentsElectricgoat`;
-        if (!aStudentNameWeb) throw `can't fetch json:aliasStudentNameWeb`;
+        if (!nStudentsDBcn) throw `can't get json:netStudentsSchaleDBcn`;
+        if (!nStudentsDBzh) throw `can't get json:netStudentsSchaleDBzh`;
+        if (!nStudentsElectricgoat) throw `can't get json:netStudentsElectricgoat`;
+        if (!aStudentNameWeb) throw `can't get json:aliasStudentNameWeb`;
 
         const aStudentNameLocal = fs
             .readFileSync(config.aliasStudentNameLocal)
@@ -378,91 +377,4 @@ function toPinyin(han: string): string {
         .replace(/[.,/#!$%^&*;:{}=\-_`~\(\)]/g, '')
         .replace(/\s{2,}/g, ' ');
     return pinyin(hanR, { style: 'normal' }).flat(1).join('');
-}
-
-namespace CharacterExcelTable {
-    export interface Root {
-        DataList: DataList[];
-    }
-
-    export interface DataList {
-        Id: number;
-        DevName: string;
-        ProductionStep: string;
-        CollectionVisible: boolean;
-        ReleaseDate: string;
-        CollectionVisibleStartDate: string;
-        CollectionVisibleEndDate: string;
-        IsPlayableCharacter: boolean;
-        LocalizeEtcId: number;
-        Rarity: string;
-        IsNPC: boolean;
-        TacticEntityType: string;
-        CanSurvive: boolean;
-        IsDummy: boolean;
-        SubPartsCount: number;
-        TacticRole: string;
-        WeaponType: string;
-        TacticRange: string;
-        BulletType: string;
-        ArmorType: string;
-        AimIKType: string;
-        School: string;
-        Club: string;
-        DefaultStarGrade: number;
-        MaxStarGrade: number;
-        StatLevelUpType: string;
-        SquadType: string;
-        Jumpable: boolean;
-        PersonalityId: number;
-        CharacterAIId: number;
-        ExternalBTId: number;
-        ScenarioCharacter: string;
-        SpawnTemplateId: number;
-        FavorLevelupType: number;
-        EquipmentSlot: string[];
-        SpineResourceName: string;
-        SpineResourceNameDiorama: string;
-        SpineResourceNameDioramaForFormConversion: string;
-        EntityMaterialType: string;
-        ModelPrefabName: string;
-        CafeModelPrefabName: string;
-        TextureDir: string;
-        TextureEchelon: string;
-        CollectionTexturePath: string;
-        CollectionBGTexturePath: string;
-        UseObjectHPBAR: boolean;
-        TextureBoss: string;
-        TextureSkillCard: string[];
-        TextureSkillCardForFormConversion: string;
-        WeaponImagePath: string;
-        WeaponLocalizeId: number;
-        DisplayEnemyInfo: boolean;
-        BodyRadius: number;
-        RandomEffectRadius: number;
-        HPBarHide: boolean;
-        HpBarHeight: number;
-        HighlightFloaterHeight: number;
-        EmojiOffsetX: number;
-        EmojiOffsetY: number;
-        MoveStartFrame: number;
-        MoveEndFrame: number;
-        JumpMotionFrame: number;
-        AppearFrame: number;
-        CanMove: boolean;
-        CanFix: boolean;
-        CanCrowdControl: boolean;
-        CanBattleItemMove: boolean;
-        IsAirUnit: boolean;
-        AirUnitHeight: number;
-        Tags: string[];
-        SecretStoneItemId: number;
-        SecretStoneItemAmount: number;
-        CharacterPieceItemId: number;
-        CharacterPieceItemAmount: number;
-        CombineRecipeId: number;
-        InformationPacel: string;
-        AnimationSSR: string;
-        EnterStrategyAnimationName: string;
-    }
 }

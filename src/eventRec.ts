@@ -1,11 +1,10 @@
-import fetch from 'node-fetch';
+import axios from 'axios';
 import { AvailableIntentsEventsEnum, IChannel, IGuild } from 'qq-bot-sdk';
 import { loadGuildTree } from './init';
 import { mailerError } from './libs/mailer';
 import { pushToDB, sendToAdmin } from './libs/common';
 import { IMessageGROUP, IMessageDIRECT, IMessageGUILD, IMessageC2C } from './libs/IMessageEx';
 import config from '../config/config';
-import { EmojiMap } from './constants/EmojiMap';
 
 type PluginFnc = (
     msg: IMessageDIRECT | IMessageGUILD | IMessageGROUP | IMessageC2C,
@@ -243,15 +242,13 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
                  * }
                  * ```
                  */
-                const threadContent: PostInfo.Root = await fetch(
-                    `https://api.sgroup.qq.com/channels/${msg.channel_id}/threads/${msg.post_info?.thread_id}`,
-                    {
-                        headers: {
-                            Authorization: `Bot ${config.bots[botType].appID}.${config.bots[botType].token}`,
-                        },
+                const threadContent: PostInfo.Root = await axios({
+                    url: `https://api.sgroup.qq.com/channels/${msg.channel_id}/threads/${msg.post_info?.thread_id}`,
+                    headers: {
+                        Authorization: `Bot ${config.bots[botType].appID}.${config.bots[botType].token}`,
                     },
-                )
-                    .then((res) => res.json())
+                })
+                    .then((res) => res.data)
                     .then((json) => JSON.parse(json.thread.thread_info.content));
 
                 log.debug(

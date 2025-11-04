@@ -1,8 +1,8 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import axios from 'axios';
 import crypto from 'crypto';
-import fetch from 'node-fetch';
 import FormData from 'form-data';
 import { sendToAdmin } from '../libs/common';
 import { IMessageC2C, IMessageGROUP } from '../libs/IMessageEx';
@@ -36,7 +36,9 @@ export async function loadFile(msg: IMessageC2C) {
     await redis.hSet('transcoding', 'uuid', runningJob.uuid);
 
     await msg.sendMsgEx({ content: `下载文件中, 请稍后` });
-    const fileBuffer = await fetch(fileUrl).then((res) => res.buffer());
+    const fileBuffer = await axios({ url: fileUrl, responseType: 'arraybuffer' }).then(
+        (res) => res.data,
+    );
     const filePath = path.join(runningJob.tmpdir, filename);
     fs.writeFileSync(filePath, fileBuffer);
     await redis.hSet('transcoding', ext === 'ass' ? 'subName' : 'videoName', filename);
@@ -70,11 +72,12 @@ export async function startJob(msg: IMessageC2C) {
     form.append('sub', subBuffer, { filename: runningJob.subName });
 
     await msg.sendMsgEx({ content: `上传中` });
-    const uploadInfo: UploadRes = await fetch(`${REMOTE_URL}/upload`, {
+    const uploadInfo = await axios<UploadRes>({
+        url: `${REMOTE_URL}/upload`,
         method: 'POST',
         headers: { ...form.getHeaders() },
-        body: form,
-    }).then((res) => res.json());
+        data: form,
+    }).then((res) => res.data);
 
     if (uploadInfo.status !== 100)
         return msg.sendMsgEx({
@@ -103,8 +106,8 @@ export async function statusJob(msg: IMessageGROUP | IMessageC2C) {
     if (await notCanUse(msg)) return;
 
     const runningJob = (await redis.hGetAll('transcoding')) as any as TranscodingRedis;
-    const nowJob: NowjobRes = await fetch(`${REMOTE_URL}/nowjob?id=${runningJob.remoteUUID}`).then(
-        (res) => res.json(),
+    const nowJob = await axios<NowjobRes>(`${REMOTE_URL}/nowjob?id=${runningJob.remoteUUID}`).then(
+        (res) => res.data,
     );
 
     await msg.sendMsgEx({
@@ -135,8 +138,8 @@ export async function downloadJob(msg: IMessageGROUP | IMessageC2C) {
     const localVideoName = '【已压】' + runningJob.videoName;
     const localVideoPath = path.join(runningJob.tmpdir, localVideoName);
 
-    const nowJob: NowjobRes = await fetch(`${REMOTE_URL}/nowjob?id=${runningJob.remoteUUID}`).then(
-        (res) => res.json(),
+    const nowJob = await axios<NowjobRes>(`${REMOTE_URL}/nowjob?id=${runningJob.remoteUUID}`).then(
+        (res) => res.data,
     );
     const cosKey = `transcodingVideo/${nowJob.filepath?.split(/\\|\//).pop() || localVideoName}`;
 
@@ -152,9 +155,10 @@ export async function downloadJob(msg: IMessageGROUP | IMessageC2C) {
     });
 
     if (!fs.existsSync(localVideoPath)) {
-        const jobBuffer = await fetch(`${REMOTE_URL}/${nowJob.filepath}`).then((res) =>
-            res.buffer(),
-        );
+        const jobBuffer = await axios({
+            url: `${REMOTE_URL}/${nowJob.filepath}`,
+            responseType: 'arraybuffer',
+        }).then((res) => res.data);
         const _ = await cosPutObject({
             Key: cosKey,
             Body: jobBuffer,
@@ -201,9 +205,10 @@ export async function cancelJob(msg: IMessageGROUP | IMessageC2C) {
     if (await notCanUse(msg)) return;
 
     const runningJob = (await redis.hGetAll('transcoding')) as any as TranscodingRedis;
-    const nowJob: NowjobRes = await fetch(`${REMOTE_URL}/nowjob?id=${runningJob.remoteUUID}`, {
+    const nowJob = await axios<NowjobRes>({
+        data: `${REMOTE_URL}/nowjob?id=${runningJob.remoteUUID}`,
         method: 'DELETE',
-    }).then((res) => res.json());
+    }).then((res) => res.data);
 
     return msg.sendMsgEx({
         content: `${nowJob.body}` + `\nstatus: ${nowJob.status}`,
@@ -251,8 +256,8 @@ async function check(msg?: IMessageGROUP | IMessageC2C) {
     const sendGroup = Object.entries(GROUP_MAP).find((v) =>
         v[1].includes(runningJob.groupId || ''),
     )?.[0];
-    const nowJob: NowjobRes = await fetch(`${REMOTE_URL}/nowjob?id=${runningJob.remoteUUID}`).then(
-        (res) => res.json(),
+    const nowJob = await axios<NowjobRes>(`${REMOTE_URL}/nowjob?id=${runningJob.remoteUUID}`).then(
+        (res) => res.data,
     );
     if (nowJob.status === 100)
         return await await (

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import sharp from 'sharp';
+import axios from 'axios';
 import crypto from 'crypto';
-import fetch from 'node-fetch';
 import format from 'date-format';
 import { sendToAdmin, settingUserConfig } from '../libs/common';
 import { IMessageC2C, IMessageDIRECT, IMessageGROUP, IMessageGUILD } from '../libs/IMessageEx';
@@ -294,12 +294,12 @@ async function gachaReload(type: 'net' | 'local') {
                             _gachaPoolInfo[key].common[d.star].push(Number(id));
                 } // common
 
-                const schaleDBConfig: SchaleDB.Root = await fetch(
+                const schaleDBConfig = await axios<SchaleDB.Root>(
                     'https://schaledb.com/data/config.min.json',
                 )
-                    .then((res) => res.json())
+                    .then((res) => res.data)
                     .catch((err) => log.error(err));
-                if (!schaleDBConfig) throw `can't fetch json:common`;
+                if (!schaleDBConfig) throw `can't get json:common`;
 
                 const nowTime = new Date().getTime() / 1000;
                 for (key in nameToId) {

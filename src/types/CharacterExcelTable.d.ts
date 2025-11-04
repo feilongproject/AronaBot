@@ -1,0 +1,86 @@
+export namespace CharacterExcelTable {
+    export interface Root {
+        DataList: DataList[];
+    }
+
+    export interface DataList {
+        Id: number;
+        DevName: string;
+        ProductionStep: string;
+        CollectionVisible: boolean;
+        ReleaseDate: string;
+        CollectionVisibleStartDate: string;
+        CollectionVisibleEndDate: string;
+        IsPlayableCharacter: boolean;
+        LocalizeEtcId: number;
+        Rarity: string;
+        IsNPC: boolean;
+        TacticEntityType: string;
+        CanSurvive: boolean;
+        IsDummy: boolean;
+        SubPartsCount: number;
+        TacticRole: string;
+        WeaponType: string;
+        TacticRange: string;
+        BulletType: string;
+        ArmorType: string;
+        AimIKType: string;
+        School: string;
+        Club: string;
+        DefaultStarGrade: number;
+        MaxStarGrade: number;
+        StatLevelUpType: string;
+        SquadType: string;
+        Jumpable: boolean;
+        PersonalityId: number;
+        CharacterAIId: number;
+        ExternalBTId: number;
+        ScenarioCharacter: string;
+        SpawnTemplateId: number;
+        FavorLevelupType: number;
+        EquipmentSlot: string[];
+        SpineResourceName: string;
+        SpineResourceNameDiorama: string;
+        SpineResourceNameDioramaForFormConversion: string;
+        EntityMaterialType: string;
+        ModelPrefabName: string;
+        CafeModelPrefabName: string;
+        TextureDir: string;
+        TextureEchelon: string;
+        CollectionTexturePath: string;
+        CollectionBGTexturePath: string;
+        UseObjectHPBAR: boolean;
+        TextureBoss: string;
+        TextureSkillCard: string[];
+        TextureSkillCardForFormConversion: string;
+        WeaponImagePath: string;
+        WeaponLocalizeId: number;
+        DisplayEnemyInfo: boolean;
+        BodyRadius: number;
+        RandomEffectRadius: number;
+        HPBarHide: boolean;
+        HpBarHeight: number;
+        HighlightFloaterHeight: number;
+        EmojiOffsetX: number;
+        EmojiOffsetY: number;
+        MoveStartFrame: number;
+        MoveEndFrame: number;
+        JumpMotionFrame: number;
+        AppearFrame: number;
+        CanMove: boolean;
+        CanFix: boolean;
+        CanCrowdControl: boolean;
+        CanBattleItemMove: boolean;
+        IsAirUnit: boolean;
+        AirUnitHeight: number;
+        Tags: string[];
+        SecretStoneItemId: number;
+        SecretStoneItemAmount: number;
+        CharacterPieceItemId: number;
+        CharacterPieceItemAmount: number;
+        CombineRecipeId: number;
+        InformationPacel: string;
+        AnimationSSR: string;
+        EnterStrategyAnimationName: string;
+    }
+}

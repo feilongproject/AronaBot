@@ -1,6 +1,5 @@
 /// <reference lib="dom" />
 import axios from 'axios';
-import fetch from 'node-fetch';
 import imageSize from 'image-size';
 import * as puppeteer from 'puppeteer';
 import { readFileSync, writeFileSync } from 'fs';
@@ -117,7 +116,7 @@ async function dynamicPush(
             )
                 .sendToGroupHandler(`dynamicPush`, `${pushInfo.id},${imageKey}`, pushInfo.id)
                 .then((text) => {
-                    if (devEnv) log.debug('fetch结果: ', imageKey, text);
+                    if (devEnv) log.debug('get结果: ', imageKey, text);
                 })
                 .catch(async (err) => {
                     log.error(err);
@@ -195,11 +194,12 @@ async function getNewDynamic(type = 'all', page = 1) {
     return list.data;
 }
 
-export async function getUserCard(userId: string) {
+export async function getUserCard(userId: string): Promise<BiliUserCard.Root> {
     // https://api.bilibili.com/x/web-interface/card?mid=1
-    return fetch(`https://api.bilibili.com/x/web-interface/card?mid=${userId}`, {
+    return axios<BiliUserCard.Root>({
+        url: `https://api.bilibili.com/x/web-interface/card?mid=${userId}`,
         headers: { 'User-Agent': userAgent },
-    }).then((res) => res.json() as Promise<BiliUserCard.Root>);
+    }).then((res) => res.data);
 }
 
 //参考: https://github.com/SocialSisterYi/bilibili-API-collect/issues/686
@@ -348,48 +348,13 @@ async function screenshot(
     return Buffer.from(b64, 'base64') || undefined;
 }
 
-async function getUserDynamics(biliUserId: string, cookies: string): Promise<BiliDynamic.Item[]> {
-    //log.debug(`https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space?offset=${offset}&host_mid=${biliUserId}&timezone_offset=${timezoneOffset}`);
-    return fetch(
-        `https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space?host_mid=${biliUserId}`,
-        {
-            headers: {
-                'User-Agent': userAgent, // userAgent,
-                Cookie: cookies, //`SESSDATA=feilongproject.com;${cookies}`,
-                Accept: '*/*',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Accept-Language': 'zh-CN,zh;q=0.9',
-                'Cache-Control': 'no-cache',
-                // "Content-Length": "6244",
-                'Content-Type': 'application/json;charset=UTF-8',
-                Dnt: '1',
-                Origin: 'https://space.bilibili.com',
-                Pragma: 'no-cache',
-                Referer: 'https://space.bilibili.com/1/dynamic',
-                'Sec-Ch-Ua': `"Not.A/Brand";v="8", "Chromium";v="114", "Microsoft Edge";v="114"`,
-                'Sec-Ch-Ua-Mobile': '?0',
-                'Sec-Ch-Ua-Platform': 'Windows',
-                'Sec-Fetch-Dest': 'empty',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Site': 'same-site',
-            },
-        },
-    )
-        .then((res) => res.json())
-        .then((json: BiliDynamic.SpaceListRoot) => {
-            //log.debug(json);
-            if (!json.code) return json.data.items;
-            throw json;
-            //log.info(json.data.items);
-        });
-}
-
 export async function getDynamicInfo(dynamicId: string): Promise<BiliDynamic.InfoRoot> {
-    return fetch(`https://api.bilibili.com/x/polymer/web-dynamic/v1/detail?id=${dynamicId}`, {
+    return axios<BiliDynamic.InfoRoot>({
+        url: `https://api.bilibili.com/x/polymer/web-dynamic/v1/detail?id=${dynamicId}`,
         headers: {
             'User-Agent': userAgent, // userAgent,
             Cookie: await getCookie(),
             'accept-language': 'en,zh-CN;q=0.9,zh;q=0.8',
         },
-    }).then((res) => res.json());
+    }).then((res) => res.data);
 }

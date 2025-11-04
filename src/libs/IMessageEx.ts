@@ -1,5 +1,5 @@
 import fs from 'fs';
-import fetch from 'node-fetch';
+import axios from 'axios';
 import format from 'date-format';
 import FormData from 'form-data';
 import {
@@ -160,24 +160,22 @@ class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
     private _sendMarkdown = async (
         options: Partial<SendOption.Channel> & SendOption.MarkdownOrgin,
     ) => {
-        return fetch(
-            `https://api.sgroup.qq.com/channels/${options.channelId || this.channel_id}/messages`,
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bot ${config.bots[botType].appID}.${config.bots[botType].token}`,
-                },
-                body: JSON.stringify({
-                    event_id: options.eventId,
-                    markdown: options.markdown,
-                    keyboard: options.keyboard,
-                }),
+        return axios({
+            url: `https://api.sgroup.qq.com/channels/${options.channelId || this.channel_id}/messages`,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bot ${config.bots[botType].appID}.${config.bots[botType].token}`,
             },
-        ).then(async (res) => {
-            const json = await res.json();
+            data: JSON.stringify({
+                event_id: options.eventId,
+                markdown: options.markdown,
+                keyboard: options.keyboard,
+            }),
+        }).then(async (res) => {
+            const json = res.data;
             if (json.code) {
-                log.error(res.headers.get('x-tps-trace-id'));
+                log.error(res.headers['x-tps-trace-id']);
                 throw json;
             } else return json;
         });
@@ -228,15 +226,16 @@ class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
         if (imageFile) formdata.append('file_image', imageFile, { filename: 'image.jpg' });
         if (imagePath) formdata.append('file_image', fs.createReadStream(imagePath));
         if (imageUrl) formdata.append('image', imageUrl);
-        return fetch(pushUrl, {
+        return axios({
+            url: pushUrl,
             method: 'POST',
             headers: {
                 'Content-Type': formdata.getHeaders()['content-type'],
                 Authorization: `Bot ${config.bots[botType].appID}.${config.bots[botType].token}`,
             },
-            body: formdata,
+            data: formdata,
         })
-            .then((res) => res.json())
+            .then((res) => res.data)
             .then((body) => {
                 if (body.code) throw body;
                 return body;

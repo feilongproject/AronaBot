@@ -1,5 +1,5 @@
 import fs from 'fs';
-import fetch from 'node-fetch';
+import axios from 'axios';
 import format from 'date-format';
 import * as cheerio from 'cheerio';
 import imageSize from 'image-size';
@@ -244,15 +244,16 @@ export async function handbookUpdate(
     if (/(arona\.schale\.top\/turn)|(t\.bilibili\.com\/(\d+))/.test(desc)) {
         try {
             const descUrl = /((https?:\/\/)?\S+)\s*/.exec(desc)![1];
-            await fetch(descUrl.startsWith('https://') ? descUrl : 'https://' + descUrl)
+            await axios(descUrl.startsWith('https://') ? descUrl : 'https://' + descUrl)
                 .then((res) => {
-                    const matchDynamicId = (/https:\/\/t.bilibili.com\/(\d+)/.exec(res.url) ||
+                    const redirectUrl = res.request._redirectable._currentUrl;
+                    const matchDynamicId = (/https:\/\/t.bilibili.com\/(\d+)/.exec(redirectUrl) ||
                         [])[1];
                     if (matchDynamicId)
                         return import('./biliDynamic').then((module) =>
                             module.getDynamicInfo(matchDynamicId),
                         );
-                    else throw `未知的url: ${res.url}`;
+                    else throw `未知的url: ${redirectUrl}`;
                 })
                 .then((data: BiliDynamic.InfoRoot) => {
                     if (
@@ -285,16 +286,17 @@ export async function handbookUpdate(
         ?.imageUrl;
     if (!imageUrl && /(arona\.schale\.top\/turn)|(t\.bilibili\.com\/(\d+))/.test(url)) {
         try {
-            imageUrl = await fetch(url.startsWith('https://') ? url : 'https://' + url)
+            imageUrl = await axios(url.startsWith('https://') ? url : 'https://' + url)
                 .then((res) => {
+                    const redirectUrl = res.request._redirectable._currentUrl;
                     // log.debug(res.url);
-                    const matchDynamicId = (/https:\/\/t.bilibili.com\/(\d+)/.exec(res.url) ||
+                    const matchDynamicId = (/https:\/\/t.bilibili.com\/(\d+)/.exec(redirectUrl) ||
                         [])[1];
                     if (matchDynamicId)
                         return import('./biliDynamic').then((module) =>
                             module.getDynamicInfo(matchDynamicId),
                         );
-                    else throw `未知的url: ${res.url}`;
+                    else throw `未知的url: ${redirectUrl}`;
                 })
                 .then((data: BiliDynamic.InfoRoot) => {
                     const draw = data.data.item.modules.module_dynamic.major.draw;
@@ -329,19 +331,22 @@ export async function handbookUpdate(
     await redis.hSet('handbook:cache', `${imageName}:${imageType}`, new Date().getTime());
     await redis.hSet('handbook:info', `${imageName}:${imageType}`, imageDesc || '');
     await redis.hSet('handbook:infoUrl', `${imageName}:${imageType}`, imageTurnUrl || '');
-    const imageBuff = await fetch(
-        imageUrl.startsWith('http') ? imageUrl : `https://${imageUrl}`,
-    ).then((res) => res.buffer());
+    const imageBuff = await axios({
+        url: imageUrl.startsWith('http') ? imageUrl : `https://${imageUrl}`,
+        responseType: 'arraybuffer',
+    }).then((res) => res.data);
     fs.writeFileSync(`${config.handbookRoot}/${imageKey}`, imageBuff);
     cosPutObject({ Key: `handbook/${imageKey}`, Body: imageBuff });
 
     const lastestImage = await getLastestImage(imageName, imageType);
     if (devEnv) log.debug(lastestImage);
-    await fetch(lastestImage.url, {
+    await axios({
+        url: lastestImage.url,
         headers: { 'user-agent': 'QQShareProxy' },
         timeout: 60 * 1000,
+        responseType: 'arraybuffer',
     })
-        .then((res) => res.buffer())
+        .then((res) => res.data)
         .then((buff) =>
             msg.sendMsgEx({
                 content: `${imageName} ${imageType} ${(imageDesc || '').replaceAll('.', ',')}\nsize: ${(buff.length / 1024).toFixed(2)}K`,
@@ -369,14 +374,15 @@ export async function activityStrategyPush(
         });
 
     const encode = cv.toString(2).replaceAll('0', '\u200c').replaceAll('1', '\u200d');
-    const isHas = await fetch(`https://api.sgroup.qq.com/channels/${channelId}/threads`, {
+    const isHas = await axios({
+        url: `https://api.sgroup.qq.com/channels/${channelId}/threads`,
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
             Authorization: `Bot ${config.bots[botType].appID}.${config.bots[botType].token}`,
         },
     })
-        .then((res) => res.json())
+        .then((res) => res.data)
         .then((json) =>
             (json.threads as any[]).find((thread) =>
                 (thread.thread_info.title as string).startsWith(encode),
@@ -385,13 +391,14 @@ export async function activityStrategyPush(
         .catch((err) => log.error(err));
     if (isHas) return msg.sendMsgEx({ content: `已查询到存在相同动态` });
 
-    return fetch(`https://www.bilibili.com/read/cv${cv}`, {
+    return axios({
+        url: `https://www.bilibili.com/read/cv${cv}`,
         headers: {
             'user-agent':
                 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36 Edg/112.0.1722.58',
         },
     })
-        .then((res) => res.text())
+        .then((res) => res.data)
         .then((html) => {
             const $ = cheerio.load(html);
             return eval(
@@ -415,20 +422,21 @@ export async function activityStrategyPush(
             return { title, content };
         })
         .then((postInfo) =>
-            fetch(`https://api.sgroup.qq.com/channels/${channelId}/threads`, {
+            axios({
+                url: `https://api.sgroup.qq.com/channels/${channelId}/threads`,
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bot ${config.bots[botType].appID}.${config.bots[botType].token}`,
                 },
-                body: JSON.stringify({
+                data: JSON.stringify({
                     title: postInfo.title,
                     content: postInfo.content,
                     format: 2,
                 }),
             }),
         )
-        .then((res) => res.text())
+        .then((res) => res.data)
         .then((text) => msg.sendMsgEx({ content: `已发布\n${text}` }))
         .catch((err) => msg.sendMsgEx({ content: `获取出错\n${err}` }));
 }
@@ -444,9 +452,9 @@ export async function searchHandbook(
         return msg.sendMsgExRef({
             content: `请输入要查询的攻略！例：` + `\n/查询攻略 1-1`,
         });
-    const resultData: DiyigemtAPI.Root = await fetch(
+    const resultData: DiyigemtAPI.Root = await axios(
         `https://arona.diyigemt.com/api/v1/image?name=${searchKey}`,
-    ).then((res) => res.json());
+    ).then((res) => res.data);
     if (!resultData.data)
         return msg.sendMsgEx({ content: `未搜索到相关攻略，请更换关键词重新搜索喵` });
 
