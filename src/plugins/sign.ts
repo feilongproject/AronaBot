@@ -1,6 +1,6 @@
 // TODO: 什么时候重构？
 import fs from 'fs';
-import fetch from 'node-fetch';
+import axios from 'axios';
 import { IMessageGUILD } from '../libs/IMessageEx';
 const signDataFile = './data/signData.json';
 
@@ -118,17 +118,18 @@ export async function sign(msg: IMessageGUILD) {
 
 function getRandomPoem(token: RandomPoem.Token): Promise<RandomPoem.SentenceOrigin | void> {
     //log.debug(`geting sentence`);
-    return fetch('https://v2.jinrishici.com/sentence', {
+    return axios<RandomPoem.Sentence>({
+        url: 'https://v2.jinrishici.com/sentence',
         headers: { 'X-User-Token': token.data },
     })
-        .then((res) => res.json() as Promise<RandomPoem.Sentence>)
+        .then((res) => res.data)
         .then((data) => data.data.origin)
         .catch((err) => log.error(err));
 }
 
 async function getRandomPoemToken(): Promise<RandomPoem.Token> {
     log.error(`get token`);
-    return fetch('https://v2.jinrishici.com/token').then((res) => res.json());
+    return axios<RandomPoem.Token>('https://v2.jinrishici.com/token').then((res) => res.data);
 }
 
 function todayLucky() {

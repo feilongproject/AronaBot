@@ -1,5 +1,5 @@
+import axios from 'axios';
 import crypto from 'crypto';
-import fetch from 'node-fetch';
 import FormData from 'form-data';
 import imageSize from 'image-size';
 import * as cheerio from 'cheerio';
@@ -25,7 +25,7 @@ export async function soutubot(msg: IMessageGROUP | IMessageC2C) {
         ',',
     );
 
-    const html = await fetch('https://soutubot.moe').then((res) => res.text());
+    const html = await axios('https://soutubot.moe').then((res) => res.data);
     const $ = cheerio.load(html);
     const eles = $('script');
     for (const ele of eles) {
@@ -41,7 +41,9 @@ export async function soutubot(msg: IMessageGROUP | IMessageC2C) {
         // debugger;
     }
 
-    const fileData = await fetch(msg.attachments[0].url).then((res) => res.buffer());
+    const fileData = await axios({ url: msg.attachments[0].url, responseType: 'arraybuffer' }).then(
+        (res) => res.data,
+    );
     await msg.sendMsgEx({ content: `搜索中，请稍后` });
 
     const _ = (Math.pow(Math.floor(Date.now() / 1000), 2) + Math.pow(UA.length, 2) + M).toString();
@@ -50,7 +52,8 @@ export async function soutubot(msg: IMessageGROUP | IMessageC2C) {
     from.append('factor', '1.2');
     from.append('file', fileData, { filename: 'image' });
 
-    const res = await fetch('https://soutubot.moe/api/search', {
+    const res = await axios<SoutuBot.Root>({
+        url: 'https://soutubot.moe/api/search',
         method: 'POST',
         headers: {
             ...from.getHeaders(),
@@ -60,17 +63,17 @@ export async function soutubot(msg: IMessageGROUP | IMessageC2C) {
             referer: 'https://soutubot.moe/',
             'x-requested-with': 'XMLHttpRequest',
         },
-        body: from,
+        data: from,
     });
     if (res.status != 200) return msg.sendMsgEx({ content: `搜索失败，错误码${res.status}` });
-    const json: SoutuBot.Root = await res.json();
-    const { data: resData } = json;
+
+    const { data: resData, id: resId } = res.data;
     if (resData.length == 0) return msg.sendMsgEx({ content: `搜索完成，未找到结果` });
     if (!resData.find((v) => v.similarity >= MinSimilar))
         return msg.sendMsgEx({
             content:
                 `搜索结果中不存在匹配度大于${MinSimilar}%内容` +
-                `详情请看：\nhttps://soutubot\u200b.moe/results/${json.id}`,
+                `详情请看：\nhttps://soutubot\u200b.moe/results/${resId}`,
         });
 
     const filterData = await Promise.all(
@@ -90,8 +93,8 @@ export async function soutubot(msg: IMessageGROUP | IMessageC2C) {
             )
             .filteredData.slice(0, MAX_LEN)
             .map((v) =>
-                fetch(v.previewImageUrl)
-                    .then((res) => res.buffer())
+                axios({ url: v.previewImageUrl, responseType: 'arraybuffer' })
+                    .then((res) => res.data)
                     .then((buff) => {
                         const size = imageSize(buff);
                         const { width, height } = size;
@@ -134,7 +137,7 @@ export async function soutubot(msg: IMessageGROUP | IMessageC2C) {
     });
 
     // debugger;
-    await msg.sendMsgEx({ content: `搜索结果: https://soutubot\u200b.moe/results/${json.id}` });
+    await msg.sendMsgEx({ content: `搜索结果: https://soutubot\u200b.moe/results/${resId}` });
     // return;
     await msg.sendMarkdown({
         params_omnipotent: [

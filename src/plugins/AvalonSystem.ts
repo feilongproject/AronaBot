@@ -1,5 +1,5 @@
 import fs from 'fs';
-import fetch from 'node-fetch';
+import axios from 'axios';
 import format from 'date-format';
 import { PythonShell } from 'python-shell';
 import { sendToAdmin } from '../libs/common';
@@ -11,6 +11,7 @@ import {
     IMessageC2C,
 } from '../libs/IMessageEx';
 import config from '../../config/config';
+import { CharacterExcelTable } from '../types/CharacterExcelTable';
 
 var isChecking = false;
 
@@ -207,8 +208,8 @@ async function accuseGachaWapper(srcMsg: IMessageGUILD) {
         const srcFileName = `${config.imagesOut}/gc_${ts}_src.jpg`;
         const pointsFileName = `${config.imagesOut}/gc_${ts}_points.jpg`;
 
-        await fetch('https://' + attachment.url)
-            .then((res) => res.buffer())
+        await axios({ url: 'https://' + attachment.url, responseType: 'arraybuffer' })
+            .then((res) => res.data)
             .then((buff) => fs.writeFileSync(srcFileName, buff));
         const gachaInfo: PythonGachaInfo = await PythonShell.run(
             `${config.extractRoot}/gachaRecognition.py`,
@@ -255,25 +256,20 @@ export async function accuseGachaUpdate(
     msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C,
 ) {
     if (!adminId.includes(msg.author.id)) return;
-    const _dbImageList = await fetch('https://schaledb.com/data/cn/students.min.json')
-        .then((res) => res.json())
-        .then((students: Record<string, StudentDataNet>) =>
-            Object.values(students).map((v) => v.DevName),
-        );
-    const _extractImageList = await fetch(
+    const _dbImageList = await axios<Record<string, StudentDataNet>>(
+        'https://schaledb.com/data/cn/students.min.json',
+    ).then((res) => Object.values(res.data).map((v) => v.DevName));
+
+    const _extractImageList = await axios<CharacterExcelTable.Root>(
         'https://ghproxy.net/https://raw.githubusercontent.com/electricgoat/ba-data/jp/Excel/CharacterExcelTable.json',
-    )
-        .then((res) => res.json())
-        .then((json) =>
-            (json.DataList as any[])
-                .filter(
-                    (v) =>
-                        v.TacticEntityType == 'Student' &&
-                        v.ProductionStep == 'Release' &&
-                        v.IsPlayableCharacter,
-                )
-                .map((v) => (v.DevName as string).replace(/_default$/, '')),
-        );
+    ).then((res) =>
+        res.data.DataList.filter(
+            (v) =>
+                v.TacticEntityType == 'Student' &&
+                v.ProductionStep == 'Release' &&
+                v.IsPlayableCharacter,
+        ).map((v) => (v.DevName as string).replace(/_default$/, '')),
+    );
     const studentList = [..._dbImageList, ..._extractImageList]
         .map((v) => v[0].toUpperCase() + v.substring(1))
         .filter((item, index, arr) => arr.indexOf(item, 0) === index);

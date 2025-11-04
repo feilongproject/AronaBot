@@ -5,6 +5,7 @@ import { sendToAdmin } from '../libs/common';
 import { DynamicPushList } from '../types/Dynamic';
 import { IMessageGROUP, MessageType } from '../libs/IMessageEx';
 import config from '../../config/config';
+import axios from 'axios';
 
 export const commandMap: Record<string, (event: CommandArg) => Promise<any>> = {
     dynamicPush,
@@ -147,17 +148,15 @@ export async function sendToGroupHandler(type: string, data: string, groupUid?: 
     if (devEnv) log.debug(botType, type, data);
 
     if (botType !== 'PlanaBot') {
-        return fetch(
-            `http://127.0.0.1:${config.bots.PlanaBot.webhookPort[devEnv ? 'dev' : 'prod']}/sendToGroupHandler`,
-            {
-                method: 'POST',
-                body: JSON.stringify({
-                    type: type,
-                    data: data,
-                }),
-                headers: { 'Content-Type': 'application/json' },
+        return axios({
+            url: `http://127.0.0.1:${config.bots.PlanaBot.webhookPort[devEnv ? 'dev' : 'prod']}/sendToGroupHandler`,
+            method: 'POST',
+            data: {
+                type: type,
+                data: data,
             },
-        ).catch((err) => log.error(err));
+            headers: { 'Content-Type': 'application/json' },
+        }).catch((err) => log.error(err));
     }
 
     const callbackGroupUid = groupUid || ((await redis.hGet('config', `callbackGroup`)) as string);
@@ -280,18 +279,19 @@ async function callbackButton(groupRealId: string) {
     if (!buttonId || !buttonData) return;
     if (devEnv) log.debug('callButton', groupRealId, buttonId, buttonData);
 
-    return fetch(config.groupPush.url, {
+    return axios({
+        url: config.groupPush.url,
         method: 'POST',
         headers: {
             Authorization: `Bearer ${config.groupPush.llobKey}`,
         },
-        body: JSON.stringify({
+        data: {
             g: groupRealId,
             a: config.groupPush.appId,
             b: buttonId,
             d: buttonData,
-        }),
+        },
     })
-        .then((res) => res.text())
+        .then((res) => res.data)
         .catch((_) => log.error(`callButton失败`));
 }
