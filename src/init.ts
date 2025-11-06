@@ -7,6 +7,7 @@ import { encode, decode } from 'js-base64';
 import { mkdirSync, existsSync } from 'fs';
 import { IChannel, IGuild, createOpenAPI, createWebsocket } from 'qq-bot-sdk';
 import { sendToAdmin } from './libs/common';
+import { callbackPushButton } from './libs/interactionGroup';
 import { StudentInfo, StudentNameAlias } from './libs/globalVar';
 import config from '../config/config';
 
@@ -15,8 +16,8 @@ export async function init() {
     if (!existsSync(config.imagesOut)) mkdirSync(config.imagesOut);
 
     global.adminId = [
-        '2975E2CA5AE779F1899A0AED2D4FA9FD', // PlanaBot+大号
-        '1728904631',
+        '2975E2CA5AE779F1899A0AED2D4FA9FD',
+        '1728904631', // PlanaBot+大号
         '7681074728704576201',
         '15874984758683127001', // 频道？
         '21EE2355F1D4106219EC134842203DF6',
@@ -184,9 +185,7 @@ export async function init() {
                 }),
         );
     } else if (botType === 'PlanaBot') {
-        schedule.scheduleJob('0 */3 * * * ?', () =>
-            import('./plugins/interaction').then((module) => module.callbackPushButton()),
-        );
+        schedule.scheduleJob('0 */3 * * * ?', () => callbackPushButton());
     }
 
     if (await redis.exists(`isRestart:${meId}`)) {
