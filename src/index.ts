@@ -1,4 +1,5 @@
 import Koa from 'koa';
+import axios from 'axios';
 import koaBody from 'koa-body';
 import Router from '@koa/router';
 import { init } from './init';
@@ -33,8 +34,8 @@ init().then(() => {
                 return (ctx.body = { msg: 'need body' });
             }
 
-            const sign = (ctx.req.headers['x-signature-ed25519'] as string).toString();
-            const timestamp = (ctx.req.headers['x-signature-timestamp'] as string).toString();
+            const sign = (ctx.req.headers['x-signature-ed25519'] || '').toString();
+            const timestamp = (ctx.req.headers['x-signature-timestamp'] || '').toString();
             const rawBody: string = (ctx.request as any).rawBody;
             const isValid = client.webhookApi.validSign(timestamp, rawBody, sign);
             // if (devEnv) log.debug(isValid, sign, timestamp, rawBody);
@@ -64,10 +65,11 @@ init().then(() => {
                 });
 
             if ((await redis.get('devEnv')) && !devEnv) {
-                await fetch(`http://127.0.0.1:${devPORT}/webhook/${botType}`, {
+                await axios({
+                    url: `http://127.0.0.1:${devPORT}/webhook/${botType}`,
                     method: 'POST',
                     headers: ctx.headers as Record<string, string>,
-                    body: rawBody,
+                    data: rawBody,
                 }).catch((err) => {});
             }
             ctx.body = { msg: 'ok' };
