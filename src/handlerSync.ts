@@ -66,7 +66,7 @@ async function syncMessage(ctx: Ctx, requestBody: SyncMessageBody) {
     if (devEnv) log.debug('syncMessage.eventId', eventId);
     if (!eventId) return;
 
-    const messageId = requestBody.raw.msgId;
+    const messageId = requestBody.message_id.toString();
     const msg: IntentMessage.GROUP_MESSAGE_body = {
         event_id: messageId,
         id: '',
