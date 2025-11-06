@@ -85,7 +85,12 @@ async function executeChat(msg: IMessageGROUP | IMessageC2C) {
 }
 
 export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
-    if ((await redis.exists(`received:${event.eventType}:${event.eventId}`)) && !devEnv) return;
+    if (
+        (await redis.exists(`received:${event.eventType}:${event.eventId}`)) &&
+        !devEnv &&
+        (event.msg as any as IntentMessage.GROUP_MESSAGE_body)?.isOffical != false
+    )
+        return;
     await redis.setEx(`received:${event.eventType}:${event.eventId}`, 60, '1');
 
     switch (event.eventRootType) {
