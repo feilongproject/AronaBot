@@ -2,6 +2,7 @@ import format from 'date-format';
 import { ParameterizedContext } from 'koa';
 import { RouterParamContext } from '@koa/router';
 import config from '../config/config';
+import { awaitGroupEventId } from './libs/interactionGroup';
 
 type Ctx = ParameterizedContext<any, RouterParamContext<any, {}>, any>;
 
@@ -51,20 +52,19 @@ async function syncButton(ctx: Ctx, requestBody: SyncMessageBody) {
 async function syncMessage(ctx: Ctx, requestBody: SyncMessageBody) {
     const groupRealId = requestBody.group_id.toString();
     if (requestBody.message_type !== 'group') return;
-    if (requestBody.raw.elements.find((v) => v.textElement?.atUid == meRealId)) return; // @bot的忽略
-    if (requestBody.sender.user_id.toString() == meRealId) return; // bot发送的忽略
+    if (requestBody.raw.elements.find((v) => v.textElement?.atUid == meRealId))
+        return log.warn(`skip @bot`); // @bot的忽略
+    if (requestBody.sender.user_id.toString() == meRealId) return log.warn('skip bot send'); // bot发送的忽略
 
     const groupId = Object.entries(config.bots[botType].groupMap).find(
         (v) => v[1] == groupRealId,
     )?.[0];
     if (devEnv) log.debug('syncMessage.group_id', groupRealId, groupId);
-    if (!groupId) return;
+    if (!groupId) return log.warn(`syncMessage.group_id error: ${groupRealId} -> ${groupId}`);
 
-    const eventId = await import('./plugins/interaction').then((m) =>
-        m.awaitGroupEventId(groupRealId),
-    );
+    const eventId = await awaitGroupEventId(groupRealId);
     if (devEnv) log.debug('syncMessage.eventId', eventId);
-    if (!eventId) return;
+    if (!eventId) return log.warn(`syncMessage.eventId not found`);
 
     const messageId = requestBody.message_id.toString();
     const msg: IntentMessage.GROUP_MESSAGE_body = {

@@ -272,7 +272,7 @@ declare global {
         type GROUP_MESSAGE_body = MessageChatCommon & {
             group_id: string;
             group_openid: string;
-            isOffical?: boolean;
+            isOffical: boolean;
             pushEventId?: string;
         };
 
