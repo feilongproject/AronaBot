@@ -26,13 +26,7 @@ export async function updateEventId(event?: IntentMessage.GUILD_MEMBERS) {
             .then((res) => {
                 if (devEnv) log.debug('memberAddRole', res.status, res.statusText);
             })
-            .catch((err) => {
-                log.error(err);
-                return sendToAdmin(
-                    `updateEventId memberAddRole` +
-                        `\n${strFormat({ err, guild: guildInfo })}`.replaceAll('.', ','),
-                ).catch((err) => log.error(err));
-            });
+            .catch((err) => {});
     }
 }
 
