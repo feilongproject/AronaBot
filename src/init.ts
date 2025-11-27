@@ -7,7 +7,6 @@ import { encode, decode } from 'js-base64';
 import { mkdirSync, existsSync } from 'fs';
 import { IChannel, IGuild, createOpenAPI, createWebsocket } from 'qq-bot-sdk';
 import { sendToAdmin } from './libs/common';
-import { callbackPushButton } from './libs/interactionGroup';
 import { StudentInfo, StudentNameAlias } from './libs/globalVar';
 import config from '../config/config';
 
@@ -56,20 +55,24 @@ export async function init() {
     global.commandConfig = (await import('../config/opts')).default;
 
     log.info(`初始化: 正在创建模块热加载监听`);
-    for (const hotloadConfig of config.hotLoadConfigs) {
-        log.info(`初始化: 正在创建模块热加载监听: ${hotloadConfig.type}`);
-        chokidar.watch(hotloadConfig.path).on('change', async (filepath, stats) => {
+    for (const { type: hlType, path: hlPath } of config.hotLoadConfigs) {
+        log.info(`初始化: 正在创建模块热加载监听: ${hlType}`);
+        chokidar.watch(hlPath).on('change', async (fpath, stats) => {
             if (!devEnv && !hotLoadStatus) return;
-            if (require.cache[filepath]) {
-                hotLoadStatus--;
-                const fileD = filepath.replace(_path, '').split('.')[0];
-                log.mark(`${hotloadConfig.type} ${fileD} 正在进行热更新`);
-                delete require.cache[filepath];
-                if (!devEnv)
-                    return sendToAdmin(
-                        `${devEnv} ${hotloadConfig.type} ${fileD} 正在进行热更新 ${hotLoadStatus}`,
-                    );
+            if (!require.cache[fpath]) return;
+
+            hotLoadStatus--;
+            const fileD = fpath.replace(_path, '').split('.')[0];
+            log.mark(`热更新: ${hlType} ${fileD}`);
+            delete require.cache[fpath];
+
+            if (config.hotLoadConfigsReload.filter((v) => v.path === fpath)) {
+                log.info(`重新加载: ${fpath}`);
+                await import(fpath);
             }
+
+            if (!devEnv)
+                return sendToAdmin(`${devEnv} ${hlType} ${fileD} 正在进行热更新 ${hotLoadStatus}`);
         });
     }
 
@@ -160,38 +163,20 @@ export async function init() {
             log.info(`学生数据加载完毕 ${d}`);
         });
 
-    log.info(`初始化: 正在创建定时任务`);
-    if (devEnv) {
-        await redis.setEx('devEnv', 10, '1');
-        schedule.scheduleJob('*/10 * * * * ? ', () => redis.setEx('devEnv', 10, botType));
-    } else if (botType == 'AronaBot') {
-        schedule.scheduleJob('0 * * * * ? ', () =>
-            redis.bgSave().then((v) => log.mark(`保存数据库:${v}`)),
-        );
-        schedule.scheduleJob('0 */3 * * * ?', () =>
-            import('./plugins/admin').then((module) => module.updateEventId()),
-        );
-        schedule.scheduleJob('0 */3 * * * ? ', () =>
-            import('./plugins/biliDynamic')
-                .then((module) => module.mainCheck())
-                .catch((err) => {
-                    log.error(err);
-                    return sendToAdmin(
-                        (typeof err == 'object' ? strFormat(err) : String(err)).replaceAll(
-                            '.',
-                            ',',
-                        ),
-                    ).catch(() => {});
-                }),
-        );
-    } else if (botType === 'PlanaBot') {
-        schedule.scheduleJob('0 */3 * * * ?', () => callbackPushButton());
-    }
+    log.info(`初始化: 正在注册定时任务`);
+    await import('./plugins/schedule');
 
     if (await redis.exists(`isRestart:${meId}`)) {
         await redis.del(`isRestart:${meId}`);
         return sendToAdmin(`${botType} 重启成功`).catch(() => {});
     } else if (!devEnv) return sendToAdmin(`${botType} 启动成功`).catch(() => {});
+
+    log.info('初始化: 正在注册SIGINT');
+    process.on('SIGINT', async () => {
+        await global.browser?.close();
+        await schedule.gracefulShutdown();
+        process.exit(0);
+    });
 }
 
 export async function loadGuildTree(init?: boolean): Promise<any>;
