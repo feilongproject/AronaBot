@@ -56,6 +56,7 @@ export async function scheduleAutoLoad() {
     await schedule.gracefulShutdown();
 
     for (const t of devEnv ? scheduleTablesDev : scheduleTables) {
+        if (!t.enable) continue;
         log.info(`正在注册定时任务: ${t.desc}, ${t.rule}`);
         schedule.scheduleJob(t.rule, t.func);
     }
