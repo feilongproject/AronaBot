@@ -73,7 +73,18 @@ async function syncMessage(ctx: Ctx, requestBody: SyncMessageBody) {
         author: {
             id: requestBody.sender.user_id.toString(),
         },
+        attachments: requestBody.message
+            .filter((v) => v.type == 'image')
+            .map((v) => ({
+                content_type: 'image',
+                url: v.data?.url || '',
+                filename: v.data.file,
+                size: Number(v.data.file_size),
+            })),
         content: requestBody.raw_message,
+        clean_content: requestBody.message
+            .map((v) => (v.type == 'text' ? v.data.text : ''))
+            .join(''),
         timestamp: format.asString(new Date(requestBody.time * 1000)),
         group_id: groupId,
         group_openid: groupRealId,

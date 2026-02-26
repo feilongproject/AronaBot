@@ -5,6 +5,7 @@ declare interface SyncMessageBody {
     message_id: number;
     message_seq: number;
     message_type: 'group';
+    meta_event_type?: string;
     sender: {
         user_id: number;
         nickname: string;
@@ -15,11 +16,40 @@ declare interface SyncMessageBody {
     raw_message: string;
     font: number;
     sub_type: string;
-    message: string;
-    message_format: string;
-    post_type: string;
+    message: SyncMessageArray.Element[];
+    message_format: 'array';
+    post_type: 'message' | 'meta_event';
     raw: SyncMessageRaw.Root;
     group_id: number;
+}
+
+declare namespace SyncMessageArray {
+    type Element = TextElement | ImageElement | AtElement;
+
+    interface TextElement {
+        type: 'text';
+        data: {
+            text: string;
+        };
+    }
+
+    interface ImageElement {
+        type: 'image';
+        data: {
+            file: string;
+            subType: number;
+            url: string;
+            file_size: string;
+        };
+    }
+
+    interface AtElement {
+        type: 'at';
+        data: {
+            qq: string;
+            name: string;
+        };
+    }
 }
 
 declare namespace SyncMessageRaw {
@@ -88,9 +118,21 @@ declare namespace SyncMessageRaw {
     }
 
     interface Element {
-        elementType: 1 | 17; // 1:textElement  17:inlineKeyboardElement
+        elementType: 1 | 2 | 17; // 1:textElement  2:picElement 17:inlineKeyboardElement
         inlineKeyboardElement?: InlineKeyboardElement;
         textElement?: TextElement;
+        picElement?: PicElement;
+    }
+
+    interface PicElement {
+        fileName: string;
+        fileSize: string;
+        picWidth: number;
+        picHeight: number;
+        original: boolean;
+        md5HexStr: string;
+        originImageMd5: string;
+        originImageUrl: string;
     }
 
     interface TextElement {

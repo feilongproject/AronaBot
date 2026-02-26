@@ -529,6 +529,7 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
     group_id: string;
     group_openid: string;
     author: { id: string; member_openid: string };
+    clean_content: string;
 
     constructor(msg: IntentMessage.GROUP_MESSAGE_body, register = true, isOffical = true) {
         super(msg, MessageType.GROUP, isOffical);
@@ -536,6 +537,7 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
         this.group_id = msg.group_id;
         this.group_openid = msg.group_openid;
         this.pushEventId = msg.pushEventId;
+        this.clean_content = msg.clean_content || msg.content;
 
         if (!register) return;
         log.info(

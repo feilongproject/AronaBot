@@ -270,6 +270,7 @@ declare global {
 
         type GROUP_MESSAGE = EventRespose<GROUP_MESSAGE_body>;
         type GROUP_MESSAGE_body = MessageChatCommon & {
+            clean_content: string;
             group_id: string;
             group_openid: string;
             isOffical: boolean;
