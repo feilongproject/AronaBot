@@ -36,7 +36,7 @@ export default {
                 describe: '创建一个私信会话并pong',
             },
             ping: {
-                reg: /^\/?ping/,
+                reg: /^\/?ping$/,
                 fnc: 'ping',
                 type: [
                     MessageType.GUILD,
@@ -124,7 +124,7 @@ export default {
                 describe: '管理员对某人禁言',
             },
             ban: {
-                reg: /(un)?ban1?/,
+                reg: /^(un)?ban1?/,
                 fnc: 'ban',
                 type: [
                     MessageType.GUILD,

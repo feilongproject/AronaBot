@@ -436,11 +436,13 @@ export async function searchMembers(msg: IMessageGUILD | IMessageDIRECT) {
     const ret: string[] = [];
     let now = 0;
 
-    for await (const it of redis.hScanIterator('nameLink', { MATCH: `*${searchStr}*` })) {
+    for await (const its of redis.hScanIterator('nameLink', { MATCH: `*${searchStr}*` })) {
+        for (const it of its) {
         if (now >= max) break;
         const watchChannel = await redis.hGet(`AvalonSystem`, `watchChannel:${it.value}`);
         ret.push(`${it.field}(${it.value})${watchChannel ? ` 已存在于 ${watchChannel}` : ''}`);
         now++;
+        }
     }
 
     return msg.sendMsgExRef({

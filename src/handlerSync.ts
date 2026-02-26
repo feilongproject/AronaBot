@@ -8,6 +8,7 @@ type Ctx = ParameterizedContext<any, RouterParamContext<any, {}>, any>;
 
 export async function handlerSync(ctx: Ctx, requestBody: SyncMessageBody) {
     if (devEnv) log.debug(JSON.stringify(requestBody));
+    if (requestBody.post_type == 'meta_event' && requestBody.meta_event_type == 'heartbeat') return;
     try {
         await syncButton(ctx, requestBody);
         await syncMessage(ctx, requestBody);
