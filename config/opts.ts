@@ -490,6 +490,26 @@ export default {
                 describe: '与今日老婆离婚',
             },
         },
+        annal: {
+            addNamedGalleryImage: {
+                reg: /^\/?\s*添加\S+/,
+                fnc: 'addNamedGalleryImage',
+                type: [MessageType.GROUP],
+                describe: '向指定命名图库添加图片',
+            },
+            listGalleries: {
+                reg: /^\/?\s*来点图库$/,
+                fnc: 'listGalleries',
+                type: [MessageType.GROUP],
+                describe: '列出当前群所有图库及数量',
+            },
+            randomNamedGalleryImage: {
+                reg: /^\/?\s*来点\S+/,
+                fnc: 'randomNamedGalleryImage',
+                type: [MessageType.GROUP],
+                describe: '从指定命名图库随机抽图',
+            },
+        },
         interaction: {
             syncgroup: {
                 reg: /^\/?\s*syncgroup/,
