@@ -4,7 +4,8 @@ import config from '../../config/config';
 
 // 允许使用图库功能的真实群号
 const allowGroup = [
-    '1041893514', // 测试大群
+    '1041893514', // 已弃用群
+    '874688335', // 测试小群
     '786830134', // Copper Archive
     '577899701', // 阿罗普拉之家
 ];
@@ -29,7 +30,10 @@ CREATE TABLE IF NOT EXISTS ${TABLE_NAME} (
     return initTablePromise;
 }
 
-function getGalleryName(content: string, command: '添加' | '来点'): { name: string } | 'empty' | 'illegal' {
+function getGalleryName(
+    content: string,
+    command: '添加' | '来点',
+): { name: string } | 'empty' | 'illegal' {
     const name = content.replace(new RegExp(`^/?\\s*${command}`), '').trim();
     if (!name) return 'empty';
     if (/[\/\\:*?"<>|&;%#\x00-\x1f]/.test(name)) return 'illegal';
@@ -100,7 +104,7 @@ export async function randomNamedGalleryImage(msg: IMessageGROUP) {
     const key = rows[0]?.cos_key;
     if (!key) return msg.sendMsgEx(`图库「${galleryName}」为空`);
 
-    return msg.sendMsgEx({  imageUrl: cosUrl(key) });
+    return msg.sendMsgEx({ imageUrl: cosUrl(key) });
 }
 
 export async function listGalleries(msg: IMessageGROUP) {
