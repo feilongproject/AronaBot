@@ -26,10 +26,10 @@ export async function mainCheck(
     msg?: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C,
 ) {
     if ((await redis.get('devEnv')) && !devEnv) return;
-
     await msg?.sendMsgEx({ content: `${devEnv},checking` });
 
     const dynamicPushList: DynamicPushList.Root = (await import(dynamicPushFilePath)).pushList; // 推送列表
+    await initBrowser();
 
     const dynamicItems = await getNewDynamic()
         .catch((err) => {
@@ -204,15 +204,10 @@ export async function getUserCard(userId: string): Promise<BiliUserCard.Root> {
 
 //参考: https://github.com/SocialSisterYi/bilibili-API-collect/issues/686
 export async function getCookie(): Promise<string> {
-    const biliCookie = (await redis.get('biliCookie')) || '';
-    const ck = Object.fromEntries(
-        biliCookie
-            .split(';')
-            .map((v) => v.trim())
-            .map((v) => v.split('=')),
-    );
-    if (!ck['SESSDATA'] || !ck['bili_jct']) throw 'cookie关键参数 SESSDATA 或 bili_jct 未找到';
+    const cookies = await browser.cookies();
 
+    const biliCookie = cookies.filter(v=>["SESSDATA","bili_jct"].includes(v.name)).map(v=>`${v.name}=${v.value}`).join('; ');
+    if (!biliCookie) throw 'cookie关键参数 SESSDATA 或 bili_jct 未找到';
     return biliCookie;
 }
 
@@ -245,18 +240,8 @@ async function screenshot(
     pubTs: string,
     quality = 50,
 ): Promise<Buffer | undefined> {
-    if (!global.browser || !browser.connected)
-        global.browser = await puppeteer.launch({
-            // headless: true,
-            headless: !process.env.DISPLAY,
-            args: ['--no-sandbox'],
-            protocolTimeout: 240000,
-        });
-
     const page = await browser.newPage();
-    const cookies: puppeteer.Cookie[] = JSON.parse(readFileSync(browserCkFile).toString() || '[]');
-    await page.setCookie(...cookies);
-    await page.setUserAgent(userAgentAndroid);
+    await page.setUserAgent({ userAgent: userAgentAndroid });
     await page.setViewport({
         width: 500,
         height: 800,
@@ -357,4 +342,17 @@ export async function getDynamicInfo(dynamicId: string): Promise<BiliDynamic.Inf
             'accept-language': 'en,zh-CN;q=0.9,zh;q=0.8',
         },
     }).then((res) => res.data);
+}
+
+async function initBrowser() {
+    if (!global.browser || !browser.connected)
+        global.browser = await puppeteer.launch({
+            // headless: true,
+            headless: !process.env.DISPLAY,
+            args: ['--no-sandbox'],
+            protocolTimeout: 240000,
+        });
+
+    const cookies: puppeteer.Cookie[] = JSON.parse(readFileSync(browserCkFile).toString() || '[]');
+    await browser.setCookie(...cookies);
 }
