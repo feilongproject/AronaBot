@@ -1,6 +1,8 @@
 import axios from 'axios';
 import config from '../../config/config';
 
+const MAX_TRY = 3;
+
 export async function awaitGroupEventId(groupRealId: string): Promise<string | null> {
     const groupId = Object.entries(config.bots[botType].groupMap).find(
         (v) => v[1] === groupRealId,
@@ -9,29 +11,18 @@ export async function awaitGroupEventId(groupRealId: string): Promise<string | n
 
     let eventId = await redis.get(`groupLastestEventId:${botType}:${groupId}`);
     if (eventId) return eventId;
+    for (let i = 0; i < MAX_TRY; i++) {
+        const callInfo = await callbackButton(groupRealId);
+        if (callInfo === 0) return null;
 
-    // 等候5s获取id
-    await callbackButton(groupRealId);
-    await sleep(5000);
-    eventId = await redis.get(`groupLastestEventId:${botType}:${groupId}`);
-    if (eventId) return eventId;
-    if (devEnv) log.debug('awaitGroupEventId. 5s no eventId');
-
-    // 等候5s获取id
-    await callbackButton(groupRealId);
-    await sleep(5000);
-    eventId = await redis.get(`groupLastestEventId:${botType}:${groupId}`);
-    if (eventId) return eventId;
-    if (devEnv) log.debug('awaitGroupEventId. 10s no eventId');
-
-    // 等候5s获取id
-    await callbackButton(groupRealId);
-    await sleep(5000);
-    eventId = await redis.get(`groupLastestEventId:${botType}:${groupId}`);
-    if (eventId) return eventId;
-    if (devEnv) log.debug('awaitGroupEventId. 15s no eventId');
-
-    log.error(`awaitGroupEventId 15s 未找到 groupLastestEventId`);
+        await sleep(5000);
+        eventId = await redis.get(`groupLastestEventId:${botType}:${groupId}`);
+        if (eventId) return eventId;
+        if (devEnv) log.debug(`awaitGroupEventId. try ${i + 1}/${MAX_TRY} no eventId`);
+    }
+    log.error(
+        `awaitGroupEventId ${MAX_TRY}次未找到 groupLastestEventId ${groupRealId}->${groupId}`,
+    );
     return null;
 }
 
@@ -44,7 +35,7 @@ export async function callbackPushButton() {
 async function callbackButton(groupRealId: string) {
     const buttonId = await redis.get(`syncGroupButtonId:${botType}:${groupRealId}`);
     const buttonData = await redis.get(`buttonData:${botType}:${groupRealId}`);
-    if (!buttonId || !buttonData) return;
+    if (!buttonId || !buttonData) return 0;
     if (devEnv) log.debug('callButton', groupRealId, buttonId, buttonData);
 
     return axios({

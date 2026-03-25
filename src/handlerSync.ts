@@ -54,8 +54,9 @@ async function syncMessage(ctx: Ctx, requestBody: SyncMessageBody) {
     const groupRealId = requestBody.group_id.toString();
     if (requestBody.message_type !== 'group') return;
     if (requestBody.raw.elements.find((v) => v.textElement?.atUid == meRealId))
-        return log.warn(`skip @bot`); // @bot的忽略
-    if (requestBody.sender.user_id.toString() == meRealId) return log.warn('skip bot send'); // bot发送的忽略
+        return devEnv ? log.warn(`skip @bot`) : undefined; // @bot的忽略
+    if (requestBody.sender.user_id.toString() == meRealId)
+        return devEnv ? log.warn('skip bot send') : undefined; // bot发送的忽略
 
     const groupId = Object.entries(config.bots[botType].groupMap).find(
         (v) => v[1] == groupRealId,
@@ -65,7 +66,7 @@ async function syncMessage(ctx: Ctx, requestBody: SyncMessageBody) {
 
     const eventId = await awaitGroupEventId(groupRealId);
     if (devEnv) log.debug('syncMessage.eventId', eventId);
-    if (!eventId) return log.warn(`syncMessage.eventId not found`);
+    if (!eventId) return log.warn(`syncMessage.eventId not found ${eventId} for group ${groupRealId}`);
 
     const messageId = requestBody.message_id.toString();
     const msg: IntentMessage.GROUP_MESSAGE_body = {

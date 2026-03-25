@@ -82,7 +82,7 @@ async function dynamicPush(args: CommandArg) {
         },
     });
     const hbUpdateBtn: MessageKeyboard | undefined =
-        bUserId == '425535005' && groupTrueId == '1041893514' && botType == 'PlanaBot'
+        bUserId == '425535005' && groupTrueId == '874688335' && botType == 'PlanaBot'
             ? {
                   content: {
                       rows: [
@@ -183,7 +183,7 @@ export async function syncgroup(msg: IMessageGROUP) {
     if (!adminId.includes(msg.author.id)) return;
 
     const groupUid = config.bots[botType].groupMap[msg.group_id];
-    if (!groupUid) return msg.sendMsgEx(`未设置群组实际群号uid`);
+    if (!groupUid) return msg.sendMsgEx(`${msg.group_id} 未设置群组实际群号uid`);
 
     const buttonKeys = `sync-${groupUid}-${Math.round(Math.random() * 10000)}`;
     await redis.set(`syncGroupButtonId:${botType}:${groupUid}`, buttonKeys);
