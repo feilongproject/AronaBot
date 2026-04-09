@@ -570,6 +570,7 @@ async function getMarkdown(
     options: SendOption.MarkdownPublic,
     kbCustom = false,
 ): Promise<SendOption.MarkdownOrgin | null> {
+    if (options.content) return { markdown: { content: options.content } };
     const markdownNameId = Object.keys(options).find((v) => v.startsWith('params_')) as
         | `params_${string}`
         | undefined;
@@ -632,6 +633,7 @@ namespace SendOption {
     }
 
     export interface MarkdownPublic extends MarkdownParams {
+        content?: string;
         keyboardNameId?: string;
         templateId?: string;
         keyboardId?: string;
@@ -641,7 +643,7 @@ namespace SendOption {
     export type MarkdownParams = Record<`params_${string}`, string[]>;
 
     export interface MarkdownOrgin {
-        markdown: Required<Omit<MessageMarkdown, 'content'>>;
+        markdown: MessageMarkdown;
         keyboard?: MessageKeyboard;
     }
 
