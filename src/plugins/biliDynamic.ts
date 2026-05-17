@@ -198,7 +198,11 @@ export async function getUserCard(userId: string): Promise<BiliUserCard.Root> {
     // https://api.bilibili.com/x/web-interface/card?mid=1
     return axios<BiliUserCard.Root>({
         url: `https://api.bilibili.com/x/web-interface/card?mid=${userId}`,
-        headers: { 'User-Agent': userAgent },
+        headers: {
+            'User-Agent': userAgent, // userAgent,
+            Cookie: await getCookie(),
+            'accept-language': 'en,zh-CN;q=0.9,zh;q=0.8',
+        },
     }).then((res) => res.data);
 }
 
@@ -217,25 +221,41 @@ export async function getCookie(): Promise<string> {
 export async function biliDynamicByid(msg: IMessageGROUP | IMessageC2C) {
     const dynamicId = msg.content.match(/\d+/)?.[0];
     if (!dynamicId) return;
+    if (!adminId.includes(msg.author.id)) return;
 
+    await initBrowser();
     const imageBuffer = await screenshot(dynamicId, '');
     if (!imageBuffer) return msg.sendMsgEx({ content: `imageBuffer not found` });
 
-    const imageKey = `0000-${dynamicId}-${new Date().getTime()}.png`;
+    const imageKey = `233114659-${dynamicId}-${new Date().getTime()}.png`; // 注意，这里为用户 id
 
     writeFileSync(`${config.imagesOut}/bili-${imageKey}`, imageBuffer);
     await cosPutObject({ Key: `biliDynamic/${imageKey}`, Body: imageBuffer });
     if (devEnv) log.debug(`${config.imagesOut}/bili-${imageKey}`);
 
-    const imageUrl = cosUrl(
-        `biliDynamic/${imageKey}`,
-        imageBuffer.length < 4 * 1000 * 1000 ? '' : undefined,
-    );
+    await (
+        await import('../plugins/interaction')
+    )
+        .sendToGroupHandler(`dynamicPush`, `${874688335},${imageKey}`, '874688335')
+        .then((text) => {
+            if (devEnv) log.debug('get结果: ', imageKey, text);
+        })
+        .catch(async (err) => {
+            log.error(err);
+            return await mailerError({ dynamicId }, new Error(strFormat(err))).catch((err) =>
+                log.error(err),
+            );
+        });
 
-    await msg.sendMsgEx({
-        imageUrl: imageUrl,
-        content: `${imageKey}`,
-    });
+    // const imageUrl = cosUrl(
+    //     `biliDynamic/${imageKey}`,
+    //     imageBuffer.length < 4 * 1000 * 1000 ? '' : undefined,
+    // );
+
+    // await msg.sendMsgEx({
+    //     imageUrl: imageUrl,
+    //     content: `${imageKey}`,
+    // });
 }
 
 async function screenshot(

@@ -68,6 +68,7 @@ async function dynamicPush(args: CommandArg) {
     // await pushPlugin.dynamicPush(dynamicId, MessageType.GROUP, eventId, pushList);
 
     const userCard = await pushPlugin.getUserCard(bUserId);
+    // if(devEnv) log.debug('userCard', userCard,bUserId);
     const userName = userCard.data.card.name;
 
     debugger;
@@ -108,20 +109,14 @@ async function dynamicPush(args: CommandArg) {
     const _res = await msg
         .sendMarkdown({
             imageUrl: imageUrl,
-            params_omnipotent: [
-                `${devEnv ? 'dev ' : ''}${userName} 更新了一条动态`,
-                `[🔗https://t.bilibili`,
-                `.com/${dynamicId}]`,
-                `(https://t.bilibili`,
-                `.com/${dynamicId})\r`,
-                `![gui #${imgWidth}px #${imgHeight}px]`,
-                `(${imageUrl})`,
-                // `![img #px #px]`, `(${imageUrl})`,
-            ],
-            content: `${devEnv ? 'dev ' : ''}${userName} 更新了一条动态\nhttps://t.bilibili.com/${dynamicId}`,
+            content:
+                `${devEnv ? 'dev ' : ''}${userName} 更新了一条动态` +
+                `[🔗https://t.bilibili.com/${dynamicId}](https://t.bilibili.com/${dynamicId})\r` +
+                `![gui #${imgWidth}px #${imgHeight}px](${imageUrl})`,
             keyboard: hbUpdateBtn,
         })
         .catch((err) => sendToAdmin(strFormat(err)));
+        if(devEnv)log.debug('_res', _res);
 
     await redis.hSet(`biliMessage:idPushed:${dynamicId}`, groupTrueId, groupId);
 }
@@ -156,7 +151,7 @@ export async function sendToGroupHandler(type: string, data: string, groupUid?: 
                 data: data,
             },
             headers: { 'Content-Type': 'application/json' },
-        }).catch((err) => log.error(err));
+        }).catch((err) => {});
     }
 
     const callbackGroupUid = groupUid || ((await redis.hGet('config', `callbackGroup`)) as string);
