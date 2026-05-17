@@ -34,8 +34,17 @@ declare global {
         imageRenderNum: number;
     };
     var hotLoadStatus: number;
+    /**
+     * 频道，你好；频道，再见；拜拜了您嘞
+     */
     var saveGuildsTree: Record<string, SaveGuild>;
+    /**
+     * 先烧个纸再说
+     */
     var studentInfo: StudentInfo;
+    /**
+     * 老大老大你看我们还有救喵？
+     */
     var studentNameAlias: StudentNameAlias;
     var botType: BotTypes;
     var allowMarkdown: boolean;
@@ -45,22 +54,47 @@ declare global {
     type BotTypes = keyof typeof config.bots;
 
     interface Date {
+        /**
+         * 数据库时间
+         * @returns
+         */
         toDBString: () => string;
     }
 
     interface Buffer {
+        /**
+         * Buffer直接转json parse
+         * @returns parse后数据
+         */
         json: <T>() => T;
     }
-
+    /**
+     * 这是什么玩意写的什么东西
+     */
     var strFormat: (d: any) => string;
+    /**
+     * 睡一觉就好了，单位ms
+     */
     var sleep: (ms: number) => Promise<any>;
+    /**
+     * ba数据处理相关，虽然没用了
+     */
     var fixName: (name: string) => string;
 
+    /**
+     * 直接拿cosUrl参数
+     */
     var cosUrl: (key: string, fix?: string) => string;
+    /**
+     * 把你的对象扔到云端
+     */
     var cosPutObject: (
         params: CosPutObjectParams & Partial<COS.ObjectParams>,
         tag?: string,
     ) => Promise<COS.PutObjectResult>;
+    /**
+     * 这还是数字吗给我干哪去了
+     */
     var isNumStr: (value: string) => value is `${number}`;
     type CosPutObjectParams = Omit<COS.PutObjectParams, keyof Omit<COS.ObjectParams, 'Key'>>;
 
@@ -356,6 +390,7 @@ declare global {
 
         GROUP_ADD_ROBOT = 'GROUP_ADD_ROBOT',
         GROUP_DEL_ROBOT = 'GROUP_DEL_ROBOT',
+        GROUP_MESSAGE_CREATE = 'GROUP_MESSAGE_CREATE',
         GROUP_AT_MESSAGE_CREATE = 'GROUP_AT_MESSAGE_CREATE',
         GROUP_MSG_RECEIVE = 'GROUP_MSG_RECEIVE',
         GROUP_MSG_REJECT = 'GROUP_MSG_REJECT',

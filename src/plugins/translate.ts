@@ -11,9 +11,11 @@ const openai = new OpenAI({
 
 export async function translate(msg: IMessageGROUP) {
     if (
-        !['E06A1951FA9B96870654B7919DCF2F5C', '57A9BFF9A91410926173B10A33E18E3D'].includes(
-            msg.group_id,
-        )
+        ![
+            '065510E7B82601CE7A1F76C021743D25',
+            '57A9BFF9A91410926173B10A33E18E3D',
+            'BDDD328FA39B05B30C88D111CB5F162B',
+        ].includes(msg.group_id)
     )
         return;
     const postData: ChatCompletionCreateParamsNonStreaming = JSON.parse(

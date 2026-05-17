@@ -122,8 +122,21 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
         }
 
         case AvailableIntentsEventsEnum.GROUP_AND_C2C_EVENT: {
-            if (devEnv) log.debug(strFormat(event));
-            if (event.eventType == IntentEventType.GROUP_AT_MESSAGE_CREATE) {
+            // if (devEnv) log.debug(strFormat(event));
+
+            if (
+                event.eventType == IntentEventType.GROUP_AT_MESSAGE_CREATE ||
+                event.eventType == IntentEventType.GROUP_MESSAGE_CREATE
+            ) {
+                if (
+                    event.eventType == IntentEventType.GROUP_AT_MESSAGE_CREATE &&
+                    config.bots[botType].enableFullReceiveGroups?.includes(
+                        (event.msg as IntentMessage.GROUP_MESSAGE_body).group_openid,
+                    )
+                )
+                    return; // 当群启用全量接收时，AT消息也不特殊处理，直接走全量流程
+
+                // if (event.eventType == IntentEventType.GROUP_AT_MESSAGE_CREATE || event.eventType == IntentEventType.GROUP_MESSAGE_CREATE) {
                 const data = event.msg as any as IntentMessage.GROUP_MESSAGE_body;
                 if (devEnv && !adminId.includes(data.author.id)) return;
                 const msg = new IMessageGROUP(data, true, data.isOffical ?? true);
@@ -340,7 +353,6 @@ async function isBan(
 
 function aiAllow(msg: IMessageGROUP | IMessageC2C) {
     const allowGroup = [
-        'E06A1951FA9B96870654B7919DCF2F5C',
         'C677AE4F115CC3FB4ED3AA1CCEF6ABC1',
         '2EA07C40CCAA6E3358A2DB5EA5527D8A',
         'FCD8D4FF03575F550D495003F48A3D01',

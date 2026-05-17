@@ -13,7 +13,7 @@
         "resolveJsonModule": true,
         "types": ["node"]
     },
-    "include": ["src/", "script/", "test/**/*", "data/"],
+    "include": ["src/", "script/", "test/**/*", "data/","config/"],
     "typeRoots": ["./src/types"],
     "ts-node": {
         "files": true

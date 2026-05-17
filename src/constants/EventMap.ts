@@ -1,5 +1,6 @@
 export const EventMap = {
     GROUP_AND_C2C_EVENT: [
+        IntentEventType.GROUP_MESSAGE_CREATE,
         IntentEventType.GROUP_ADD_ROBOT,
         IntentEventType.GROUP_AT_MESSAGE_CREATE,
         IntentEventType.GROUP_DEL_ROBOT,

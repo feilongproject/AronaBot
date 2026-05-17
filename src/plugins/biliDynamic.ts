@@ -206,7 +206,10 @@ export async function getUserCard(userId: string): Promise<BiliUserCard.Root> {
 export async function getCookie(): Promise<string> {
     const cookies = await browser.cookies();
 
-    const biliCookie = cookies.filter(v=>["SESSDATA","bili_jct"].includes(v.name)).map(v=>`${v.name}=${v.value}`).join('; ');
+    const biliCookie = cookies
+        .filter((v) => ['SESSDATA', 'bili_jct'].includes(v.name))
+        .map((v) => `${v.name}=${v.value}`)
+        .join('; ');
     if (!biliCookie) throw 'cookie关键参数 SESSDATA 或 bili_jct 未找到';
     return biliCookie;
 }

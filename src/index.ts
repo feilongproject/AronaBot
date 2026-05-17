@@ -3,29 +3,35 @@ import axios from 'axios';
 import koaBody from 'koa-body';
 import Router from '@koa/router';
 import { init } from './init';
+import { initRuntime } from './bootloader';
 import { handlerSync } from './handlerSync';
 import config from '../config/config';
 import { EventMap } from './constants/EventMap';
+
+initRuntime();
+
+const app = new Koa();
+const router = new Router(); // 为什么之前没有移到顶层?
+
+app.use(async (ctx, next) => {
+    let rawData = '';
+    ctx.req.on('data', (chunk) => (rawData += chunk));
+    ctx.req.on('end', () => ((ctx.request as any).rawBody = rawData));
+    await next();
+});
+
+const { dev: devPORT, prod: PORT } = config.bots[botType]?.webhookPort;
+if (!PORT || !devPORT) process.exit(1);
 
 init().then(() => {
     for (const eventRootType of config.bots[botType].intents) {
         log.mark(`开始监听 ${eventRootType} 事件`);
         global.ws.on(eventRootType, async (data: IntentMessage.EventRespose<any>) => {
             data.eventRootType = eventRootType;
+            if(devEnv) log.debug(`收到事件: ${eventRootType} ${data.eventType} ${data.eventId}`);
             return import('./eventRec').then((e) => e.eventRec(data));
         });
     }
-
-    const { dev: devPORT, prod: PORT } = config.bots[botType]?.webhookPort;
-    if (!PORT || !devPORT) return;
-    const app = new Koa();
-    const router = new Router();
-    app.use(async (ctx, next) => {
-        let rawData = '';
-        ctx.req.on('data', (chunk) => (rawData += chunk));
-        ctx.req.on('end', () => ((ctx.request as any).rawBody = rawData));
-        await next();
-    });
 
     router
         .post(`/webhook/${botType}`, async (ctx, next) => {
