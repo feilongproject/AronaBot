@@ -29,7 +29,7 @@ export function findOpts(
             const opt = commandFathers[keyFather][keyChild];
             // if (devEnv) allowKeys.push("dev");
             if (typeof opt == 'function' || !opt.type.includes(msg.messageType)) continue;
-            if (!RegExp(opt.reg).test(msg.content.replace(/<@!\d*>/g, '').trim())) continue;
+            if (!RegExp(opt.reg).test(msg.content.replace(/<@!?[A-Z0-9]*>/g, '').trim())) continue;
 
             if (msg instanceof IMessageGROUP || msg instanceof IMessageC2C) {
                 return { path: keyFather, keyChild, ...opt };
