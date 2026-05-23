@@ -28,7 +28,7 @@ init().then(() => {
         log.mark(`开始监听 ${eventRootType} 事件`);
         global.ws.on(eventRootType, async (data: IntentMessage.EventRespose<any>) => {
             data.eventRootType = eventRootType;
-            if(devEnv) log.debug(`收到事件: ${eventRootType} ${data.eventType} ${data.eventId}`);
+            if (devEnv) log.debug(`收到事件: ${eventRootType} ${data.eventType} ${data.eventId}`);
             return import('./eventRec').then((e) => e.eventRec(data));
         });
     }
@@ -53,22 +53,24 @@ init().then(() => {
             const body: EventBody = ctx.request.body as unknown as EventBody;
             // log.info(`收到webhook: ${body.op} ${body.id || ""}`);
 
-            if (body.op == 13)
+            if (body.op == 13) {
                 return (ctx.body = {
                     plain_token: body.d.plain_token,
                     signature: client.webhookApi.getSign(body.d.event_ts, body.d.plain_token),
                 }); // op13 可能是 webhook验证相关？
+            }
 
             const rootType = Object.entries(EventMap).find((v) =>
                 (v[1] as string[]).includes(body.t),
             );
             // log.debug(rootType, body.t);
-            if (rootType)
+            if (rootType) {
                 global.ws.emit(rootType[0], {
                     eventId: body.id,
                     eventType: body.t,
                     msg: body.d,
                 });
+            }
 
             if ((await redis.get('devEnv')) && !devEnv) {
                 await axios({

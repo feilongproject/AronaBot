@@ -208,6 +208,8 @@ export async function getUserCard(userId: string): Promise<BiliUserCard.Root> {
 
 //参考: https://github.com/SocialSisterYi/bilibili-API-collect/issues/686
 export async function getCookie(): Promise<string> {
+    await initBrowser();
+
     const cookies = await browser.cookies();
 
     const biliCookie = cookies
@@ -351,7 +353,7 @@ async function screenshot(
         clip: clip,
     });
     // debugger;
-    writeFileSync(browserCkFile, strFormat(await page.cookies()));
+    writeFileSync(browserCkFile, strFormat(await global.browser.cookies()));
     if (!devEnv) await page.close();
     return Buffer.from(b64, 'base64') || undefined;
 }
@@ -377,5 +379,6 @@ async function initBrowser() {
         });
 
     const cookies: puppeteer.Cookie[] = JSON.parse(readFileSync(browserCkFile).toString() || '[]');
+    cookies.map((v) => delete v.sameSite);
     await browser.setCookie(...cookies);
 }
