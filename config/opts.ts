@@ -288,6 +288,13 @@ export default {
                 describe: '对使用中的命令进行设置',
                 export: '/命令设置 [设置选项]',
             },
+            receiveFull: {
+                reg: /^\/?全量接收/,
+                fnc: 'receiveFull',
+                type: [MessageType.GROUP],
+                describe: '接收当前群内的所有消息',
+                export: '/全量接收',
+            },
         },
         serverStatus: {
             baServerStatus: {

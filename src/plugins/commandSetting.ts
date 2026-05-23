@@ -1,5 +1,6 @@
 import { settingUserConfig } from '../libs/common';
 import { IMessageC2C, IMessageGROUP, IMessageGUILD } from '../libs/IMessageEx';
+import config from '../../config/config';
 
 export async function commandSetting(msg: IMessageGUILD | IMessageGROUP | IMessageC2C) {
     var optStr: string = '';
@@ -99,5 +100,42 @@ export async function commandSetting(msg: IMessageGUILD | IMessageGROUP | IMessa
             `\n-  更改服务器` +
             `\n-  重置`,
         // fallback 部分
+    });
+}
+
+export async function receiveFull(msg: IMessageGROUP) {
+    // 从用户指令中提取群号（仅匹配“全量接收”后紧跟的数字 ID）
+    const groupCode = msg.content.match(/全量接收\s*(\d+)/)?.[1] || '';
+    if (!groupCode) {
+        return msg.sendMarkdown({
+            content:
+                `# ⚠️ 请提供群号\n` +
+                `<qqbot-cmd-input text="${encodeURIComponent('/全量接收 ')}" show="📋 一键填入指令" reference="false" />`,
+        });
+    }
+
+    // 构造 open_kuikly_info 的 JSON 数据
+    const kuiklyInfo = JSON.stringify({
+        page_name: 'ai_group_service_agreement_pop_page',
+        groupCode: groupCode,
+        botUin: meRealId,
+        botUid: config.bots[botType].botUid,
+        screen: 1,
+    });
+
+    // 拼接完整链接
+    const applyUrl = `https://club.vip.qq.com/transfer?open_kuikly_info=${encodeURIComponent(kuiklyInfo)}`;
+
+    // TODO: 替换为实际的操作示意图片 URL（上传至 COS 后使用 cosUrl 获取）
+    const guideImageUrl = `${config.cosUrl}/receive_full_guide_${botType}.jpg`;
+
+    return msg.sendMarkdown({
+        content:
+            `# 🔔 全量接收权限申请\n` +
+            `![操作示意 #1200px #1000px](${guideImageUrl})\n` +
+            `---\n` +
+            `## 🔗 [点击前往申请全量接收权限](${applyUrl})\n` +
+            `## ⚠️ 仅限群主操作\n` +
+            `## ⚠️ 仅限QQ v9.2.90及以上版本使用`,
     });
 }

@@ -12,6 +12,7 @@ export default {
     bots: {
         AronaBot: {
             appID: 'YOUR_APP_ID',
+            botUid: '',
             token: 'YOUR_TOKEN',
             secret: 'YOUR_SECRET',
             dsKey: ``,
@@ -39,6 +40,7 @@ export default {
         },
         TestBot: {
             appID: 'YOUR_TEST_APP_ID',
+            botUid: '',
             token: 'YOUR_TEST_TOKEN',
             dsKey: ``,
             intents: [AvailableIntentsEventsEnum.GUILD_MESSAGES],
