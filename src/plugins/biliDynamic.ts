@@ -41,8 +41,8 @@ export async function mainCheck(
     if (!dynamicItems)
         return await msg?.sendMsgEx(`未获取到动态列表: ${JSON.stringify(dynamicItems)}`);
 
-    if (devEnv) await msg?.sendMsgEx({ content: `检测到 ${dynamicItems.items.length} 个动态` });
     // debugger;
+    if (devEnv) await msg?.sendMsgEx({ content: `检测到 ${dynamicItems.items.length} 个动态` });
 
     for (const item of dynamicItems.items) {
         // 检查每个动态
@@ -104,49 +104,47 @@ async function dynamicPush(
     imageKey: string,
     imageBuffer: Buffer,
 ) {
-    if (pushInfo.type == MessageType.GROUP) {
-        let retryTimes = 3;
-        while (retryTimes--) {
-            // debugger;
+    // if (pushInfo.type == MessageType.GROUP) {
+    //     let retryTimes = 3;
+    //     while (retryTimes--) {
+    //         // debugger;
 
-            if (!devEnv && (await redis.hExists(`biliMessage:idPushed:${dynamicId}`, pushInfo.id)))
-                return;
-            await (
-                await import('../plugins/interaction')
-            )
-                .sendToGroupHandler(`dynamicPush`, `${pushInfo.id},${imageKey}`, pushInfo.id)
-                .then((text) => {
-                    if (devEnv) log.debug('get结果: ', imageKey, text);
-                })
-                .catch(async (err) => {
-                    log.error(err);
-                    return await mailerError({ dynamicId }, new Error(strFormat(err))).catch(
-                        (err) => log.error(err),
-                    );
-                });
+    //         if (!devEnv && (await redis.hExists(`biliMessage:idPushed:${dynamicId}`, pushInfo.id)))
+    //             return;
 
-            if (devEnv) {
-                log.debug(dynamicId, pushInfo);
-                break;
-            } else await sleep(10 * 1000);
-        }
-        return;
-    }
+    //         // await (
+    //         //     await import('../plugins/interaction')
+    //         // )
+    //         //     .sendToGroupHandler(`dynamicPush`, `${pushInfo.id},${imageKey}`, pushInfo.id)
+    //         //     .then((text) => {
+    //         //         if (devEnv) log.debug('get结果: ', imageKey, text);
+    //         //     })
+    //         //     .catch(async (err) => {
+    //         //         log.error(err);
+    //         //         return await mailerError({ dynamicId }, new Error(strFormat(err))).catch(
+    //         //             (err) => log.error(err),
+    //         //         );
+    //         //     });
 
-    const userCard = await getUserCard(item.modules.module_author.mid.toString());
-    const userName = userCard.data?.card?.name;
-    if (typeof userName != 'string')
-        throw new Error(`unknow userName, cardData: ${JSON.stringify(userCard)}`);
+    //         if (devEnv) {
+    //             log.debug(dynamicId, pushInfo);
+    //             break;
+    //         } else await sleep(10 * 1000);
+    //     }
+    //     return;
+    // }
 
-    const guildId = Object.values(saveGuildsTree).find(
-        (v) => Object.values(v.channels).find((v) => v.id === pushInfo.id)?.id,
-    )?.id;
-    const msg = new IMessageGUILD(
-        { id: await redis.get(`lastestMsgId:${botType}`), guildId, channel_id: pushInfo.id } as any,
+    // const userCard = await getUserCard(item.modules.module_author.mid.toString());
+    // const userName = item.modules.module_author.name;
+    // if (typeof userName != 'string')
+    //     throw new Error(`unknow userName, cardData: ${JSON.stringify(userCard)}`);
+
+    const openId =
+        Object.entries(config.bots[botType].groupMap).find(([o, r]) => r == pushInfo.id)?.[0] || '';
+    const msg = new IMessageGROUP(
+        { group_id: openId, group_openid: openId } as any,
         false,
     );
-    if (pushInfo.id == '544252608' && (devEnv || item.type == 'DYNAMIC_TYPE_FORWARD'))
-        return redis.hSet(`biliMessage:idPushed:${dynamicId}`, pushInfo.id, pushInfo.id);
 
     const imageUrl = cosUrl(
         `biliDynamic/${imageKey}`,
@@ -155,20 +153,13 @@ async function dynamicPush(
     const { width: imgWidth, height: imgHeight } = imageSize(imageBuffer);
 
     await msg.sendMarkdown({
-        sendType: pushInfo.type,
-        imageUrl: imageUrl,
-        params_omnipotent: [
-            `${devEnv ? 'dev ' : ''}${userName} 更新了一条动态`,
-            `[🔗https://t.bilibili`,
-            `.com/${item.id_str}]`,
-            `(https://t.bilibili`,
-            `.com/${item.id_str})\r`,
-            `![gui #${imgWidth}px #${imgHeight}px]`,
-            `(${imageUrl})`,
-            // `![img #px #px]`, `(${imageUrl})`,
-        ],
-        content: `${devEnv ? 'dev ' : ''}${userName} 更新了一条动态\nhttps://t.bilibili.com/${item.id_str}`,
+        // imageUrl: imageUrl,
+        content:
+            `${devEnv ? 'dev ' : ''}${item.modules.module_author.name} 更新了一条动态\n` +
+            `[🔗https://t.bilibili.com/${item.id_str}](https://t.bilibili.com/${item.id_str})\n` +
+            `![gui #${imgWidth}px #${imgHeight}px](${imageUrl})`,
     });
+    debugger;
 
     return redis.hSet(`biliMessage:idPushed:${dynamicId}`, pushInfo.id, pushInfo.id);
 }
@@ -220,6 +211,10 @@ export async function getCookie(): Promise<string> {
     return biliCookie;
 }
 
+/**
+ * 测试推送用，输入动态链接后缀数字部分即可，如 https://t.bilibili.com/123456789 则输入 123456789
+ * @param msg 消息体
+ */
 export async function biliDynamicByid(msg: IMessageGROUP | IMessageC2C) {
     const dynamicId = msg.content.match(/\d+/)?.[0];
     if (!dynamicId) return;
