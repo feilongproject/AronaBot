@@ -28,3 +28,5 @@ data/errorMessageTemaple.html
 data/keyboardMap.ts
 data/dynamicPush.ts
 data/aiPrompt.txt
+data/rollpig/cache/*
+data/rollpig/images/*

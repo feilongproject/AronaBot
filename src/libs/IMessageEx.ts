@@ -570,21 +570,6 @@ async function getMarkdown(
     options: SendOption.MarkdownPublic,
     kbCustom = false,
 ): Promise<SendOption.MarkdownOrgin | null> {
-    if (options.content) return { markdown: { content: options.content } };
-    const markdownNameId = Object.keys(options).find((v) => v.startsWith('params_')) as
-        | `params_${string}`
-        | undefined;
-    const markdownId =
-        options.templateId ||
-        (await redis.hGet(`config:md:${markdownNameId?.replace(/^params_/, '')}`, meId));
-    if (!markdownId) return null;
-
-    options.params = options.params || options[markdownNameId!];
-    if (markdownNameId) options[markdownNameId] = undefined as any;
-    if (!options.params.length) options.params = [];
-    for (let i = 0; i < mdParamLength; i++) {
-        options.params[i] = options.params[i] || '\u200b';
-    }
     const kbId =
         options.keyboardId ||
         options.keyboard?.id ||
@@ -596,8 +581,7 @@ async function getMarkdown(
     kbCustom = !!kbContent && kbCustom;
     const ret = {
         markdown: {
-            custom_template_id: markdownId,
-            params: options.params.map((value, i) => ({ key: `v${i + 1}`, values: [value] })),
+            content: options.content,
         },
         keyboard: {
             id: kbCustom ? undefined : (kbId ?? undefined),

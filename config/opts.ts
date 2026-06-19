@@ -497,6 +497,35 @@ export default {
                 describe: '与今日老婆离婚',
             },
         },
+        rollpig: {
+            todayPig: {
+                reg: /^\/?(今天是什么小猪|今日小猪|本日小猪|当日小猪)/,
+                fnc: 'todayPig',
+                type: [MessageType.GROUP],
+                describe: '抽取今天属于你的小猪人格',
+                export: '/今日小猪',
+            },
+            randomPig: {
+                reg: /^\/?随机小猪\s*(\d+)?/,
+                fnc: 'randomPig',
+                type: [MessageType.GROUP],
+                describe: '从PigHub随机获取猪猪图',
+                export: '/随机小猪 [数量]',
+            },
+            findPig: {
+                reg: /^\/?(找猪|搜猪)/,
+                fnc: 'findPig',
+                type: [MessageType.GROUP],
+                describe: '根据关键词或ID查找猪猪',
+                export: '/找猪 <关键词> 或 /找猪 -i <图片ID>',
+            },
+            syncPigResources: {
+                reg: /^\/?(同步小猪资源|刷新小猪图鉴)/,
+                fnc: 'syncPigResources',
+                type: [MessageType.GROUP],
+                describe: '管理员从云端同步小猪资源',
+            },
+        },
         annal: {
             addNamedGalleryImage: {
                 reg: /^\/?\s*添加\S+/,
