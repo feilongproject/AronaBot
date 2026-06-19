@@ -7,6 +7,7 @@ import {
     IChannel,
     IMember,
     IUser,
+    CUser,
     createWebsocket,
     IOpenAPI,
     AvailableIntentsEventsEnum,
@@ -309,6 +310,7 @@ declare global {
             group_openid: string;
             isOffical: boolean;
             pushEventId?: string;
+            mentions: CUser[];
         };
 
         type C2C_MESSAGE = EventRespose<C2C_MESSAGE_body>;

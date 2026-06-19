@@ -12,6 +12,7 @@ import {
     MessageKeyboard,
     MessageReference,
     MessageMarkdown,
+    CUser,
 } from 'qq-bot-sdk';
 import { callWithRetry, pushToDB } from './common';
 import config from '../../config/config';
@@ -530,6 +531,7 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
     group_openid: string;
     author: { id: string; member_openid: string };
     clean_content: string;
+    mentions: CUser[];
 
     constructor(msg: IntentMessage.GROUP_MESSAGE_body, register = true, isOffical = true) {
         super(msg, MessageType.GROUP, isOffical);
@@ -538,6 +540,7 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
         this.group_openid = msg.group_openid;
         this.pushEventId = msg.pushEventId;
         this.clean_content = msg.clean_content || msg.content;
+        this.mentions = msg.mentions;
 
         if (!register) return;
         log.info(

@@ -63,6 +63,13 @@ async function executeChannel(msg: IMessageDIRECT | IMessageGUILD) {
 
 async function executeChat(msg: IMessageGROUP | IMessageC2C) {
     try {
+        if (
+            msg instanceof IMessageGROUP &&
+            msg.mentions?.some((v) => v.bot) &&
+            !msg.mentions?.some((m) => m.is_you)
+        )
+            return;
+
         global.commandConfig = (await import('../config/opts')).default;
         aiAllow(msg);
         const { opts } = msg;
@@ -282,7 +289,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             if ((await redis.get('devEnv')) && !devEnv) return;
 
             const { msg, eventId } = event as IntentMessage.INTERACTION;
-            // if (devEnv) log.debug(event, msg.data);
+            if (devEnv) log.debug(event, msg.data);
 
             const groupId = msg?.group_openid;
             if (!groupId) return;

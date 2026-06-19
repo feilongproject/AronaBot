@@ -7,7 +7,7 @@ import { awaitGroupEventId } from './libs/interactionGroup';
 type Ctx = ParameterizedContext<any, RouterParamContext<any, {}>, any>;
 
 export async function handlerSync(ctx: Ctx, requestBody: SyncMessageBody) {
-    if (devEnv) log.debug(JSON.stringify(requestBody));
+    // if (devEnv) log.debug(JSON.stringify(requestBody));
     if (requestBody.post_type == 'meta_event' && requestBody.meta_event_type == 'heartbeat') return;
     try {
         await syncButton(ctx, requestBody);
@@ -66,7 +66,8 @@ async function syncMessage(ctx: Ctx, requestBody: SyncMessageBody) {
 
     const eventId = await awaitGroupEventId(groupRealId);
     if (devEnv) log.debug('syncMessage.eventId', eventId);
-    if (!eventId) return log.warn(`syncMessage.eventId not found ${eventId} for group ${groupRealId}`);
+    if (!eventId)
+        return log.warn(`syncMessage.eventId not found ${eventId} for group ${groupRealId}`);
 
     const messageId = requestBody.message_id.toString();
     const msg: IntentMessage.GROUP_MESSAGE_body = {
@@ -75,6 +76,7 @@ async function syncMessage(ctx: Ctx, requestBody: SyncMessageBody) {
         author: {
             id: requestBody.sender.user_id.toString(),
         },
+        mentions: [],
         attachments: requestBody.message
             .filter((v) => v.type == 'image')
             .map((v) => ({
