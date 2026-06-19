@@ -4,7 +4,7 @@ import format from 'date-format';
 import FormData from 'form-data';
 import {
     Ark,
-    GMessageRec,
+    GCMessageResponse,
     IMember,
     IMessage,
     IUser,
@@ -471,7 +471,7 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         options: Partial<SendOption.Chat> &
             Partial<SendOption.MarkdownOrgin> &
             SendOption.MarkdownPublic,
-    ): Promise<RetryResult<GMessageRec>> {
+    ): Promise<RetryResult<GCMessageResponse>> {
         this.seq++;
         options.sendToId = options.sendToId || this.sendToId;
         options.msgId = options.msgId || this.id;

@@ -38,19 +38,19 @@ async function callbackButton(groupRealId: string) {
     if (!buttonId || !buttonData) return 0;
     if (devEnv) log.debug('callButton', groupRealId, buttonId, buttonData);
 
-    return axios({
-        url: config.groupPush.url,
-        method: 'POST',
-        headers: {
-            Authorization: `Bearer ${config.groupPush.llobKey}`,
-        },
-        data: {
-            g: groupRealId,
-            a: config.groupPush.appId,
-            b: buttonId,
-            d: buttonData,
-        },
-    })
-        .then((res) => res.data)
-        .catch((_) => log.error(`callButton失败`));
+    // return axios({
+    //     url: config.groupPush.url,
+    //     method: 'POST',
+    //     headers: {
+    //         Authorization: `Bearer ${config.groupPush.llobKey}`,
+    //     },
+    //     data: {
+    //         g: groupRealId,
+    //         a: config.groupPush.appId,
+    //         b: buttonId,
+    //         d: buttonData,
+    //     },
+    // })
+    //     .then((res) => res.data)
+    //     .catch((_) => log.error(`callButton失败`));
 }
