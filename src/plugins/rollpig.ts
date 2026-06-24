@@ -1,6 +1,8 @@
 import fs from 'fs';
 import crypto from 'crypto';
 import axios from 'axios';
+import pinyin from 'pinyin';
+import PinyinMatch from 'pinyin-match';
 import * as puppeteer from 'puppeteer';
 import { IMessageGROUP } from '../libs/IMessageEx';
 import config from '../../config/config';
@@ -83,6 +85,17 @@ function findPigImage(pigId: string): string | null {
         if (fs.existsSync(imagePath)) return imagePath;
     }
     return null;
+}
+
+function toPinyin(han: string): string {
+    const hanR = han
+        .replace(
+            /[\u3002\uff1f\uff01\uff0c\u3001\uff1b\uff1a\u201c\u201d\u2018\u2019\uff08\uff09\u300a\u300b\u3008\u3009\u3010\u3011\u300e\u300f\u300c\u300d\ufe43\ufe44\u3014\u3015\u2026\u2014\uff5e\ufe4f\uffe5]/g,
+            '',
+        )
+        .replace(/[.,/#!$%^&*;:{}=\-_`~\(\)]/g, '')
+        .replace(/\s{2,}/g, ' ');
+    return pinyin(hanR, { style: 'normal' }).flat(1).join('');
 }
 
 async function getPigHubData(): Promise<PigInfo[]> {
@@ -234,7 +247,8 @@ export async function randomPig(msg: IMessageGROUP): Promise<any> {
 
     if (selected.length === 1) {
         const pig = selected[0];
-        const imageUrl = PIGHUB_IMAGE_BASE + pig.thumbnail.split('/').pop();
+        const rawUrl = PIGHUB_IMAGE_BASE + pig.thumbnail.split('/').pop();
+        const imageUrl = rawUrl.replace(/\(/g, '%28').replace(/\)/g, '%29');
         return msg.sendMarkdown({
             content: `${pig.title} (ID: ${pig.id})\n![img #600px #600px](${imageUrl})`,
             keyboardNameId: 'rollpig',
@@ -243,7 +257,8 @@ export async function randomPig(msg: IMessageGROUP): Promise<any> {
 
     // 多张图片：逐张发送
     for (const pig of selected) {
-        const imageUrl = PIGHUB_IMAGE_BASE + pig.thumbnail.split('/').pop();
+        const rawUrl = PIGHUB_IMAGE_BASE + pig.thumbnail.split('/').pop();
+        const imageUrl = rawUrl.replace(/\(/g, '%28').replace(/\)/g, '%29');
         await msg.sendMarkdown({
             content: `${pig.title} (ID: ${pig.id})\n![img #600px #600px](${imageUrl})`,
             keyboardNameId: 'rollpig',
@@ -259,7 +274,7 @@ export async function randomPig(msg: IMessageGROUP): Promise<any> {
 export async function findPig(msg: IMessageGROUP): Promise<any> {
     const content = msg.content
         .replaceAll(/<!?@[A-Z0-9]+>/g, '')
-        .replace(/^\/?找猪|搜猪/, '')
+        .replace(/\/?找猪|搜猪/, '')
         .trim();
 
     // 解析 -i / --id / id 参数
@@ -278,7 +293,25 @@ export async function findPig(msg: IMessageGROUP): Promise<any> {
         foundPigs = pigs.filter((pig) => pig.id === idSearch);
     } else if (keyword) {
         const kw = keyword.toLowerCase();
-        foundPigs = pigs.filter((pig) => pig.title.toLowerCase().includes(kw));
+        // 文本包含匹配
+        const textMatches = pigs.filter((pig) => pig.title.toLowerCase().includes(kw));
+        // 逐字匹配：关键词每个字都在标题中出现（支持缩写，如"星铁"匹配"星穹铁道"）
+        const charMatches = pigs.filter((pig) =>
+            [...kw].every((ch) => pig.title.includes(ch)),
+        );
+        // 拼音模糊匹配
+        const pinyinMatches = pigs.filter(
+            (pig) =>
+                PinyinMatch.match(pig.title, kw) ||
+                PinyinMatch.match(pig.title, toPinyin(keyword)),
+        );
+        // 合并去重（按 id 去重，按文本 > 逐字 > 拼音 优先级排列）
+        const seen = new Set<string>();
+        foundPigs = [...textMatches, ...charMatches, ...pinyinMatches].filter((pig) => {
+            if (seen.has(pig.id)) return false;
+            seen.add(pig.id);
+            return true;
+        });
     } else {
         return msg.sendMarkdown({
             content: '请输入关键词或图片ID~\n用法：找猪 <关键词> 或 找猪 -i <图片ID>',
@@ -293,15 +326,22 @@ export async function findPig(msg: IMessageGROUP): Promise<any> {
     const limit = foundPigs.slice(0, 20);
     if (limit.length === 1) {
         const pig = limit[0];
-        const imageUrl = PIGHUB_IMAGE_BASE + pig.thumbnail.split('/').pop();
+        const rawUrl = PIGHUB_IMAGE_BASE + pig.thumbnail.split('/').pop();
+        const imageUrl = rawUrl.replace(/\(/g, '%28').replace(/\)/g, '%29');
         return msg.sendMarkdown({
             content: `${pig.title} (ID: ${pig.id})\n![img #600px #600px](${imageUrl})`,
             keyboardNameId: 'rollpig',
         });
     }
 
-    // 多结果
-    const resultList = limit.map((pig) => `${pig.title} (ID: ${pig.id})`).join('\n');
+    // 多结果：为每个搜索结果添加快捷输入按钮
+    const resultList = limit
+        .map(
+            (pig) =>
+                `${pig.title} (ID: ${pig.id}) ` +
+                `<qqbot-cmd-input text="${encodeURIComponent(`/找猪 -i ${pig.id}`)}" show="🔍 查看" reference="false" />`,
+        )
+        .join('\n');
     return msg.sendMarkdown({
         content: `找到 ${foundPigs.length} 头猪猪，显示前 ${limit.length} 个：\n${resultList}`,
         keyboardNameId: 'rollpig',
