@@ -103,17 +103,16 @@ export async function alias(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP)
     rows.push({ buttons: [genBtn(unkownName, unkownName, 'un')] });
 
     return msg.sendMarkdown({
-        params_omnipotent: [
-            ...(searchFuzzy || [])
-                .map((fuzzy) =>
-                    mdCmdLink(
-                        `「${unkownName}」==>「${fuzzy.name}」`,
-                        `alias ${unkownName} ${fixName(fuzzy.name)}`,
-                    ),
-                )
-                .flat()
-                .slice(0, -1),
-        ],
+        content: (searchFuzzy || [])
+            .map((fuzzy) =>
+                mdCmdLink(
+                    `「${unkownName}」==>「${fuzzy.name}」`,
+                    `alias ${unkownName} ${fixName(fuzzy.name)}`,
+                ),
+            )
+            .flat()
+            .slice(0, -1)
+            .join('\n'),
         keyboard: { content: { rows: rows } },
     });
 }

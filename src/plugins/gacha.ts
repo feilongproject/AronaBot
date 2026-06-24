@@ -92,21 +92,14 @@ export async function gachaImage(msg: IMessageGUILD | IMessageGROUP | IMessageC2
 
     return msg
         .sendMarkdown({
-            params_omnipotent: [
+            content:
                 (msg instanceof IMessageC2C ? '' : `<@${msg.author.id}> `) +
-                    `(${setting.server == 'jp' ? '日服' : '国际服'}卡池)\r` +
-                    (analyze
-                        ? `${analyze?.today_gacha}\r${analyze?.total_gacha}\r${analyze?.gacha_analyze}`
-                        : ''),
-                `![img #1700px #980px]`,
-                `(${cosUrl(`gacha/${imageName}`)})`,
-            ],
+                `(${setting.server == 'jp' ? '日服' : '国际服'}卡池)\n` +
+                (analyze
+                    ? `${analyze?.today_gacha}\n${analyze?.total_gacha}\n${analyze?.gacha_analyze}`
+                    : '') +
+                `![img #1700px #980px](${cosUrl(`gacha/${imageName}`)})`,
             keyboardNameId: 'gacha',
-            // markdown 部分
-
-            content: sendContent,
-            imageUrl: cosUrl(`gacha/${imageName}`),
-            // fallback 部分
         })
         .catch((err) => {
             log.error(err);

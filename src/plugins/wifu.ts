@@ -52,14 +52,12 @@ export async function wifuToday(msg: IMessageGROUP) {
     if (!pairUser) return msg.sendMsgEx(`程序似乎出了点问题，请稍后重试`);
 
     await msg.sendMarkdown({
-        content: `<!@${pairUser}>`,
-        params_omnipotent: [
-            `<@${msg.author.id}>\r`,
-            `您今天的群友老婆是：\r`,
-            msg.content.includes('at') ? `<@${pairUser}>\r` : '',
-            `![img #130px #130px]`,
+        content:
+            `<@${msg.author.id}>\n` +
+            `您今天的群友老婆是：\n` +
+            (msg.content.includes('at') ? `<@${pairUser}>\n` : '') +
+            `![img #130px #130px]` +
             `(https://q.qlogo.cn/qqapp/${appID}/${pairUser}/100)`,
-        ],
         keyboard: {
             content: {
                 rows: [

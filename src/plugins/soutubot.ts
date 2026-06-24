@@ -140,23 +140,22 @@ export async function soutubot(msg: IMessageGROUP | IMessageC2C) {
     await msg.sendMsgEx({ content: `搜索结果: https://soutubot\u200b.moe/results/${resId}` });
     // return;
     await msg.sendMarkdown({
-        params_omnipotent: [
-            `搜索完成，共 ${filterData.length} 条结果，其中 ${resData.length - filterData.length} 条被过滤\r`,
-            ...filterData
+        content:
+            `搜索完成，共 ${filterData.length} 条结果，其中 ${resData.length - filterData.length} 条被过滤\n` +
+            filterData
                 .map((v) => [
-                    `\r![img #${v.width}px #${v.height}px]`,
+                    `\n![img #${v.width}px #${v.height}px]`,
                     `(${v.previewImageUrl})`,
-                    `\u200b  \u200b  ${v.similarity} | ${v.language.toUpperCase()} | ${v.page}\r`,
+                    `\u200b  \u200b  ${v.similarity} | ${v.language.toUpperCase()} | ${v.page}\n`,
                     ...'`'.repeat(3),
-                    '\r',
+                    '\n',
                     `${v.title}`,
-                    `\r`,
+                    `\n`,
                     ...'`'.repeat(3),
-                    `\r`,
+                    `\n`,
                 ])
-                .flat(),
-        ],
-        content: `搜索完成，共 ${filterData.length} 条结果，其中 ${resData.length - filterData.length} 条被过滤\n`,
+                .flat()
+                .join('\n'),
         keyboard: {
             content: {
                 rows: [

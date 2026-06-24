@@ -116,7 +116,7 @@ async function dynamicPush(args: CommandArg) {
             keyboard: hbUpdateBtn,
         })
         .catch((err) => sendToAdmin(strFormat(err)));
-        if(devEnv)log.debug('_res', _res);
+    if (devEnv) log.debug('_res', _res);
 
     await redis.hSet(`biliMessage:idPushed:${dynamicId}`, groupTrueId, groupId);
 }
@@ -185,7 +185,7 @@ export async function syncgroup(msg: IMessageGROUP) {
     await redis.del(`buttonData:${botType}:${groupUid}`);
 
     await msg.sendMarkdown({
-        params_omnipotent: [`检测id中, 本群uid: ${groupUid}`],
+        content: `检测id中, 本群uid: ${groupUid}`,
         keyboard: {
             content:
                 botType === 'AronaBot'
@@ -212,7 +212,6 @@ export async function syncgroup(msg: IMessageGROUP) {
                       },
             id: '102024160_1745511246',
         },
-        content: `md发送失败`,
     });
 
     await sleep(1000 * 10);

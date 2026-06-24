@@ -9,7 +9,7 @@ import { IMessageC2C, IMessageDIRECT, IMessageGROUP, IMessageGUILD } from '../li
 import config from '../../config/config';
 import { BiliDynamic } from '../types/Dynamic';
 
-const noSetServerMessage = `\r(未指定/未设置服务器, 默认使用国际服)`;
+const noSetServerMessage = `\n(未指定/未设置服务器, 默认使用国际服)`;
 const getErrorMessage = `发送时出现了一些问题<@${adminId[0]}>\n这可能是因为腾讯获取图片出错导致, 请稍后重试\n`;
 const needUpdateMessage = `若数据未更新，请直接@bot管理, 或使用「查询攻略」功能`;
 const updateTimeMessage = `图片更新时间：`;
@@ -85,34 +85,20 @@ export async function handbookMain(
 
     return msg
         .sendMarkdown({
-            params_omnipotent: [
+            content:
                 at_user +
-                    (hbMatched.fuzzy
-                        ? ''
-                        : `\r${needUpdateMessage}\r攻略制作: ${handbookAuthor}\r`),
-                // + (lastestImage?.info ? `${lastestImage.info}\r` : ""), // sb腾讯，'type:business, code:30, msg:["[[图片] [少女]]","[[少女] [图片]]"]'
-                `![img #${lastestImage?.width || -1}px #${lastestImage?.height || 1}px]`,
-                `(${lastestImage?.url || '  '})`,
-                `\r${lastestImage?.updateTime || (hbMatched.fuzzy ? '当前为模糊搜索，请从以下搜素结果中选择(若点击无效果请更新QQ至新版):\r' : '')}`,
-                lastestImage?.infoUrl ? `[🔗详情点我]` : '',
-                lastestImage?.infoUrl ? `(${lastestImage.infoUrl})` : '',
-                ...(hbMatched.fuzzy || [])
+                (hbMatched.fuzzy ? '' : `\n${needUpdateMessage}\n攻略制作: ${handbookAuthor}\n`) +
+                // + (lastestImage?.info ? `${lastestImage.info}\n` : ""), // sb腾讯，'type:business, code:30, msg:["[[图片] [少女]]","[[少女] [图片]]"]'
+                `![img #${lastestImage?.width || -1}px #${lastestImage?.height || 1}px](${lastestImage?.url || '  '})` +
+                `\n${lastestImage?.updateTime || (hbMatched.fuzzy ? '当前为模糊搜索，请从以下搜素结果中选择(若点击无效果请更新QQ至新版):\n' : '')}` +
+                (lastestImage?.infoUrl ? `[🔗详情点我](${lastestImage.infoUrl})` : '') +
+                (hbMatched.fuzzy || [])
                     .map((fuzzy) => mdCmdLink(`「${fuzzy.name}」`, `角评 ${fuzzy.name}`))
                     .flat()
                     .slice(0, -1),
-            ],
+
             keyboardNameId: 'handbook',
             // markdown 部分
-
-            content:
-                at_user +
-                (hbMatched.fuzzy ? '' : `\n${needUpdateMessage}\n攻略制作: ${handbookAuthor}`) +
-                // + `\n${lastestImage?.info}`
-                `${lastestImage?.infoUrl ? `\n详情: ${lastestImage.infoUrl}` : ''}` +
-                `\n${lastestImage?.updateTime || (hbMatched.fuzzy ? '当前为模糊搜索，请从以下搜素结果中选择:\r' : '')}` +
-                (hbMatched.fuzzy?.map((v) => `「${v.name}」`).join('\n') || ''),
-            imageUrl: lastestImage?.url,
-            // fallback 部分
         })
         .catch(async (err) => {
             mailerError({ hbMatched, lastestImage, msg }, err);
@@ -132,7 +118,7 @@ async function matchHandbook(
     msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C,
     forceType?: HandbookMatches.Type,
 ): Promise<HandbookMatched | string> {
-    const content = msg.content.replaceAll(/<@!?\d+>/g, '').trim();
+    const content = msg.content.replaceAll(/<@!?[A-Z0-9]+>/g, '').trim();
     const [hbMatchedType, hbMatchedName] =
         Object.entries(handbookMatches.names).find(([k, v]) => v.reg.test(content)) || [];
     if (!hbMatchedType || !hbMatchedName) return '未匹配到攻略类型';
@@ -461,19 +447,11 @@ export async function searchHandbook(
     const imageUrl = `https://arona.cdn.diyigemt.com/image${resultData.data[0].path}?hash=${resultData.data[0].hash}`;
     if (resultData.data.length == 1)
         return msg.sendMarkdown({
-            params_omnipotent: [
-                `<@${msg.author.id}>`,
-                `\r数据来源: diyigemt`,
-                `!`,
-                `[img #1920px #1080px]`,
-                `(${imageUrl})`,
-            ],
+            content:
+                `<@${msg.author.id}>\n` +
+                `数据来源: diyigemt\n` +
+                `![img #1920px #1080px](${imageUrl})`,
             keyboardNameId: 'handbook',
-            // markdown 部分
-
-            content: `<@${msg.author.id}>` + `\n数据来源: diyigemt`,
-            imageUrl,
-            // fallback 部分
         });
     else if (resultData.data.length > 1)
         return msg.sendMsgEx({
