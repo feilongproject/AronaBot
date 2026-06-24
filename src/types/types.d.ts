@@ -316,17 +316,32 @@ declare global {
         type C2C_MESSAGE = EventRespose<C2C_MESSAGE_body>;
         type C2C_MESSAGE_body = MessageChatCommon;
 
+        /**
+         * 接收消息 GROUP/C2C 通用接口
+         */
         interface MessageChatCommon {
             id: string;
             attachments?: Attachment[];
-            author: {
-                id: string;
-                member_openid?: string;
-                user_openid?: string;
-            };
+            author: MessageChatAuthor;
             content: string;
             timestamp: string;
             event_id: string;
+            message_scene: MessageScene;
+        }
+
+        interface MessageChatAuthor {
+            id: string;
+            username: string;
+            bot: boolean;
+            member_openid?: string;
+            user_openid?: string;
+            union_openid?: string;
+            // member_role: 'owner';
+        }
+
+        interface MessageScene {
+            source: string;
+            ext: string[]; // (`msg_idx=${string}` | `ref_msg_idx=${string}`)
         }
 
         interface GROUP_ROBOT {

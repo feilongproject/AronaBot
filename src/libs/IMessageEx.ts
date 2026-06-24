@@ -297,7 +297,7 @@ export class IMessageDIRECT
 
 class IMessageChatCommon implements IntentMessage.MessageChatCommon {
     id: string;
-    author: { id: string; member_openid?: string; user_openid?: string };
+    author: IntentMessage.MessageChatAuthor;
     content: string;
     timestamp: string;
     attachments: IntentMessage.Attachment[];
@@ -310,6 +310,11 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
     sendToId?: string;
     messageType: MessageType;
     opts: FindedData | null;
+    message_scene: IntentMessage.MessageScene;
+    refs: {
+        refMsgIdx?: string;
+        msgIdx?: string;
+    };
 
     constructor(
         msg: IntentMessage.MessageChatCommon & Partial<{ group_id: string; group_openid: string }>,
@@ -330,6 +335,9 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
                 : msg.author.id || msg.author.user_openid;
         this.opts = null;
         this.isOffical = isOffical;
+        this.message_scene = msg.message_scene;
+        this.refs = {};
+        this.parseRef();
     }
 
     async pushToDB(another: Record<string, string>) {
@@ -345,9 +353,21 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         });
     }
 
-    async sendMsgExRef(options: Partial<SendOption.Chat>) {
-        // option.ref = true;
-        return this.sendMsgEx(options);
+    // async sendMsgExRef(options: Partial<SendOption.Chat>) {
+    //     // options.ref = true;
+    //     return this.sendMsgEx(options);
+    // }
+
+    private parseRef() {
+        const ext = this.message_scene.ext;
+        if (!ext) return;
+        for (const i of ext) {
+            if (i.startsWith('ref_msg_idx=')) {
+                this.refs.refMsgIdx = i.slice('ref_msg_idx='.length);
+            } else if (i.startsWith('msg_idx=')) {
+                this.refs.msgIdx = i.slice('msg_idx='.length);
+            }
+        }
     }
 
     async sendMsgEx(_options: string): Promise<RetryResult<any>>;
@@ -357,6 +377,7 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         const options = typeof _options === 'string' ? { content: _options } : _options;
 
         global.botStatus.msgSendNum++;
+        if (options.ref !== false) options.ref = true;
         options.msgId = options.msgId || this.id || undefined;
         options.sendToId = options.sendToId || this.sendToId;
         options.msgType = options.msgType || (options.ark ? 3 : 0);
@@ -373,21 +394,13 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         if ((options.fileType as number) == -1) options.fileType = undefined;
         if (options.fileType || options.fileInfo || options.fileUrl || options.imageUrl)
             options.msgType = 7;
-        if ((options.fileUrl || options.imageUrl)?.endsWith('/random')) options.fileType = 1;
         return callWithRetry(this._sendMsgEx, [options]);
     }
 
     private _sendMsgEx = async (options: Partial<SendOption.Chat>) => {
         const { content, sendToId, msgType, msgId, ark, eventId } = options;
         if (!sendToId) throw 'not has sendToId';
-        const fileInfo =
-            options.fileInfo ||
-            (msgType == 7
-                ? await this._sendFile(
-                      options,
-                      (options.fileUrl || options.imageUrl)?.endsWith('/random'),
-                  )
-                : null);
+        const fileInfo = options.fileInfo || (msgType == 7 ? await this._sendFile(options) : null);
         // return
         if (this.messageType == MessageType.GROUP)
             return client.groupApi
@@ -404,6 +417,9 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
                             : undefined,
                     msg_seq: ++this.seq,
                     ark,
+                    message_reference: this.refs.msgIdx
+                        ? { message_id: this.refs.msgIdx }
+                        : undefined,
                 })
                 .then((res) => {
                     (res.data as any)['x-tps-trace-id'] = res.headers['x-tps-trace-id'];
@@ -435,6 +451,12 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         return callWithRetry(this._sendFile, [options, force]);
     }
 
+    /**
+     * 上传文件拿到文件 ext 信息
+     * @param options 发送消息参数
+     * @param force 是否使用本地缓存
+     * @returns 文件 file_info 值
+     */
     private _sendFile = async (
         options: Partial<SendOption.Chat>,
         force = false,
@@ -501,6 +523,9 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
                     keyboard: keyboard,
                     msg_seq: this.seq,
                     event_id: eventId,
+                    // message_reference: this.refs.msgIdx
+                    //     ? { message_id: this.refs.msgIdx }
+                    //     : undefined, // markdown使用引用会导致消息内容重复后发送
                 })
                 .then((res) => {
                     (res.data as Record<string, any>)['x-tps-trace-id'] =
@@ -529,7 +554,7 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
 export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.GROUP_MESSAGE_body {
     group_id: string;
     group_openid: string;
-    author: { id: string; member_openid: string };
+    author: IntentMessage.MessageChatAuthor;
     clean_content: string;
     mentions: CUser[];
 
@@ -554,7 +579,7 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
 }
 
 export class IMessageC2C extends IMessageChatCommon implements IntentMessage.C2C_MESSAGE_body {
-    author: { id: string; user_openid: string };
+    author: IntentMessage.MessageChatAuthor;
 
     constructor(msg: IntentMessage.C2C_MESSAGE_body, register = true) {
         super(msg, MessageType.FRIEND);
@@ -619,7 +644,7 @@ namespace SendOption {
         channelId: string;
     }
 
-    export interface MarkdownPublic extends MarkdownParams {
+    export interface MarkdownPublic {
         content?: string;
         keyboardNameId?: string;
         templateId?: string;
@@ -627,7 +652,7 @@ namespace SendOption {
         keyboard?: MessageKeyboard;
         params?: string[];
     }
-    export type MarkdownParams = Record<`params_${string}`, string[]>;
+    // export type MarkdownParams = Record<`params_${string}`, string[]>;
 
     export interface MarkdownOrgin {
         markdown: MessageMarkdown;
@@ -635,7 +660,7 @@ namespace SendOption {
     }
 
     export interface Chat extends Base {
-        // ref?: boolean;
+        ref?: boolean;
         msgType: 0 | 1 | 2 | 3 | 4 | 7; // 0: 文本 1: 图文混排 2: markdown 3: ark 4: embed 7: media
         fileInfo?: string;
         fileUrl?: string;
