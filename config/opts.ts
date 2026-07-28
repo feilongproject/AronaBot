@@ -574,6 +574,15 @@ export default {
                 describe: '转存图片',
             },
         },
+        checkRelation: {
+            checkRelation: {
+                reg: /^\/?查关系\s*(\d+)$/,
+                fnc: 'checkRelation',
+                type: [MessageType.GROUP, MessageType.FRIEND],
+                describe: '查询指定 QQ 的好友回忆页链接',
+                export: '/查关系 <QQ号>',
+            },
+        },
     },
     channelAllows: {
         common: [
