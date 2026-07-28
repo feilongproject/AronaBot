@@ -323,19 +323,23 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
     ) {
         this.id = msg.id;
         this.author = msg.author;
-        this.content = msg.content;
+        this.content = msg.content ?? '';
         this.event_id = msg.event_id;
-        this.timestamp = format.asString('yyyy-MM-dd hh:mm:ss', new Date(msg.timestamp));
+        this.timestamp = format.asString(
+            'yyyy-MM-dd hh:mm:ss',
+            new Date(msg.timestamp || Date.now()),
+        );
         this.messageType = meaasgeType;
         this.attachments = msg.attachments || [];
         this._atta = this.attachments.length ? `[图片${this.attachments.length + '张'}]` : '';
         this.sendToId =
             this.messageType == MessageType.GROUP
                 ? msg.group_id || msg.group_openid
-                : msg.author.id || msg.author.user_openid;
+                : msg.author?.id || msg.author?.user_openid;
         this.opts = null;
         this.isOffical = isOffical;
-        this.message_scene = msg.message_scene;
+        // 主动推送等合成消息可能没有 message_scene，给空壳避免后续访问崩溃
+        this.message_scene = msg.message_scene ?? { source: '', ext: [] };
         this.refs = {};
         this.parseRef();
     }
@@ -353,13 +357,14 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         });
     }
 
-    // async sendMsgExRef(options: Partial<SendOption.Chat>) {
-    //     // options.ref = true;
-    //     return this.sendMsgEx(options);
-    // }
+    async sendMsgExRef(options: Partial<SendOption.Chat>) {
+        // 群/C2C 默认已 ref=true（见 sendMsgEx）；此方法保留与频道侧 API 一致
+        options.ref = true;
+        return this.sendMsgEx(options);
+    }
 
     private parseRef() {
-        const ext = this.message_scene.ext;
+        const ext = this.message_scene?.ext;
         if (!ext) return;
         for (const i of ext) {
             if (i.startsWith('ref_msg_idx=')) {
@@ -498,7 +503,7 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         this.seq++;
         options.sendToId = options.sendToId || this.sendToId;
         options.msgId = options.msgId || this.id;
-        options.eventId = options.eventId || this.event_id;
+        options.eventId = this.pushEventId || options.eventId || this.event_id;
 
         const markdownConfig = await getMarkdown(options, true);
         if (!markdownConfig || !allowMarkdown) return this.sendMsgEx(options);
