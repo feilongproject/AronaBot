@@ -139,10 +139,26 @@ async function dynamicPush(
     // if (typeof userName != 'string')
     //     throw new Error(`unknow userName, cardData: ${JSON.stringify(userCard)}`);
 
-    const openId =
-        Object.entries(config.bots[botType].groupMap).find(([o, r]) => r == pushInfo.id)?.[0] || '';
+    const openId = Object.entries(config.bots[botType].groupMap).find(
+        ([, realId]) => realId == pushInfo.id,
+    )?.[0];
+    if (!openId) {
+        log.error(`dynamicPush: 未在 groupMap 找到群 openId, pushInfo.id=${pushInfo.id}`);
+        return;
+    }
+
+    // 优先使用该群最近交互的 eventId，便于主动消息窗口内发送
+    const eventId = await redis.get(`groupLastestEventId:${botType}:${openId}`);
     const msg = new IMessageGROUP(
-        { group_id: openId, group_openid: openId } as any,
+        {
+            group_id: openId,
+            group_openid: openId,
+            event_id: eventId || undefined,
+            content: '',
+            timestamp: new Date().toISOString(),
+            author: { id: '', username: '', bot: true },
+            message_scene: { source: 'dynamicPush', ext: [] },
+        } as any,
         false,
     );
 
@@ -158,8 +174,8 @@ async function dynamicPush(
             `${devEnv ? 'dev ' : ''}${item.modules.module_author.name} 更新了一条动态\n` +
             `[🔗https://t.bilibili.com/${item.id_str}](https://t.bilibili.com/${item.id_str})\n` +
             `![gui #${imgWidth}px #${imgHeight}px](${imageUrl})`,
+        ref: false,
     });
-    debugger;
 
     return redis.hSet(`biliMessage:idPushed:${dynamicId}`, pushInfo.id, pushInfo.id);
 }
