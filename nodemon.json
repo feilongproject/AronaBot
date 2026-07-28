@@ -4,6 +4,6 @@
         "ts": "tsc"
     },
     "watch": ["config/", "src/init.ts", "src/index.ts", "src/handlerSync.ts", "src/libs/", "src/types/"],
-    "exec": "ts-node src/index.ts --dev",
+    "exec": "tsx -r dotenv/config src/index.ts --dev",
     "ext": "ts,json"
 }

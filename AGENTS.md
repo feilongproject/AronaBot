@@ -10,7 +10,7 @@
 | 项 | 约定 |
 |---|---|
 | 语言 | TypeScript（`strict: true`），CommonJS 模块 |
-| 运行 | `ts-node src/index.ts <BotType> [--dev]` |
+| 运行 | `tsx -r dotenv/config src/index.ts <BotType> [--dev]`（加载根目录 `.env`） |
 | 包管理 | pnpm |
 | QQ SDK | `qq-bot-sdk@1.9.1` |
 | HTTP | Koa + `@koa/router` + `koa-body`（webhook） |
@@ -24,8 +24,9 @@
 常用脚本：
 
 ```bash
-pnpm run dev:AronaBot   # nodemon + --dev
-pnpm run start:AronaBot # 生产启动
+pnpm run dev:AronaBot   # nodemon + tsx + --dev
+pnpm run start:AronaBot # 生产启动（tsx 直接跑 TS）
+pnpm run typecheck      # tsc --noEmit
 pnpm run format         # prettier --write src/
 ```
 

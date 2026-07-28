@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import Koa from 'koa';
 import axios from 'axios';
 import koaBody from 'koa-body';
