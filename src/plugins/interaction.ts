@@ -53,7 +53,15 @@ async function dynamicPush(args: CommandArg) {
     debugger;
 
     const msg = new IMessageGROUP(
-        { group_id: groupId, group_openid: groupId, event_id: eventId } as any,
+        {
+            group_id: groupId,
+            group_openid: groupId,
+            event_id: eventId,
+            content: '',
+            timestamp: new Date().toISOString(),
+            author: { id: '', username: '', bot: true },
+            message_scene: { source: 'interaction', ext: [] },
+        } as any,
         false,
     );
     const pushPlugin = await import('./biliDynamic');
