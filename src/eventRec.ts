@@ -4,6 +4,7 @@ import { loadGuildTree } from './init';
 import { mailerError } from './libs/mailer';
 import { pushToDB, sendToAdmin } from './libs/common';
 import { IMessageGROUP, IMessageDIRECT, IMessageGUILD, IMessageC2C } from './libs/IMessageEx';
+import { IntentEventType } from './constants/IntentEventType';
 import config from '../config/config';
 
 type PluginFnc = (

@@ -1,3 +1,5 @@
+import { IntentEventType } from './IntentEventType';
+
 export const EventMap = {
     GROUP_AND_C2C_EVENT: [
         IntentEventType.GROUP_MESSAGE_CREATE,
