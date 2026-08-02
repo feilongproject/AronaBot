@@ -11,7 +11,7 @@ import { BiliDynamic } from '../types/Dynamic';
 
 const noSetServerMessage = `\n(未指定/未设置服务器, 默认使用国际服)`;
 const getErrorMessage = `发送时出现了一些问题<@${adminId[0]}>\n这可能是因为腾讯获取图片出错导致, 请稍后重试\n`;
-const needUpdateMessage = `若数据未更新，请直接@bot管理, 或使用「查询攻略」功能`;
+const needUpdateMessage = `若数据未更新，请联系bot管理1478904631, 或使用「查询攻略」功能`;
 const updateTimeMessage = `图片更新时间：`;
 
 const serverMap: Record<string, string> = { jp: '日服', global: '国际服', cn: '国服', all: '' };
@@ -22,6 +22,28 @@ const provideMap: Record<string, string> = {
     all: '夜猫',
 };
 const fuzzyLimit = 6;
+
+// 须在 handbookMatches 之前声明；tsx/esbuild 不内联 const enum，需运行时 enum
+namespace HandbookMatches {
+    export interface Root {
+        names: Record<string, Name>;
+        types: Record<string, RegExp>;
+    }
+    export interface Name {
+        reg: RegExp;
+        typeReg: RegExp;
+        has: Type[];
+        desc: string;
+    }
+    /** 运行时枚举（tsx/esbuild 不支持 const enum 内联） */
+    export enum Type {
+        JP = 'jp',
+        GLOBAL = 'global',
+        CN = 'cn',
+        ALL = 'all',
+        FUZZY = 'fuzzy',
+    }
+}
 
 export const handbookMatches: HandbookMatches.Root = {
     names: {
@@ -76,7 +98,7 @@ export async function handbookMain(
 
     const at_user =
         (msg instanceof IMessageGROUP ? `` : `<@${msg.author.id}> `) +
-        `\u200b \u200b == ${serverMap[hbMatched.type] ?? hbMatched.nameDesc ?? hbMatched.type}` +
+        `== ${serverMap[hbMatched.type] ?? hbMatched.nameDesc ?? hbMatched.type}` +
         `${hbMatched.desc} == ${hbMatched.default ? noSetServerMessage : ''}`;
     const handbookAuthor =
         provideMap[hbMatched.type] || hbMatched.name == 'studentEvaluation'
@@ -90,7 +112,7 @@ export async function handbookMain(
                 (hbMatched.fuzzy ? '' : `\n${needUpdateMessage}\n攻略制作: ${handbookAuthor}\n`) +
                 // + (lastestImage?.info ? `${lastestImage.info}\n` : ""), // sb腾讯，'type:business, code:30, msg:["[[图片] [少女]]","[[少女] [图片]]"]'
                 `![img #${lastestImage?.width || -1}px #${lastestImage?.height || 1}px](${lastestImage?.url || '  '})` +
-                `\n${lastestImage?.updateTime || (hbMatched.fuzzy ? '当前为模糊搜索，请从以下搜素结果中选择(若点击无效果请更新QQ至新版):\n' : '')}` +
+                `\n${lastestImage?.updateTime || (hbMatched.fuzzy ? '当前为模糊搜索，请从以下搜素结果中选择:\n' : '')}` +
                 (lastestImage?.infoUrl ? `[🔗详情点我](${lastestImage.infoUrl})` : '') +
                 (hbMatched.fuzzy || [])
                     .map((fuzzy) => mdCmdLink(`「${fuzzy.name}」`, `角评 ${fuzzy.name}`))
@@ -108,9 +130,8 @@ export async function handbookMain(
 function mdCmdLink(showDesc: string, command: string, enter = true) {
     command = command.replace(/\(/g, '（').replace(/\)/g, '）');
     return [
-        `[${showDesc}]`,
-        `(mqqapi://aio/inlinecmd?command=${encodeURI(command)}&reply=false&enter=${enter})`,
-        '\r',
+        `[${showDesc}](mqqapi://aio/inlinecmd?command=${encodeURI(command)}&reply=false&enter=${enter})`,
+        '\n',
     ];
 }
 
@@ -505,26 +526,6 @@ namespace HandbookInfo {
         info?: string;
         infoUrl?: string;
         updateTime: string;
-    }
-}
-
-namespace HandbookMatches {
-    export interface Root {
-        names: Record<string, Name>;
-        types: Record<string, RegExp>;
-    }
-    export interface Name {
-        reg: RegExp;
-        typeReg: RegExp;
-        has: Type[];
-        desc: string;
-    }
-    export const enum Type {
-        JP = 'jp',
-        GLOBAL = 'global',
-        CN = 'cn',
-        ALL = 'all',
-        FUZZY = 'fuzzy',
     }
 }
 
