@@ -42,7 +42,7 @@ export async function gachaString(msg: IMessageGUILD | IMessageGROUP | IMessageC
     ];
     for (const value of o)
         sendStr.push(`(${starString[value.star]})(${value.descName})${value.name}`);
-    return msg.sendMsgExRef({ content: sendStr.join(`\n`) });
+    return msg.sendMsgEx({ content: sendStr.join(`\n`) });
 }
 
 export async function gachaImage(msg: IMessageGUILD | IMessageGROUP | IMessageC2C) {
