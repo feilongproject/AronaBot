@@ -1,24 +1,51 @@
-import { IMessageGUILD } from './IMessageEx';
+import { IMessageGROUP } from './IMessageEx';
 import config from '../../config/config';
 
+/**
+ * 通知管理员：回调群。
+ * 对齐 biliDynamic.dynamicPush：本进程 groupMap 反查 openId + groupLastestEventId 主动发，
+ * 不再走已废弃的 interaction.sendToGroupHandler / callbackToChannel。
+ */
 export async function sendToAdmin(content: string) {
-    await (
-        await import('../plugins/interaction')
-    ).sendToGroupHandler('echo', content + '\n' + botType);
-    await callbackToChannel(content);
+    return callbackToGroup(`${content}\n${botType}`).catch((err) =>
+        log.error('sendToAdmin failed:', err),
+    );
 }
 
-export async function callbackToChannel(content: string) {
-    const callbackChannel = (await redis.hGet('config', `callbackChannel`)) as string;
-    return new IMessageGUILD(
+/** 向 redis config.callbackGroup 对应群发送文本（与 B 站群推送同一套 eventId 路径） */
+export async function callbackToGroup(content: string) {
+    const callbackGroupUid = (await redis.hGet('config', 'callbackGroup')) as string | undefined;
+    if (!callbackGroupUid) {
+        log.error('callbackToGroup: 未配置 redis config.callbackGroup');
+        return;
+    }
+
+    const openId = Object.entries(config.bots[botType].groupMap).find(
+        ([, realId]) => realId == callbackGroupUid,
+    )?.[0];
+    if (!openId) {
+        log.error(
+            `callbackToGroup: 未在 groupMap 找到群 openId, callbackGroupUid=${callbackGroupUid}`,
+        );
+        return;
+    }
+
+    // 优先使用该群最近交互的 eventId，便于主动消息窗口内发送
+    const eventId = await redis.get(`groupLastestEventId:${botType}:${openId}`);
+    const msg = new IMessageGROUP(
         {
-            id:
-                (await redis.get(`lastestMsgId:${botType}`)) ||
-                '08f3fb8adca9d6ccf46710b4e66c38cba64e48a2cfa1a006',
-            channel_id: callbackChannel,
+            group_id: openId,
+            group_openid: openId,
+            event_id: eventId || undefined,
+            content: '',
+            timestamp: new Date().toISOString(),
+            author: { id: '', username: '', bot: true },
+            message_scene: { source: 'sendToAdmin', ext: [] },
         } as any,
         false,
-    ).sendMsgEx({ content });
+    );
+
+    return msg.sendMsgEx({ content, ref: false });
 }
 
 export async function callWithRetry<T extends (...args: A) => Promise<R>, R, A extends Array<any>>(

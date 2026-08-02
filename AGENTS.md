@@ -315,7 +315,7 @@ await msg.sendMarkdown({
 
 公共函数（`src/libs/common.ts`）：
 
-- `sendToAdmin(content)` — 通知管理员（群 echo + 回调频道）  
+- `sendToAdmin(content)` — 通知管理员（回调群；`callbackToGroup`，频道侧已废弃）  
 - `pushToDB(table, data)` — 插入 MariaDB（`devEnv` 下直接 return）  
 - `searchDB(table, key, value)`  
 - `settingUserConfig(aid, 'GET'|'SET', data)` — Redis hash `setting:{aid}`  
