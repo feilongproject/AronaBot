@@ -1,6 +1,6 @@
 import fs from 'fs';
 import nodemailer from 'nodemailer';
-import config from '../../config/config';
+import config, { pathStr } from '../../config/config';
 
 export async function mailerError(msg: any, err: Error) {
     log.error(err);
@@ -13,7 +13,7 @@ export async function mailerError(msg: any, err: Error) {
     if (!host || !user || !pass || !to) return;
 
     const html = fs
-        .readFileSync(config.errorMessageTemaple)
+        .readFileSync(pathStr(config.errorMessageTemaple))
         .toString()
         .replace('%message%', strFormat(msg))
         .replace('%errorName%', err.name)

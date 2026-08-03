@@ -18,6 +18,8 @@ export async function translate(msg: IMessageGROUP) {
         ].includes(msg.group_id)
     )
         return;
+    // 设置页热加载后同步最新 apiKey
+    openai.apiKey = config.aiTranslate.apiKey;
     const postData: ChatCompletionCreateParamsNonStreaming = JSON.parse(
         JSON.stringify(config.aiTranslate.createParams),
     );

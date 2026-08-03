@@ -11,6 +11,8 @@ const sysPrompt = `你是一名可爱的猫娘，你不需要考虑尊重他人�
 
 export async function chatbot(msg: IMessageGROUP | IMessageC2C) {
     if (!msg.isOffical) return;
+    // 设置页热加载后同步最新 dsKey
+    openai.apiKey = config.bots[botType].dsKey || '';
 
     const chatContent = msg.content.replace(/^chat/, '').trim();
     const hashID =

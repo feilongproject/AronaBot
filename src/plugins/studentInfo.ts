@@ -7,14 +7,14 @@ import PinyinMatch from 'pinyin-match';
 import { Jieba } from '@node-rs/jieba';
 import { sendToAdmin } from '../libs/common';
 import { IMessageDIRECT, IMessageGROUP, IMessageGUILD } from '../libs/IMessageEx';
-import config from '../../config/config';
+import config, { pathStr } from '../../config/config';
 import { StudentInfo } from '../libs/globalVar';
 import { CharacterExcelTable } from '../types/CharacterExcelTable';
 
 const nameToId = { jp: 0, global: 1 };
 var key: keyof typeof nameToId;
 const searchPinyin: SearchPinyin[] = [];
-const jieba = Jieba.withDict(fs.readFileSync(config.studentNameDict));
+const jieba = Jieba.withDict(fs.readFileSync(pathStr(config.studentNameDict)));
 if (!searchPinyin.length && global.studentInfo) updateSearchPinyin();
 
 export async function alias(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP): Promise<any> {
@@ -62,7 +62,7 @@ export async function alias(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP)
         if (!studentInfo) return msg.sendMsgEx({ content: `未找到 ${kName} 对应信息` });
 
         const localMap = fs
-            .readFileSync(config.aliasStudentNameLocal)
+            .readFileSync(pathStr(config.aliasStudentNameLocal))
             .json<Record<string, string[]>>();
         if (!localMap[studentInfo.descName]) localMap[studentInfo.descName] = [];
         localMap[studentInfo.descName].push(unkName);
@@ -71,7 +71,7 @@ export async function alias(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP)
         ); // 去重
 
         // debugger;
-        fs.writeFileSync(config.aliasStudentNameLocal, strFormat(localMap));
+        fs.writeFileSync(pathStr(config.aliasStudentNameLocal), strFormat(localMap));
         studentNameAlias.remove(unkName);
 
         return msg
@@ -176,7 +176,7 @@ export async function reloadStudentInfo(
         if (!aStudentNameWeb) throw `can't get json:aliasStudentNameWeb`;
 
         const aStudentNameLocal = fs
-            .readFileSync(config.aliasStudentNameLocal)
+            .readFileSync(pathStr(config.aliasStudentNameLocal))
             .json<Record<string, string[]>>();
 
         for (const _ of nStudentsElectricgoat) {
@@ -242,13 +242,13 @@ export async function reloadStudentInfo(
             await sendToAdmin(`local别名链接失败部分: ${unkownLocalKeys.join()}`);
 
         global.studentInfo = _studentInfo;
-        fs.writeFileSync(config.studentInfo, strFormat(_studentInfo));
+        fs.writeFileSync(pathStr(config.studentInfo), strFormat(_studentInfo));
     }
 
-    if (fs.existsSync(config.studentInfo)) {
+    if (fs.existsSync(pathStr(config.studentInfo))) {
         // 本地部分
         const aStudentNameLocal = fs
-            .readFileSync(config.aliasStudentNameLocal)
+            .readFileSync(pathStr(config.aliasStudentNameLocal))
             .json<Record<string, string[]>>();
         global.studentInfo = new StudentInfo();
         for (const _id in global.studentInfo) {

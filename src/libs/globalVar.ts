@@ -1,5 +1,5 @@
 import fs from 'fs';
-import config from '../../config/config';
+import config, { pathStr } from '../../config/config';
 
 export class StudentNameAlias extends Array<string> {
     private _data: string[] = [];
@@ -52,11 +52,11 @@ export class StudentNameAlias extends Array<string> {
     }
 
     public reload() {
-        this._data = fs.readFileSync(config.studentNameAlias).json();
+        this._data = fs.readFileSync(pathStr(config.studentNameAlias)).json();
     }
 
     async save() {
-        fs.writeFileSync(config.studentNameAlias, strFormat(this._data));
+        fs.writeFileSync(pathStr(config.studentNameAlias), strFormat(this._data));
     }
 }
 
@@ -101,10 +101,10 @@ export class StudentInfo extends Object implements Record<`${number}`, StudentDa
     }
 
     public reload() {
-        this._data = fs.readFileSync(config.studentInfo).json();
+        this._data = fs.readFileSync(pathStr(config.studentInfo)).json();
     }
 
     public async save() {
-        fs.writeFileSync(config.studentInfo, strFormat(this._data));
+        fs.writeFileSync(pathStr(config.studentInfo), strFormat(this._data));
     }
 }

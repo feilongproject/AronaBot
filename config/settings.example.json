@@ -1,0 +1,209 @@
+{
+    "$schema": "./settings.schema.json",
+    "webSettings": {
+        "enabled": true,
+        "token": "YOUR_WEB_SETTINGS_TOKEN"
+    },
+    "bots": {
+        "AronaBot": {
+            "appID": "YOUR_APP_ID",
+            "botUid": "",
+            "token": "YOUR_TOKEN",
+            "secret": "YOUR_SECRET",
+            "dsKey": "",
+            "intents": [
+                "GUILD_MESSAGES",
+                "DIRECT_MESSAGE",
+                "GUILDS",
+                "FORUMS_EVENT",
+                "GUILD_MEMBERS",
+                "GUILD_MESSAGE_REACTIONS",
+                "MESSAGE_AUDIT",
+                "GROUP_AND_C2C_EVENT",
+                "INTERACTION"
+            ],
+            "allowMarkdown": true,
+            "allowMariadb": true,
+            "webhookPort": {
+                "prod": 2340,
+                "dev": 2341
+            },
+            "groupMap": {},
+            "meRealId": "YOUR_REAL_ID",
+            "enableFullReceiveGroups": [],
+            "chatbot": {
+                "groups": [],
+                "replyProbability": 0.3,
+                "maxHistoryRounds": 20,
+                "compressInterval": 5,
+                "historyTTL": 3600,
+                "memoryDir": "data/chatbot_memory",
+                "maxSummaryBlocks": 10
+            }
+        },
+        "TestBot": {
+            "appID": "YOUR_TEST_APP_ID",
+            "botUid": "",
+            "token": "YOUR_TEST_TOKEN",
+            "dsKey": "",
+            "intents": [
+                "GUILD_MESSAGES"
+            ],
+            "allowMarkdown": false,
+            "allowMariadb": false,
+            "webhookPort": {
+                "prod": 0,
+                "dev": 0
+            },
+            "groupMap": {},
+            "meRealId": "",
+            "enableFullReceiveGroups": [],
+            "chatbot": {
+                "groups": [],
+                "replyProbability": 0.3,
+                "maxHistoryRounds": 20,
+                "compressInterval": 5,
+                "historyTTL": 3600,
+                "memoryDir": "data/chatbot_memory",
+                "maxSummaryBlocks": 10
+            }
+        }
+    },
+    "hotLoadConfigs": [
+        {
+            "path": "src/eventRec.ts",
+            "type": "消息接收处理模块"
+        },
+        {
+            "path": "src/plugins/",
+            "type": "插件模块"
+        },
+        {
+            "path": "config/opts.ts",
+            "type": "指令模块"
+        },
+        {
+            "path": "data/handbookMatches.ts",
+            "type": "攻略匹配模块"
+        },
+        {
+            "path": "data/keyboardMap.ts",
+            "type": "按钮布局"
+        }
+    ],
+    "hotLoadConfigsReload": [
+        {
+            "path": "src/plugins/schedule.ts",
+            "name": "定时任务"
+        }
+    ],
+    "initConfig": {},
+    "baiduCensoring": {
+        "APP_ID": "YOUR_BAIDU_APP_ID",
+        "API_KEY": "YOUR_BAIDU_API_KEY",
+        "SECRET_KEY": "YOUR_BAIDU_SECRET_KEY"
+    },
+    "mariadb": {
+        "host": "127.0.0.1",
+        "port": 13306,
+        "user": "root",
+        "password": "YOUR_DB_PASSWORD",
+        "connectTimeout": 5000,
+        "connectionLimit": 100
+    },
+    "redis": {
+        "socket": {
+            "host": "127.0.0.1",
+            "port": 6379
+        },
+        "password": "YOUR_REDIS_PASSWORD",
+        "database": 0
+    },
+    "cos": {
+        "SecretId": "YOUR_COS_SECRET_ID",
+        "SecretKey": "YOUR_COS_SECRET_KEY",
+        "Bucket": "YOUR_COS_BUCKET",
+        "Region": "ap-guangzhou"
+    },
+    "groupPush": {
+        "url": "http://127.0.0.1:15500/v1/chronocat.putongdejiekou1",
+        "authKey": "YOUR_AUTH_KEY",
+        "appId": "YOUR_EVENT_APP_ID",
+        "llobKey": "YOUR_LLOB_KEY"
+    },
+    "onebot": {
+        "baseUrl": "http://127.0.0.1:13000",
+        "localUploadPath": "/opt/llob/LiteLoader/upload",
+        "remoteUploadPath": "/opt/QQ/resources/app/LiteLoader/upload"
+    },
+    "sms": {
+        "AccessKey": {
+            "AccessKeyId": "YOUR_SMS_ACCESS_KEY",
+            "AccessKeySecret": "YOUR_SMS_ACCESS_SECRET"
+        },
+        "sendInfo": {
+            "phone": 12345678901,
+            "sign": "YOUR_SMS_SIGN",
+            "template": "SMS_TEMPLATE"
+        }
+    },
+    "cosUrl": "https://oss-your-domain.com",
+    "retryTime": 5,
+    "studentNameDict": "data/jiebaDict.txt",
+    "errorMessageTemaple": "data/errorMessageTemaple.html",
+    "studentInfo": "data/studentInfo.json",
+    "gachaPoolInfo": "data/gachaPoolInfo.json",
+    "aliasStudentNameLocal": "data/aliasStudentNameLocal.json",
+    "studentNameAlias": "data/studentNameAlias.json",
+    "imagesOut": "/tmp/randPic",
+    "handbookRoot": "data/images/handbook",
+    "extractRoot": "data/extract",
+    "images": {
+        "gachaMask": [
+            "",
+            "data/images/gacha/Card_Item_Bg_R.png",
+            "data/images/gacha/Card_Item_Bg_SR.png",
+            "data/images/gacha/Card_Item_Bg_SSR.png"
+        ],
+        "characters": "data/images/characterPortraits",
+        "accuseCharacters": "data/accuseCharacters",
+        "firstChecker": "data/images/firstChecker",
+        "starBg": "data/images/gacha/starBg.png",
+        "star": "data/images/gacha/star.png",
+        "mainBg": "data/images/gacha/mainBg.png",
+        "cutAris": "data/images/cutAris",
+        "sponsor": "data/images/afdian.png",
+        "Tarot": "data/images/Tarot",
+        "baLogo": "data/images/baLogo"
+    },
+    "fontRoot": "data/fonts",
+    "aiTranslate": {
+        "apiKey": "YOUR_OPENAI_API_KEY",
+        "systemPromptFile": "data/aiPrompt.txt",
+        "createParams": {
+            "model": "qwen3-max-preview",
+            "max_tokens": 1000,
+            "temperature": 0,
+            "stream": false,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": ""
+                },
+                {
+                    "role": "user",
+                    "content": "8月14日(水)4:00〜8月18日(日)3:59"
+                },
+                {
+                    "role": "assistant",
+                    "content": "北京时间8月14日(星期三)3:00〜8月18日(星期日)2:59"
+                }
+            ]
+        }
+    },
+    "_picPath": {
+        "font": "data/pic/NotoSansTC-Medium.otf",
+        "avatarBg": "data/pic/rand/avatarBg.png"
+    },
+    "rootPath": ""
+}

@@ -1,12 +1,13 @@
 node_modules*
 dist
-config/config.ts
+config/settings.json
 .env
 log
 generate
 ___*
 test/
 nodemon.test.json
+public/
 
 src/plugins/test.ts
 src/plugins/gameInfo.ts

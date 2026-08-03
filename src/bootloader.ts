@@ -3,13 +3,14 @@ import { encode, decode } from 'js-base64';
 import { mkdirSync, existsSync } from 'fs';
 import logger from './libs/logger';
 import { StudentInfo, StudentNameAlias } from './libs/globalVar';
-import config from '../config/config';
+import config, { pathStr } from '../config/config';
 
 export function initRuntime() {
     global.log = logger;
     log.log(`机器人准备运行，正在初始化`);
 
-    if (!existsSync(config.imagesOut)) mkdirSync(config.imagesOut);
+    const imagesOut = pathStr(config.imagesOut);
+    if (!existsSync(imagesOut)) mkdirSync(imagesOut, { recursive: true });
 
     global.adminId = [
         '2975E2CA5AE779F1899A0AED2D4FA9FD',

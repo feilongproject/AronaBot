@@ -15,7 +15,10 @@
         "autoHBupdate": "tsx -r dotenv/config script/autoHBupdate.ts",
         "mergeLogs": "tsx script/mergeLogs.ts",
         "typecheck": "tsc --noEmit",
-        "format": "prettier --write src/"
+        "format": "prettier --write src/",
+        "web:dev": "pnpm --dir web dev",
+        "web:build": "pnpm --dir web build",
+        "web:preview": "pnpm --dir web preview"
     },
     "keywords": [],
     "author": "feilongproject",

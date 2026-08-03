@@ -1,0 +1,35 @@
+@import 'tailwindcss';
+
+@theme {
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+    --color-surface: #0f1419;
+    --color-panel: #1a2332;
+    --color-border: #2d3a4f;
+    --color-muted: #8b9bb4;
+    --color-accent: #5b9fd4;
+}
+
+html,
+body,
+#app {
+    min-height: 100%;
+}
+
+body {
+    background:
+        radial-gradient(1200px 600px at 10% -10%, #1b2a40 0%, transparent 50%),
+        radial-gradient(900px 500px at 100% 0%, #1a2e28 0%, transparent 45%), #0f1419;
+}
+
+/* 自定义滚动条 */
+.custom-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+    background: #2d3a4f;
+    border-radius: 999px;
+}
+.custom-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}

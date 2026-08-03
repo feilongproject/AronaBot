@@ -1,0 +1,336 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://aronabot.local/config/settings.schema.json",
+    "title": "AronaBot settings.json",
+    "description": "AronaBot 运行配置。路径：全局 rootPath 只设一次，其余路径字段只填相对 rootPath 的子路径（绝对路径如 /tmp/x 不拼接）。运行时 ConfigPath.toString() 才 join。",
+    "type": "object",
+    "additionalProperties": true,
+    "required": ["bots", "redis", "mariadb", "cos", "cosUrl", "retryTime"],
+    "properties": {
+        "$schema": {
+            "type": "string",
+            "description": "指向本 schema，便于编辑器补全与校验（如 \"./settings.schema.json\"）"
+        },
+        "webSettings": {
+            "type": "object",
+            "description": "Web 设置页（/settings）开关与访问口令",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "是否启用 Web 设置页与 /api/settings/*"
+                },
+                "token": {
+                    "type": "string",
+                    "description": "访问口令；空则拒绝所有设置页写操作"
+                }
+            }
+        },
+        "rootPath": {
+            "type": "string",
+            "description": "全局路径根，只设一次。空字符串 = process.cwd()。所有相对子路径相对此根拼接"
+        },
+        "bots": {
+            "type": "object",
+            "description": "多 bot 配置，键为 botType（AronaBot / PlanaBot / TestBot 等）",
+            "additionalProperties": { "$ref": "#/$defs/bot" }
+        },
+        "hotLoadConfigs": {
+            "type": "array",
+            "description": "热加载监听列表；path 为相对 rootPath 的子路径",
+            "items": {
+                "type": "object",
+                "required": ["path", "type"],
+                "properties": {
+                    "path": {
+                        "type": "string",
+                        "description": "子路径，如 src/plugins/"
+                    },
+                    "type": {
+                        "type": "string",
+                        "description": "模块描述（日志用）"
+                    }
+                }
+            }
+        },
+        "hotLoadConfigsReload": {
+            "type": "array",
+            "description": "变更后需要 re-import 的模块",
+            "items": {
+                "type": "object",
+                "required": ["path", "name"],
+                "properties": {
+                    "path": { "type": "string", "description": "子路径" },
+                    "name": { "type": "string", "description": "显示名" }
+                }
+            }
+        },
+        "initConfig": {
+            "type": "object",
+            "description": "预留初始化扩展（自由对象）",
+            "additionalProperties": true
+        },
+        "baiduCensoring": {
+            "type": "object",
+            "description": "百度内容审核密钥",
+            "properties": {
+                "APP_ID": { "type": "string" },
+                "API_KEY": { "type": "string" },
+                "SECRET_KEY": { "type": "string" }
+            }
+        },
+        "mariadb": {
+            "type": "object",
+            "description": "MariaDB 连接；bot 还需 allowMariadb=true",
+            "properties": {
+                "host": { "type": "string" },
+                "port": { "type": "integer" },
+                "user": { "type": "string" },
+                "password": { "type": "string" },
+                "connectTimeout": { "type": "integer", "description": "连接超时 ms" },
+                "connectionLimit": { "type": "integer" }
+            }
+        },
+        "redis": {
+            "type": "object",
+            "description": "Redis：业务状态、禁言、历史、按钮 eventId 等",
+            "properties": {
+                "socket": {
+                    "type": "object",
+                    "properties": {
+                        "host": { "type": "string" },
+                        "port": { "type": "integer" }
+                    }
+                },
+                "password": { "type": "string" },
+                "database": { "type": "integer" }
+            }
+        },
+        "cos": {
+            "type": "object",
+            "description": "腾讯云 COS（出图上传）",
+            "properties": {
+                "SecretId": { "type": "string" },
+                "SecretKey": { "type": "string" },
+                "Bucket": { "type": "string" },
+                "Region": { "type": "string", "description": "如 ap-guangzhou" }
+            }
+        },
+        "groupPush": {
+            "type": "object",
+            "description": "跨端群推送接口",
+            "properties": {
+                "url": { "type": "string" },
+                "authKey": { "type": "string" },
+                "appId": { "type": "string" },
+                "llobKey": { "type": "string" }
+            }
+        },
+        "onebot": {
+            "type": "object",
+            "description": "OneBot / llob 路径",
+            "properties": {
+                "baseUrl": { "type": "string" },
+                "localUploadPath": { "type": "string" },
+                "remoteUploadPath": { "type": "string" }
+            }
+        },
+        "sms": {
+            "type": "object",
+            "description": "阿里云短信",
+            "properties": {
+                "AccessKey": {
+                    "type": "object",
+                    "properties": {
+                        "AccessKeyId": { "type": "string" },
+                        "AccessKeySecret": { "type": "string" }
+                    }
+                },
+                "sendInfo": {
+                    "type": "object",
+                    "properties": {
+                        "phone": { "type": "number", "description": "通知手机号" },
+                        "sign": { "type": "string", "description": "短信签名" },
+                        "template": { "type": "string", "description": "模板 CODE" }
+                    }
+                }
+            }
+        },
+        "cosUrl": {
+            "type": "string",
+            "description": "COS 公网访问域名前缀（非本地文件路径）"
+        },
+        "retryTime": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "消息发送失败重试次数"
+        },
+        "studentNameDict": {
+            "type": "string",
+            "description": "jieba 词典子路径，如 data/jiebaDict.txt"
+        },
+        "errorMessageTemaple": {
+            "type": "string",
+            "description": "错误邮件 HTML 模板子路径（历史拼写保留 Temaple）"
+        },
+        "studentInfo": {
+            "type": "string",
+            "description": "学生数据 JSON 子路径"
+        },
+        "gachaPoolInfo": {
+            "type": "string",
+            "description": "卡池信息 JSON 子路径"
+        },
+        "aliasStudentNameLocal": {
+            "type": "string",
+            "description": "本地学生别名 JSON 子路径"
+        },
+        "studentNameAlias": {
+            "type": "string",
+            "description": "学生别名（网络同步）JSON 子路径"
+        },
+        "imagesOut": {
+            "type": "string",
+            "description": "出图临时目录；可为绝对路径如 /tmp/randPic"
+        },
+        "handbookRoot": {
+            "type": "string",
+            "description": "攻略图根目录子路径"
+        },
+        "extractRoot": {
+            "type": "string",
+            "description": "解包/脚本根目录子路径"
+        },
+        "fontRoot": {
+            "type": "string",
+            "description": "字体目录子路径"
+        },
+        "images": {
+            "type": "object",
+            "description": "出图相关资源子路径",
+            "properties": {
+                "gachaMask": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "抽卡卡背图，下标对应稀有度，0 常为空"
+                },
+                "characters": { "type": "string", "description": "立绘目录" },
+                "accuseCharacters": { "type": "string" },
+                "firstChecker": { "type": "string" },
+                "starBg": { "type": "string" },
+                "star": { "type": "string" },
+                "mainBg": { "type": "string" },
+                "cutAris": { "type": "string" },
+                "sponsor": { "type": "string" },
+                "Tarot": { "type": "string" },
+                "baLogo": { "type": "string" }
+            }
+        },
+        "aiTranslate": {
+            "type": "object",
+            "description": "AI 翻译（OpenAI 兼容接口）",
+            "properties": {
+                "apiKey": { "type": "string" },
+                "systemPromptFile": {
+                    "type": "string",
+                    "description": "system prompt 文件子路径；启动时注入 messages 首条 system"
+                },
+                "createParams": {
+                    "type": "object",
+                    "description": "Chat Completions 请求体模板",
+                    "properties": {
+                        "model": { "type": "string" },
+                        "max_tokens": { "type": "integer" },
+                        "temperature": { "type": "number" },
+                        "stream": { "type": "boolean" },
+                        "messages": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "role": { "type": "string" },
+                                    "content": { "type": "string" }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "_picPath": {
+            "type": "object",
+            "description": "其它图片资源子路径",
+            "properties": {
+                "font": { "type": "string" },
+                "avatarBg": { "type": "string" }
+            }
+        }
+    },
+    "$defs": {
+        "bot": {
+            "type": "object",
+            "description": "单个 bot 配置",
+            "properties": {
+                "appID": { "type": "string", "description": "QQ 开放平台 appId" },
+                "botUid": { "type": "string", "description": "机器人 openid / uid（可空）" },
+                "token": { "type": "string", "description": "Bot token" },
+                "secret": { "type": "string", "description": "Webhook 签名 secret" },
+                "dsKey": { "type": "string", "description": "DeepSeek 等对话密钥（可空）" },
+                "intents": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "事件 intent 名称列表"
+                },
+                "allowMarkdown": {
+                    "type": "boolean",
+                    "description": "是否允许 Markdown / 键盘消息"
+                },
+                "allowMariadb": {
+                    "type": "boolean",
+                    "description": "是否连接 MariaDB"
+                },
+                "webhookPort": {
+                    "type": "object",
+                    "properties": {
+                        "prod": { "type": "integer", "description": "生产监听端口" },
+                        "dev": { "type": "integer", "description": "--dev 监听端口" }
+                    }
+                },
+                "groupMap": {
+                    "type": "object",
+                    "description": "群 openid → 数字群号",
+                    "additionalProperties": { "type": "string" }
+                },
+                "meRealId": { "type": "string", "description": "真实 QQ 号等" },
+                "enableFullReceiveGroups": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "全量接收群号列表"
+                },
+                "chatbot": {
+                    "type": "object",
+                    "description": "群 chatbot 参数",
+                    "properties": {
+                        "groups": {
+                            "type": "array",
+                            "items": { "type": "string" },
+                            "description": "启用 chatbot 的群 openid"
+                        },
+                        "replyProbability": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                        },
+                        "maxHistoryRounds": { "type": "integer" },
+                        "compressInterval": { "type": "integer" },
+                        "historyTTL": { "type": "integer", "description": "历史 TTL（秒）" },
+                        "memoryDir": {
+                            "type": "string",
+                            "description": "记忆目录子路径"
+                        },
+                        "maxSummaryBlocks": { "type": "integer" }
+                    }
+                }
+            }
+        }
+    }
+}

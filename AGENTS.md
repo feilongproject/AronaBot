@@ -473,9 +473,20 @@ initData().catch((err) => {
 
 ### 8.1 config
 
-- 真密钥：`config/config.ts`（通常不入库或本地覆盖）  
-- 模板：`config/config.example.ts`  
-- 路径类配置集中在 config，插件用 `config.imagesOut`、`config.handbookRoot` 等，**禁止硬编码绝对路径**（`workspace` 例外在 config 内）。
+- 真密钥数据：`config/settings.json`（gitignore，不入库）  
+- 模板：`config/settings.example.json`  
+- **Schema**：`config/settings.schema.json`（字段 `description` 即备注）；配置内 `"$schema": "./settings.schema.json"` 供 IDE 补全/校验；Web 表单也会读 schema 作字段说明  
+- 类型：`src/types/config.d.ts`  
+- 加载器：`config/config.ts` — 标准 JSON → 路径 ConfigPath → 注入 `process.env`（前缀 `ARONA_`），**插件无需改 import**  
+- Web 设置页：`http://<host>:<webhookPort>/settings`（口令见 `webSettings.token`）  
+  - 前端：`web/`（Vue3 + Vite + Tailwind v4，分组表单编辑）  
+  - 构建：`pnpm web:build` → 产物 `public/settings/`  
+  - 开发：`pnpm web:dev`（默认代理 API 到 `http://127.0.0.1:2341`，可用 `VITE_API_TARGET` 覆盖）  
+  - 保存：写盘后**热替换**当前进程 `import config` 内存对象；路径 / COS / chatbot 等立即生效；`webhookPort` / intents / 已建 Redis·MariaDB 连接 / OpenAPI token 仍需重启  
+  - nodemon 已忽略 `config/settings.json`，避免保存配置触发整进程重启  
+- **路径格式**：全局 `rootPath` 只设一次；各路径字段磁盘只存**子路径**字符串（如 `data/studentInfo.json`）。运行时为 `ConfigPath`，**仅 `toString()` 时** `join(rootPath, child)`；绝对 child 不拼接。模板 `` `${config.xxx}` `` 会自动拼接；`fs` 等强类型 API 用 `pathStr(config.xxx)`  
+- 路径类配置集中在 settings，**禁止硬编码绝对路径**（临时目录等可写绝对 child）  
+- 注意：数据文件**不要**命名为 `config.json`，否则 `import .../config/config` 会被 Node 解析成 JSON 而非加载器
 
 ### 8.2 data/
 

@@ -8,11 +8,13 @@ import { initRuntime } from './bootloader';
 // import { handlerSync } from './handlerSync';
 import config from '../config/config';
 import { EventMap } from './constants/EventMap';
+import { registerSettingsRoutes } from './web/settings';
 
 initRuntime();
 
 const app = new Koa();
 const router = new Router(); // 为什么之前没有移到顶层?
+registerSettingsRoutes(router);
 
 app.use(async (ctx, next) => {
     let rawData = '';
@@ -29,7 +31,10 @@ init().then(() => {
         log.mark(`开始监听 ${eventRootType} 事件`);
         global.ws.on(eventRootType, async (data: IntentMessage.EventRespose<any>) => {
             data.eventRootType = eventRootType;
-            if (devEnv) log.debug(`收到事件: ${eventRootType} ${data.eventType} ${data.eventId} ${JSON.stringify(data.msg)}`);
+            if (devEnv)
+                log.debug(
+                    `收到事件: ${eventRootType} ${data.eventType} ${data.eventId} ${JSON.stringify(data.msg)}`,
+                );
             return import('./eventRec').then((e) => e.eventRec(data));
         });
     }

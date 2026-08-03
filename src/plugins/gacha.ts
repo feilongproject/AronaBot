@@ -5,7 +5,7 @@ import crypto from 'crypto';
 import format from 'date-format';
 import { sendToAdmin, settingUserConfig } from '../libs/common';
 import { IMessageC2C, IMessageDIRECT, IMessageGROUP, IMessageGUILD } from '../libs/IMessageEx';
-import config from '../../config/config';
+import config, { pathStr } from '../../config/config';
 
 const starString = ['☆☆☆', '★☆☆', '★★☆', '★★★'];
 const nameToId = { jp: 0, global: 1 };
@@ -160,7 +160,11 @@ async function buildImage(characterNames: GachaPools): Promise<Buffer> {
         var y = parseInt(`${i / 5}`.slice(0, 1));
         ((x *= 300), (x += 120));
         ((y *= 350), (y += 180));
-        files.push({ input: config.images.gachaMask[value.star], top: y - 10, left: x - 4 }); //character bg
+        files.push({
+            input: pathStr(config.images.gachaMask[value.star]),
+            top: y - 10,
+            left: x - 4,
+        }); //character bg
         if (value.custom)
             files.push({ input: `${config.images.characters}/${value.custom}`, top: y, left: x }); //custom avatar
         else
@@ -169,7 +173,7 @@ async function buildImage(characterNames: GachaPools): Promise<Buffer> {
                 top: y,
                 left: x,
             }); //character avatar
-        files.push({ input: config.images.starBg, top: y + 190, left: x - 10 }); //star bg
+        files.push({ input: pathStr(config.images.starBg), top: y + 190, left: x - 10 }); //star bg
         for (
             let i = 0;
             i < value.star;
@@ -181,7 +185,7 @@ async function buildImage(characterNames: GachaPools): Promise<Buffer> {
                 left: x + starPos[value.star] + i * 60,
             });
     }
-    return sharp(config.images.mainBg)
+    return sharp(pathStr(config.images.mainBg))
         .composite(files)
         .png({ compressionLevel: 6, quality: 5 })
         .toBuffer();
@@ -310,12 +314,14 @@ async function gachaReload(type: 'net' | 'local') {
 
                 gachaPoolInfo.global = _gachaPoolInfo.global;
                 gachaPoolInfo.jp = _gachaPoolInfo.jp;
-                fs.writeFileSync(config.gachaPoolInfo, strFormat(_gachaPoolInfo));
+                fs.writeFileSync(pathStr(config.gachaPoolInfo), strFormat(_gachaPoolInfo));
                 return `net | ${r}`;
             });
     else {
-        if (fs.existsSync(config.gachaPoolInfo)) {
-            const _gachaPoolInfo = fs.readFileSync(config.gachaPoolInfo).json<GachaPoolInfo>();
+        if (fs.existsSync(pathStr(config.gachaPoolInfo))) {
+            const _gachaPoolInfo = fs
+                .readFileSync(pathStr(config.gachaPoolInfo))
+                .json<GachaPoolInfo>();
             gachaPoolInfo.global = _gachaPoolInfo.global;
             gachaPoolInfo.jp = _gachaPoolInfo.jp;
             return 'local | ok';

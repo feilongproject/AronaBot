@@ -10,7 +10,7 @@ import {
     IMessageGROUP,
     IMessageC2C,
 } from '../libs/IMessageEx';
-import config from '../../config/config';
+import config, { pathStr } from '../../config/config';
 import { CharacterExcelTable } from '../types/CharacterExcelTable';
 
 var isChecking = false;
@@ -147,7 +147,7 @@ export async function accuseGacha(msg: IMessageGUILD) {
         if (!gachaInfo.find((v) => v.gachaInfo.firstChecker.length)) {
             return msg.sendMsgExRef({
                 content: `未匹配到抽卡图标志, 当前支持: ${fs
-                    .readdirSync(config.images.firstChecker)
+                    .readdirSync(pathStr(config.images.firstChecker))
                     .map((n) => n.replace('.png', ''))
                     .join(',')}`,
             });
@@ -219,13 +219,13 @@ async function accuseGachaWapper(srcMsg: IMessageGUILD) {
                     '--big-file-path',
                     srcFileName,
                     '--small-images-path',
-                    config.images.accuseCharacters,
+                    pathStr(config.images.accuseCharacters),
                     '--json',
                     'true',
                     '--save-path',
                     pointsFileName,
                     '--first-checkers-path',
-                    config.images.firstChecker,
+                    pathStr(config.images.firstChecker),
                 ],
             },
         ).then((res) => JSON.parse(res.pop()));
@@ -274,13 +274,13 @@ export async function accuseGachaUpdate(
         .map((v) => v[0].toUpperCase() + v.substring(1))
         .filter((item, index, arr) => arr.indexOf(item, 0) === index);
 
-    if (!fs.existsSync(config.images.accuseCharacters))
-        fs.mkdirSync(config.images.accuseCharacters);
+    if (!fs.existsSync(pathStr(config.images.accuseCharacters)))
+        fs.mkdirSync(pathStr(config.images.accuseCharacters));
     // const localAllImages = fs.readdirSync(config.images.characters)
     //     .filter(v => v.startsWith("Student_Portrait_"))
     //     .map(v => v.replace(/Student_Portrait_(.*)\.png/, "$1"));
     const localList = fs
-        .readdirSync(config.images.accuseCharacters)
+        .readdirSync(pathStr(config.images.accuseCharacters))
         .filter((v) => v.startsWith('Student_Portrait_'))
         .map((v) => v.replace(/Student_Portrait_(.*)\.png/, '$1'));
 

@@ -52,7 +52,8 @@ declare global {
     var cos: COS;
     var mdParamLength: number;
 
-    type BotTypes = keyof typeof config.bots;
+    /** 运行中的 bot 名称；排除 number 索引签名副作用 */
+    type BotTypes = Extract<keyof typeof config.bots, string>;
 
     interface Date {
         /**

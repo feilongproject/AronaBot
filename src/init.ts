@@ -4,7 +4,7 @@ import { createPool } from 'mariadb';
 import { createClient } from 'redis';
 import { IChannel, IGuild, createOpenAPI, createWebsocket } from 'qq-bot-sdk';
 import { sendToAdmin } from './libs/common';
-import config from '../config/config';
+import config, { pathStr } from '../config/config';
 
 export async function init() {
     log.info(`初始化: 正在加载命令设置`);
@@ -13,7 +13,8 @@ export async function init() {
     log.info(`初始化: 正在创建模块热加载监听`);
     for (const { type: hlType, path: hlPath } of config.hotLoadConfigs) {
         log.info(`初始化: 正在创建模块热加载监听: ${hlType}`);
-        chokidar.watch(hlPath).on('change', async (fpath, stats) => {
+        const watchPath = pathStr(hlPath);
+        chokidar.watch(watchPath).on('change', async (fpath, stats) => {
             if (!devEnv && !hotLoadStatus) return;
             if (!require.cache[fpath]) return;
 
@@ -22,7 +23,7 @@ export async function init() {
             log.mark(`热更新: ${hlType} ${fileD}`);
             delete require.cache[fpath];
 
-            if (config.hotLoadConfigsReload.filter((v) => v.path === fpath)) {
+            if (config.hotLoadConfigsReload.some((v) => pathStr(v.path) === fpath)) {
                 log.info(`重新加载: ${fpath}`);
                 await import(fpath);
             }
@@ -34,8 +35,8 @@ export async function init() {
 
     log.info(`初始化: 正在创建全局变量热加载监听`);
     const hotloadJson: { p: string; classVar: InstanceWithReload }[] = [];
-    hotloadJson.push({ p: config.studentInfo, classVar: studentInfo });
-    hotloadJson.push({ p: config.studentNameAlias, classVar: studentNameAlias });
+    hotloadJson.push({ p: pathStr(config.studentInfo), classVar: studentInfo });
+    hotloadJson.push({ p: pathStr(config.studentNameAlias), classVar: studentNameAlias });
     for (const { p, classVar } of hotloadJson) {
         const constructorName = Object.getPrototypeOf(classVar).constructor.name;
         log.info(`初始化: 正在创建全局变量热加载监听: ${constructorName}`);
