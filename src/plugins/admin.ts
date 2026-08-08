@@ -159,34 +159,20 @@ export async function dumpChatRecord(
     const aid = /dump\s*(?<aid>\d+)/.exec(msg.content)?.groups?.aid;
     if (!aid) return msg.sendMsgEx({ content: `未指定id` });
     const fileName = `${aid}-${new Date().getTime()}.xlsx`;
-    const _fileBuffer = await mariadb
-        .query(
-            'SELECT * FROM `guildMessage` WHERE `aid` = (?) ORDER BY `guildMessage`.`ts` ASC',
-            aid,
-        )
-        .then((datas) => {
-            const { meta } = datas;
-
-            // const sheetData: any[][] = [];
-            // const headers = meta.map((column: any) => column.name());
-            // sheetData.push(headers);
-            // datas.forEach((data: any[]) => {
-            //     const rowData = headers.map((header: any) => data[header]);
-            //     sheetData.push(rowData);
-            // });
-            // fs.writeFileSync(`${_path}/log/record/${saveFileName}`, xlsx.build([{ name: aid, data: sheetData, options: {} }]));
-
-            const workbook = new Excel.Workbook();
-            const worksheet = workbook.addWorksheet(aid);
-            const columnsMap = meta.map((column: any) => ({
-                header: column.name(),
-                key: column.name(),
-            }));
-            worksheet.columns = columnsMap;
-            for (const data of datas) worksheet.addRow(data);
-            return workbook.xlsx.writeBuffer();
-        });
-    const fileBuffer = Buffer.from(_fileBuffer);
+    const rows = await global.mongoDb
+        .collection('guildMessage')
+        .find({ 'author.id': aid })
+        .sort({ timestamp: 1 })
+        .toArray();
+    const workbook = new Excel.Workbook();
+    const worksheet = workbook.addWorksheet(aid);
+    const columnsMap = Array.from(new Set(rows.flatMap((r) => Object.keys(r)))).map((key) => ({
+        header: key,
+        key,
+    }));
+    worksheet.columns = columnsMap;
+    for (const row of rows) worksheet.addRow(row);
+    const fileBuffer = Buffer.from(await workbook.xlsx.writeBuffer());
     fs.writeFileSync(`${config.imagesOut}/${fileName}`, fileBuffer);
     await cosPutObject({
         Key: `record/${fileName}`,

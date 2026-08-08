@@ -5,7 +5,7 @@
     "description": "AronaBot 运行配置。路径：全局 rootPath 只设一次，其余路径字段只填相对 rootPath 的子路径（绝对路径如 /tmp/x 不拼接）。运行时 ConfigPath.toString() 才 join。",
     "type": "object",
     "additionalProperties": true,
-    "required": ["bots", "redis", "mariadb", "cos", "cosUrl", "retryTime"],
+    "required": ["bots", "redis", "mariadb", "mongo", "cos", "cosUrl", "retryTime"],
     "properties": {
         "$schema": {
             "type": "string",
@@ -80,7 +80,7 @@
         },
         "mariadb": {
             "type": "object",
-            "description": "MariaDB 连接；bot 还需 allowMariadb=true",
+            "description": "MariaDB 连接；仅迁移脚本读取旧数据使用，bot 运行时不再连接",
             "properties": {
                 "host": { "type": "string" },
                 "port": { "type": "integer" },
@@ -88,6 +88,16 @@
                 "password": { "type": "string" },
                 "connectTimeout": { "type": "integer", "description": "连接超时 ms" },
                 "connectionLimit": { "type": "integer" }
+            }
+        },
+        "mongo": {
+            "type": "object",
+            "description": "MongoDB 连接基础参数；bot 还需 allowMongo=true 与 bots.<bot>.mongo 专用账号",
+            "properties": {
+                "host": { "type": "string" },
+                "port": { "type": "integer" },
+                "connectTimeoutMS": { "type": "integer", "description": "连接超时 ms" },
+                "serverSelectionTimeoutMS": { "type": "integer", "description": "服务选择超时 ms" }
             }
         },
         "redis": {
@@ -284,9 +294,22 @@
                     "type": "boolean",
                     "description": "是否允许 Markdown / 键盘消息"
                 },
-                "allowMariadb": {
+                "allowMongo": {
                     "type": "boolean",
-                    "description": "是否连接 MariaDB"
+                    "description": "是否连接 MongoDB（双写）"
+                },
+                "mongo": {
+                    "type": "object",
+                    "description": "该 bot 的 MongoDB 专用账号",
+                    "properties": {
+                        "user": { "type": "string" },
+                        "password": { "type": "string" },
+                        "database": { "type": "string", "description": "库名，如 AronaBot" },
+                        "authSource": {
+                            "type": "string",
+                            "description": "认证库，默认同 database"
+                        }
+                    }
                 },
                 "webhookPort": {
                     "type": "object",

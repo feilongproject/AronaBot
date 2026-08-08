@@ -38,6 +38,7 @@ interface AppConfigFile {
     initConfig: Record<string, unknown>;
     baiduCensoring: BaiduCensoringConfig;
     mariadb: MariadbConfig;
+    mongo: MongoConfig;
     redis: RedisConfig;
     cos: CosConfig;
     groupPush: GroupPushConfig;
@@ -84,6 +85,7 @@ interface AppConfig {
     initConfig: Record<string, unknown>;
     baiduCensoring: BaiduCensoringConfig;
     mariadb: MariadbConfig;
+    mongo: MongoConfig;
     redis: RedisConfig;
     cos: CosConfig;
     groupPush: GroupPushConfig;
@@ -130,7 +132,8 @@ interface BotConfigFile {
     dsKey?: string;
     intents: string[];
     allowMarkdown: boolean;
-    allowMariadb: boolean;
+    allowMongo: boolean;
+    mongo?: MongoConnectionConfig;
     webhookPort: {
         prod: number;
         dev: number;
@@ -184,6 +187,22 @@ interface MariadbConfig {
     password: string;
     connectTimeout?: number;
     connectionLimit?: number;
+    [key: string]: unknown;
+}
+
+interface MongoConfig {
+    host: string;
+    port: number;
+    connectTimeoutMS?: number;
+    serverSelectionTimeoutMS?: number;
+    [key: string]: unknown;
+}
+
+interface MongoConnectionConfig {
+    user: string;
+    password: string;
+    database: string;
+    authSource?: string;
     [key: string]: unknown;
 }
 

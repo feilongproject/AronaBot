@@ -23,7 +23,13 @@
                 "INTERACTION"
             ],
             "allowMarkdown": true,
-            "allowMariadb": true,
+            "allowMongo": true,
+            "mongo": {
+                "user": "AronaBot",
+                "password": "YOUR_ARONA_MONGO_PASSWORD",
+                "database": "AronaBot",
+                "authSource": "AronaBot"
+            },
             "webhookPort": {
                 "prod": 2340,
                 "dev": 2341
@@ -46,11 +52,9 @@
             "botUid": "",
             "token": "YOUR_TEST_TOKEN",
             "dsKey": "",
-            "intents": [
-                "GUILD_MESSAGES"
-            ],
+            "intents": ["GUILD_MESSAGES"],
             "allowMarkdown": false,
-            "allowMariadb": false,
+            "allowMongo": false,
             "webhookPort": {
                 "prod": 0,
                 "dev": 0
@@ -110,6 +114,12 @@
         "password": "YOUR_DB_PASSWORD",
         "connectTimeout": 5000,
         "connectionLimit": 100
+    },
+    "mongo": {
+        "host": "127.0.0.1",
+        "port": 27017,
+        "connectTimeoutMS": 5000,
+        "serverSelectionTimeoutMS": 5000
     },
     "redis": {
         "socket": {

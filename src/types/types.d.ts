@@ -2,7 +2,7 @@ import log4js from 'log4js';
 import { Browser } from 'puppeteer';
 import COS from 'cos-nodejs-sdk-v5';
 import { RedisClientType } from 'redis';
-import { PoolConnection } from 'mariadb';
+import { MongoClient, Db } from 'mongodb';
 import {
     IChannel,
     IMember,
@@ -27,7 +27,8 @@ declare global {
     var meAppId: string;
     var meRealId: string;
     var redis: RedisClientType;
-    var mariadb: PoolConnection;
+    var mongo: MongoClient;
+    var mongoDb: Db;
     var browser: Browser;
     var botStatus: {
         startTime: Date;

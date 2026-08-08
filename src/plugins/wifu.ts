@@ -15,22 +15,21 @@ export async function wifuToday(msg: IMessageGROUP) {
         await redis.expireAt(todayKey, nextDay);
     }
 
-    const usedUser: { aid: string }[] = await mariadb.query(
-        `
-    SELECT gm.*
-    FROM groupMessage gm
-    JOIN (
-        SELECT aid,MAX(ts_utc8) AS latest_ts
-        FROM groupMessage 
-        WHERE gid = (?)
-            AND ts_utc8 >= NOW() - INTERVAL 3 DAY
-        GROUP BY aid 
-    ) AS tmp
-    ON gm.aid=tmp.aid AND gm.ts_utc8=tmp.latest_ts
-    ORDER BY gm.ts_utc8 DESC;
-    `,
-        [msg.group_id],
-    );
+    const usedUsers = await global.mongoDb
+        .collection('groupMessage')
+        .aggregate([
+            {
+                $match: {
+                    group_id: msg.group_id,
+                    timestamp: { $gte: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) },
+                },
+            },
+            { $sort: { timestamp: -1 } },
+            { $group: { _id: '$author.id', latest: { $first: '$$ROOT' } } },
+            { $sort: { 'latest.timestamp': -1 } },
+        ])
+        .toArray();
+    const usedUser: { aid: string }[] = usedUsers.map((u) => ({ aid: String(u._id) }));
 
     const todayMembers = await redis.hGetAll(todayKey);
 

@@ -15,7 +15,7 @@
 | QQ SDK | `qq-bot-sdk@1.9.1` |
 | HTTP | Koa + `@koa/router` + `koa-body`（webhook） |
 | 缓存 | Redis（业务状态、禁言、历史、按钮 eventId 等） |
-| 持久化 | MariaDB（可选，`allowMariadb`）；部分功能用本地 JSON |
+| 持久化 | MongoDB（双写，`allowMongo`）；MariaDB 仅迁移脚本读取旧数据用 |
 | 图片 | `sharp` / `@napi-rs/canvas` + 腾讯 COS 上传后发图 |
 | 定时 | `node-schedule` |
 | 热更新 | `chokidar` 监听 `src/plugins/`、`config/opts.ts` 等 |
@@ -28,6 +28,7 @@ pnpm run dev:AronaBot   # nodemon + tsx + --dev
 pnpm run start:AronaBot # 生产启动（tsx 直接跑 TS）
 pnpm run typecheck      # tsc --noEmit
 pnpm run format         # prettier --write src/
+pnpm migrate:mongo      # 从 MariaDB 迁移到 MongoDB（一次性运维脚本）
 ```
 
 ---
@@ -43,7 +44,7 @@ AronaBot/
 ├── src/
 │   ├── index.ts                        # Koa webhook 入口 + 事件总线挂载
 │   ├── bootloader.ts                   # 运行时全局初始化
-│   ├── init.ts                         # redis/mariadb/ws/client/热加载/频道树
+│   ├── init.ts                         # redis/mongodb/ws/client/热加载/频道树
 │   ├── eventRec.ts                     # ★ 事件分发 → 消息封装 → 插件调用
 │   ├── handlerSync.ts                  # OneBot 同步（当前多为注释保留）
 │   ├── constants/                      # EventMap 等常量
@@ -293,7 +294,8 @@ await msg.sendMarkdown({
 |---|---|
 | `log` | log4js 日志 |
 | `redis` | Redis 客户端 |
-| `mariadb` | MariaDB 连接（可能未启用） |
+| `mongo` | MongoDB 客户端（MongoClient） |
+| `mongoDb` | 当前 bot 的 MongoDB Db 句柄 |
 | `client` | qq-bot-sdk OpenAPI |
 | `ws` | 进程内事件总线 |
 | `botType` | `'AronaBot' \| 'PlanaBot' \| ...` |
@@ -316,8 +318,7 @@ await msg.sendMarkdown({
 公共函数（`src/libs/common.ts`）：
 
 - `sendToAdmin(content)` — 通知管理员（回调群；`callbackToGroup`，频道侧已废弃）  
-- `pushToDB(table, data)` — 插入 MariaDB（`devEnv` 下直接 return）  
-- `searchDB(table, key, value)`  
+- `pushToDB(table, data)` — 写入 MongoDB；优先使用显式 `_id`，否则按 `eventId > eId > mid > id > msgId` 取，`timestamp`/`ts` 统一转 Date
 - `settingUserConfig(aid, 'GET'|'SET', data)` — Redis hash `setting:{aid}`  
 - `callWithRetry(fn, args)` — 发送重试  
 - `timeConver(ms)` — 时长文案  
@@ -482,7 +483,7 @@ initData().catch((err) => {
   - 前端：`web/`（Vue3 + Vite + Tailwind v4，分组表单编辑）  
   - 构建：`pnpm web:build` → 产物 `public/settings/`  
   - 开发：`pnpm web:dev`（默认代理 API 到 `http://127.0.0.1:2341`，可用 `VITE_API_TARGET` 覆盖）  
-  - 保存：写盘后**热替换**当前进程 `import config` 内存对象；路径 / COS / chatbot 等立即生效；`webhookPort` / intents / 已建 Redis·MariaDB 连接 / OpenAPI token 仍需重启  
+  - 保存：写盘后**热替换**当前进程 `import config` 内存对象；路径 / COS / chatbot 等立即生效；`webhookPort` / intents / 已建 Redis·MongoDB 连接 / OpenAPI token 仍需重启  
   - nodemon 已忽略 `config/settings.json`，避免保存配置触发整进程重启  
 - **路径格式**：全局 `rootPath` 只设一次；各路径字段磁盘只存**子路径**字符串（如 `data/studentInfo.json`）。运行时为 `ConfigPath`，**仅 `toString()` 时** `join(rootPath, child)`；绝对 child 不拼接。模板 `` `${config.xxx}` `` 会自动拼接；`fs` 等强类型 API 用 `pathStr(config.xxx)`  
 - 路径类配置集中在 settings，**禁止硬编码绝对路径**（临时目录等可写绝对 child）  
@@ -494,13 +495,28 @@ initData().catch((err) => {
 - 可读：`fs.readFileSync(path).json<T>()`（Buffer 扩展）  
 - 可热加载的全局数据类实现 `reload()`（见 `StudentInfo` / `StudentNameAlias`）
 
-### 8.3 MariaDB
+### 8.3 MongoDB
 
 ```ts
 await pushToDB('tableName', { col1: val1, col2: val2 });
-// devEnv 下跳过
-// INSERT 字段来自 object keys，对象值会 JSON.stringify
+// _id 优先取 eventId/mid/id/eId/msgId，避免重复
+// timestamp / ts 字段写入前统一转成 Date
+// 消息类集合额外有 eventId 唯一稀疏索引 idx_eventId
 ```
+
+迁移脚本 `script/migrateMariadbToMongo.ts`（`pnpm migrate:mongo`）负责把旧 MariaDB
+数据按 eventRec 实时写入的文档结构转换后导入 MongoDB；支持 `--dry-run` / `--drop` /
+`--table` / `--limit` / `--where`（按时间范围分片并行），带进度显示；空集合自动
+`insertMany`，非空集合走 upsert，默认 batch 5000。结构约定：消息表 `author{id,username,avatar}`、
+`id`、`guild_id`/`group_id`、`channel_id`、`timestamp`；executeRecord 为
+`_id（=消息 id）/guild_id/channel_id/channel_name/author{id,username}/timestamp`；
+GUILD_MEMBERS 为 `eventId/guild_id/joined_at/roles[]/user{id,username,avatar}`；
+GUILD_MESSAGE_REACTIONS 为 `channel_id/emoji{id,type}/guild_id/target{id,type}/user_id`。
+
+每日 03:00 由 cron 执行 `/var/lib/mongodb-files/backup.sh` 备份全部 MongoDB
+数据库（`mongodump --archive --gzip` 到 `backups/`，保留 14 天）。
+备份成功后自动上传 COS：`backup/<YYYY-MM-DD>/backup.log` +
+`backup/<YYYY-MM-DD>/mongodb_*.archive.gz`（上传脚本 `backup-upload.js`）。
 
 ### 8.4 封禁体系
 
@@ -539,7 +555,7 @@ await pushToDB('tableName', { col1: val1, col2: val2 });
 6. **需要键盘** 时：改 `data/keyboardMap.ts`。  
 7. **需要推送命令** 时：改 `interaction.commandMap`。  
 8. **权限**：用户命令默认开放；管理命令 `adminId`；频道子频道用 `channelAllows`。  
-9. **状态**：优先 Redis；需审计/统计再 MariaDB；简单本地 JSON 仅在同类已有先例时使用。  
+9. **状态**：优先 Redis；需审计/统计再 MongoDB；简单本地 JSON 仅在同类已有先例时使用。  
 10. **回复**：文本 `sendMsgEx`/`sendMsgExRef`；图 COS + `imageUrl`；复杂卡片 `sendMarkdown`。  
 11. **验证**：`devEnv` 下用管理员账号触发；看 log 中 `plugins/${path}:${fnc}`。  
 12. **不要**提交密钥、不要改无关插件、不要大规模重构发送层。
@@ -627,6 +643,7 @@ export async function drawSomething(msg: IMessageGUILD | IMessageGROUP | IMessag
 | 事件怎么进插件 | `src/eventRec.ts` |
 | 怎么发消息 | `src/libs/IMessageEx.ts` |
 | 全局初始化 | `src/bootloader.ts`、`src/init.ts` |
+| MongoDB 双写 / 迁移 | `src/eventRec.ts`、`src/libs/common.ts` → `pushToDB`、`script/migrateMariadbToMongo.ts` |
 | 类型定义 | `src/types/types.d.ts` |
 | 传输拓扑 | `transport.md` |
 | 配置样例 | `config/config.example.ts` |

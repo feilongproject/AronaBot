@@ -1,6 +1,6 @@
 import chokidar from 'chokidar';
 import schedule from 'node-schedule';
-import { createPool } from 'mariadb';
+import { MongoClient } from 'mongodb';
 import { createClient } from 'redis';
 import { IChannel, IGuild, createOpenAPI, createWebsocket } from 'qq-bot-sdk';
 import { sendToAdmin } from './libs/common';
@@ -70,30 +70,40 @@ export async function init() {
     };
     await connectRedis();
 
-    log.info(`初始化: 正在连接 mariadb 数据库`);
-    const connectMariadb = async (init = true, retry = 0) => {
-        global.mariadb = await createPool({
-            ...config.mariadb,
-            database: botType,
-        })
-            .getConnection()
-            .catch((err) => {
-                log.error(
-                    (init ? '初始化: ' : '重连: ') + `mariadb 数据库连接失败, retry: ${retry}\n`,
-                    err,
-                );
-                if (retry > 5) process.exit();
-                else return connectMariadb(false, ++retry) as any;
-            });
-        mariadb?.on('error', (err) => {
-            log.error('mariadb.error', err);
-            mariadb.end();
-            mariadb.release();
-            connectMariadb(false);
+    log.info(`初始化: 正在连接 mongodb 数据库`);
+    const connectMongo = async (init = true, retry = 0): Promise<void> => {
+        const botMongo = config.bots[botType].mongo;
+        if (!botMongo) {
+            log.error('初始化: 未配置 bots[botType].mongo, 跳过 mongodb 连接');
+            return;
+        }
+        const authSource = botMongo.authSource || botMongo.database;
+        const uri = `mongodb://${encodeURIComponent(botMongo.user)}:${encodeURIComponent(
+            botMongo.password,
+        )}@${config.mongo.host}:${config.mongo.port}/${botMongo.database}?authSource=${encodeURIComponent(
+            authSource,
+        )}`;
+        global.mongo = new MongoClient(uri, {
+            connectTimeoutMS: config.mongo.connectTimeoutMS,
+            serverSelectionTimeoutMS: config.mongo.serverSelectionTimeoutMS,
         });
-        log.info(`${init ? '初始化: ' : '重连: '}mariadb 数据库连接成功`);
+        try {
+            await global.mongo.connect();
+            global.mongoDb = global.mongo.db(botMongo.database);
+            log.info(`${init ? '初始化: ' : '重连: '}mongodb 数据库连接成功 ${botMongo.database}`);
+        } catch (err) {
+            log.error(
+                (init ? '初始化: ' : '重连: ') + `mongodb 数据库连接失败, retry: ${retry}\n`,
+                err,
+            );
+            if (retry > 5) process.exit();
+            else return connectMongo(false, ++retry);
+        }
+        global.mongo.on('error', (err) => {
+            log.error('mongodb.error', err);
+        });
     };
-    if (config.bots[botType].allowMariadb) await connectMariadb();
+    if (config.bots[botType].allowMongo) await connectMongo();
 
     // log.info(`初始化: 正在连接 rabbitmq 数据库`);
     // global.mqconn = await amqp.connect("amqp://localhost");
@@ -128,7 +138,7 @@ export async function init() {
     log.info('初始化: 正在注册SIGINT');
     process.on('SIGINT', async () => {
         await global.browser?.close();
-        await mariadb?.end();
+        await mongo?.close();
         await schedule.gracefulShutdown();
         process.exit(0);
     });

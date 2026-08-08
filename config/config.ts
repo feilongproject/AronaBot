@@ -459,7 +459,7 @@ export function applyConfigRuntimeHooks(): ConfigHotReloadResult {
     const deferred = [
         'webhookPort（进程已监听的端口）',
         'intents（启动时注册的事件监听）',
-        'redis / mariadb（已建立的连接）',
+        'redis / mongo（已建立的连接）',
         'bot token/secret（OpenAPI client）',
     ];
 

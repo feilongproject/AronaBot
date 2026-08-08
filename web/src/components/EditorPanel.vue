@@ -20,6 +20,7 @@ const SECTIONS = [
     { id: 'bots', label: 'Bots', desc: '各机器人身份、端口、intent' },
     { id: 'redis', label: 'Redis', desc: '缓存与状态存储' },
     { id: 'mariadb', label: 'MariaDB', desc: '业务持久化' },
+    { id: 'mongo', label: 'MongoDB', desc: '双写持久化' },
     { id: 'cos', label: '腾讯 COS', desc: '图片上传' },
     { id: 'paths', label: '路径与通用', desc: '全局 rootPath + 子路径' },
     { id: 'images', label: '图片资源', desc: '出图子路径' },
@@ -46,6 +47,12 @@ const config = reactive<AnyConfig>({
         password: '',
         connectTimeout: 5000,
         connectionLimit: 100,
+    },
+    mongo: {
+        host: '127.0.0.1',
+        port: 27017,
+        connectTimeoutMS: 5000,
+        serverSelectionTimeoutMS: 5000,
     },
     cos: { SecretId: '', SecretKey: '', Bucket: '', Region: '' },
     groupPush: { url: '', authKey: '', appId: '', llobKey: '' },
@@ -153,7 +160,6 @@ function fieldDesc(path: string, fallback = '') {
     return schemaDescription(schema.value, path) || fallback;
 }
 
-
 function deepClone<T>(v: T): T {
     return JSON.parse(JSON.stringify(v));
 }
@@ -212,7 +218,8 @@ function normalizeConfig(src: AnyConfig): AnyConfig {
     c.bots = c.bots && typeof c.bots === 'object' && !Array.isArray(c.bots) ? c.bots : {};
 
     const redisSrc = c.redis && typeof c.redis === 'object' ? c.redis : {};
-    const redisSocket = redisSrc.socket && typeof redisSrc.socket === 'object' ? redisSrc.socket : {};
+    const redisSocket =
+        redisSrc.socket && typeof redisSrc.socket === 'object' ? redisSrc.socket : {};
     c.redis = {
         ...redisSrc,
         socket: {
@@ -232,6 +239,14 @@ function normalizeConfig(src: AnyConfig): AnyConfig {
         connectTimeout: 5000,
         connectionLimit: 100,
         ...(c.mariadb || {}),
+    };
+
+    c.mongo = {
+        host: '127.0.0.1',
+        port: 27017,
+        connectTimeoutMS: 5000,
+        serverSelectionTimeoutMS: 5000,
+        ...(c.mongo || {}),
     };
 
     c.cos = {
@@ -437,7 +452,6 @@ function applyRawToForm() {
     }
 }
 
-
 async function save() {
     if (initConfigError.value) {
         setStatus('err', `initConfig: ${initConfigError.value}`);
@@ -547,7 +561,10 @@ onMounted(() => {
             </div>
             <div class="rounded-xl border border-slate-700/80 bg-slate-950/60 px-3 py-2.5">
                 <div class="text-xs text-slate-500">状态</div>
-                <div class="mt-1 font-mono text-sm" :class="dirty ? 'text-amber-300' : 'text-emerald-300'">
+                <div
+                    class="mt-1 font-mono text-sm"
+                    :class="dirty ? 'text-amber-300' : 'text-emerald-300'"
+                >
                     {{ dirty ? '有未保存修改' : '已同步' }}
                     · {{ meta.devEnv ? 'dev' : 'prod' }}
                 </div>
@@ -650,17 +667,13 @@ onMounted(() => {
                     </header>
                     <Field
                         label="enabled"
-                        :hint="fieldDesc('webSettings.enabled', '关闭后 /settings 与 API 将拒绝访问')"
+                        :hint="
+                            fieldDesc('webSettings.enabled', '关闭后 /settings 与 API 将拒绝访问')
+                        "
                     >
-                        <BoolInput
-                            v-model="config.webSettings.enabled"
-                            label="启用 Web 设置页"
-                        />
+                        <BoolInput v-model="config.webSettings.enabled" label="启用 Web 设置页" />
                     </Field>
-                    <Field
-                        label="token"
-                        :hint="fieldDesc('webSettings.token', '浏览器登录口令')"
-                    >
+                    <Field label="token" :hint="fieldDesc('webSettings.token', '浏览器登录口令')">
                         <TextInput v-model="config.webSettings.token" type="password" />
                     </Field>
                 </template>
@@ -670,7 +683,12 @@ onMounted(() => {
                     <header>
                         <h2 class="text-lg font-semibold text-slate-100">Bots</h2>
                         <p class="mt-1 text-sm text-slate-500">
-                            {{ fieldDesc('bots', '按 bot 编辑身份、端口、intent、群映射与 chatbot。') }}
+                            {{
+                                fieldDesc(
+                                    'bots',
+                                    '按 bot 编辑身份、端口、intent、群映射与 chatbot。',
+                                )
+                            }}
                         </p>
                     </header>
                     <BotEditor :model-value="config.bots" @update:model-value="setBots" />
@@ -733,12 +751,52 @@ onMounted(() => {
                     </div>
                 </template>
 
+                <!-- mongo -->
+                <template v-else-if="activeSection === 'mongo'">
+                    <header>
+                        <h2 class="text-lg font-semibold text-slate-100">MongoDB</h2>
+                        <p class="mt-1 text-sm text-slate-500">
+                            {{
+                                fieldDesc(
+                                    'mongo',
+                                    '双写持久化；bot 还需 allowMongo=true 与专用账号。',
+                                )
+                            }}
+                        </p>
+                    </header>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <Field label="host">
+                            <TextInput v-model="config.mongo.host" mono />
+                        </Field>
+                        <Field label="port">
+                            <NumberInput v-model="config.mongo.port" integer />
+                        </Field>
+                        <Field
+                            label="connectTimeoutMS（ms）"
+                            :hint="fieldDesc('mongo.connectTimeoutMS')"
+                        >
+                            <NumberInput v-model="config.mongo.connectTimeoutMS" integer />
+                        </Field>
+                        <Field
+                            label="serverSelectionTimeoutMS（ms）"
+                            :hint="fieldDesc('mongo.serverSelectionTimeoutMS')"
+                        >
+                            <NumberInput v-model="config.mongo.serverSelectionTimeoutMS" integer />
+                        </Field>
+                    </div>
+                </template>
+
                 <!-- cos -->
                 <template v-else-if="activeSection === 'cos'">
                     <header>
                         <h2 class="text-lg font-semibold text-slate-100">腾讯云 COS</h2>
                         <p class="mt-1 text-sm text-slate-500">
-                            {{ fieldDesc('cos', '出图上传；公开访问域名见「路径与通用 → cosUrl」。') }}
+                            {{
+                                fieldDesc(
+                                    'cos',
+                                    '出图上传；公开访问域名见「路径与通用 → cosUrl」。',
+                                )
+                            }}
                         </p>
                     </header>
                     <div class="grid gap-4 sm:grid-cols-2">
@@ -752,7 +810,11 @@ onMounted(() => {
                             <TextInput v-model="config.cos.Bucket" mono />
                         </Field>
                         <Field label="Region" :hint="fieldDesc('cos.Region', '如 ap-guangzhou')">
-                            <TextInput v-model="config.cos.Region" mono placeholder="ap-guangzhou" />
+                            <TextInput
+                                v-model="config.cos.Region"
+                                mono
+                                placeholder="ap-guangzhou"
+                            />
                         </Field>
                     </div>
                 </template>
@@ -762,8 +824,8 @@ onMounted(() => {
                     <header>
                         <h2 class="text-lg font-semibold text-slate-100">路径与通用</h2>
                         <p class="mt-1 text-sm text-slate-500">
-                            <strong class="font-medium text-slate-300">rootPath 只设一次</strong>；下方字段只填
-                            <code class="text-sky-300/90">子路径</code>。运行时
+                            <strong class="font-medium text-slate-300">rootPath 只设一次</strong
+                            >；下方字段只填 <code class="text-sky-300/90">子路径</code>。运行时
                             <code class="text-slate-400">ConfigPath.toString()</code>
                             才拼接为绝对路径。
                         </p>
@@ -772,7 +834,12 @@ onMounted(() => {
                     <section class="space-y-3 rounded-xl border border-sky-500/30 bg-sky-500/5 p-3">
                         <Field
                             label="rootPath（全局）"
-                            :hint="fieldDesc('rootPath', '留空 = process.cwd()。所有相对子路径相对此根。')"
+                            :hint="
+                                fieldDesc(
+                                    'rootPath',
+                                    '留空 = process.cwd()。所有相对子路径相对此根。',
+                                )
+                            "
                         >
                             <TextInput
                                 v-model="config.rootPath"
@@ -783,9 +850,7 @@ onMounted(() => {
                         <div class="font-mono text-[11px] text-slate-500">
                             解析后 rootPath =
                             <span class="text-sky-300/90">{{ rootPathResolved || '—' }}</span>
-                            <span class="text-slate-600">
-                                （保存并热加载后刷新可见最新值）
-                            </span>
+                            <span class="text-slate-600"> （保存并热加载后刷新可见最新值） </span>
                         </div>
                     </section>
 
@@ -830,12 +895,19 @@ onMounted(() => {
                     <header>
                         <h2 class="text-lg font-semibold text-slate-100">图片资源</h2>
                         <p class="mt-1 text-sm text-slate-500">
-                            {{ fieldDesc('images', '只填相对 rootPath 的子路径（如 data/images/…）。') }}
+                            {{
+                                fieldDesc(
+                                    'images',
+                                    '只填相对 rootPath 的子路径（如 data/images/…）。',
+                                )
+                            }}
                         </p>
                     </header>
                     <Field
                         label="gachaMask"
-                        :hint="fieldDesc('images.gachaMask', '按稀有度索引的卡背图，下标 0 通常为空')"
+                        :hint="
+                            fieldDesc('images.gachaMask', '按稀有度索引的卡背图，下标 0 通常为空')
+                        "
                     >
                         <div class="space-y-3">
                             <div
@@ -912,7 +984,9 @@ onMounted(() => {
                     </div>
                     <div class="space-y-3">
                         <div class="flex items-center justify-between">
-                            <h3 class="text-sm font-semibold text-slate-300">createParams.messages</h3>
+                            <h3 class="text-sm font-semibold text-slate-300">
+                                createParams.messages
+                            </h3>
                             <button
                                 type="button"
                                 class="rounded-lg border border-slate-600 px-3 py-1 text-sm text-slate-300 hover:border-sky-500 hover:text-sky-300"
@@ -972,10 +1046,7 @@ onMounted(() => {
                     </header>
                     <div class="grid gap-4 sm:grid-cols-2">
                         <Field label="AccessKeyId">
-                            <TextInput
-                                v-model="config.sms.AccessKey.AccessKeyId"
-                                type="password"
-                            />
+                            <TextInput v-model="config.sms.AccessKey.AccessKeyId" type="password" />
                         </Field>
                         <Field label="AccessKeySecret">
                             <TextInput
@@ -1008,10 +1079,7 @@ onMounted(() => {
                             <TextInput v-model="config.baiduCensoring.API_KEY" type="password" />
                         </Field>
                         <Field label="SECRET_KEY">
-                            <TextInput
-                                v-model="config.baiduCensoring.SECRET_KEY"
-                                type="password"
-                            />
+                            <TextInput v-model="config.baiduCensoring.SECRET_KEY" type="password" />
                         </Field>
                     </div>
                 </template>
@@ -1110,7 +1178,9 @@ onMounted(() => {
                     </div>
                     <div class="space-y-3">
                         <div class="flex items-center justify-between">
-                            <h3 class="text-sm font-semibold text-slate-300">hotLoadConfigsReload</h3>
+                            <h3 class="text-sm font-semibold text-slate-300">
+                                hotLoadConfigsReload
+                            </h3>
                             <button
                                 type="button"
                                 class="rounded-lg border border-slate-600 px-3 py-1 text-sm text-slate-300 hover:border-sky-500 hover:text-sky-300"
@@ -1170,7 +1240,9 @@ onMounted(() => {
                     <Field label="initConfig" :hint="fieldDesc('initConfig', '自由对象')">
                         <TextareaInput v-model="initConfigText" mono :rows="8" />
                     </Field>
-                    <p v-if="initConfigError" class="text-sm text-rose-300">{{ initConfigError }}</p>
+                    <p v-if="initConfigError" class="text-sm text-rose-300">
+                        {{ initConfigError }}
+                    </p>
 
                     <div class="rounded-xl border border-slate-700/80 p-3 space-y-2">
                         <div class="flex flex-wrap items-center gap-2">
@@ -1204,10 +1276,13 @@ onMounted(() => {
                         </div>
                         <template v-if="showRaw">
                             <TextareaInput v-model="rawJson" mono :rows="18" />
-                            <p v-if="rawJsonError" class="mt-2 text-sm text-rose-300">{{ rawJsonError }}</p>
+                            <p v-if="rawJsonError" class="mt-2 text-sm text-rose-300">
+                                {{ rawJsonError }}
+                            </p>
                         </template>
                         <p v-else class="text-xs text-slate-500">
-                            备注写在 schema 的 description，不要写进 JSON。保存仍用顶栏「保存配置」。
+                            备注写在 schema 的 description，不要写进
+                            JSON。保存仍用顶栏「保存配置」。
                         </p>
                     </div>
                 </template>

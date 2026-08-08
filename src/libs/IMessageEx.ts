@@ -14,7 +14,7 @@ import {
     MessageMarkdown,
     CUser,
 } from 'qq-bot-sdk';
-import { callWithRetry, pushToDB } from './common';
+import { callWithRetry } from './common';
 import config from '../../config/config';
 
 export function findOpts(
@@ -182,30 +182,6 @@ class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
         });
     };
 
-    async pushToDB(another: Record<string, string>) {
-        const attachments: string[] = [];
-        if (this.attachments) for (const path of this.attachments) attachments.push(path.url);
-        return pushToDB(
-            this.messageType == MessageType.DIRECT ? 'directMessage' : 'guildMessage',
-            Object.assign(
-                {
-                    mid: this.id,
-                    aid: this.author.id,
-                    aAvatar: this.author.avatar,
-                    aName: this.author.username,
-                    gid: this.guild_id,
-                    cid: this.channel_id,
-                    seq: this.seq,
-                    ts: this.timestamp,
-                    content: this.content,
-                    attachments: attachments.join(),
-                    refer: this.message_reference?.message_id || '',
-                },
-                another,
-            ),
-        );
-    }
-
     async sendToAdmin(content: string) {
         return this.sendMsgEx({
             content,
@@ -264,13 +240,6 @@ export class IMessageGUILD
             `频公{${this.guildName}}[${this.channelName}|${this.channel_id}](${this.author.username}|${this.author.id})${this._atta}: ${this.content}`,
         );
         this.opts = findOpts(this);
-
-        const mention: string[] = [];
-        if (this.mentions) for (const user of this.mentions) mention.push(user.id);
-        this.pushToDB({
-            mentions: mention.join(','),
-            cName: this.channelName || '',
-        });
     }
 }
 
@@ -291,7 +260,6 @@ export class IMessageDIRECT
             `频私{${this.guild_id}}(${this.author.username}|${this.author.id})${this._atta}: ${this.content}`,
         );
         this.opts = findOpts(this);
-        this.pushToDB({ srcGid: this.src_guild_id });
     }
 }
 
@@ -342,19 +310,6 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         this.message_scene = msg.message_scene ?? { source: '', ext: [] };
         this.refs = {};
         this.parseRef();
-    }
-
-    async pushToDB(another: Record<string, string>) {
-        const attachments: string[] = [];
-        if (this.attachments) for (const path of this.attachments) attachments.push(path.url);
-        return pushToDB(this.messageType == MessageType.GROUP ? 'groupMessage' : 'c2cMessage', {
-            id: this.id,
-            aid: this.author.id,
-            content: this.content,
-            ts: this.timestamp,
-            attachments: attachments.join(','),
-            ...another,
-        });
     }
 
     async sendMsgExRef(options: Partial<SendOption.Chat>) {
@@ -577,9 +532,6 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
             `群聊[${isOffical ? this.group_id : this.group_openid}](${this.author.id}): ${this.content}`,
         );
         this.opts = findOpts(this);
-
-        if (!isOffical) return;
-        this.pushToDB({ gid: this.group_id });
     }
 }
 
@@ -588,14 +540,13 @@ export class IMessageC2C extends IMessageChatCommon implements IntentMessage.C2C
 
     constructor(msg: IntentMessage.C2C_MESSAGE_body, register = true) {
         super(msg, MessageType.FRIEND);
-        this.author = msg.author as any;
+        this.author = msg.author;
         // this.attachments = msg.attachments;
 
         if (!register) return;
 
         log.info(`私聊(${this.author.id})${this._atta}: ${this.content}`);
         this.opts = findOpts(this);
-        this.pushToDB({});
     }
 }
 

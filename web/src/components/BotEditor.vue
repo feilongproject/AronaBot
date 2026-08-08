@@ -17,6 +17,13 @@ export type BotConfigModel = {
     intents?: string[];
     allowMarkdown?: boolean;
     allowMariadb?: boolean;
+    allowMongo?: boolean;
+    mongo?: {
+        user?: string;
+        password?: string;
+        database?: string;
+        authSource?: string;
+    };
     webhookPort?: { prod?: number; dev?: number };
     groupMap?: Record<string, string>;
     meRealId?: string;
@@ -140,6 +147,7 @@ function addBot() {
             intents: ['GUILD_MESSAGES'],
             allowMarkdown: false,
             allowMariadb: false,
+            allowMongo: false,
             webhookPort: { prod: 0, dev: 0 },
             groupMap: {},
             meRealId: '',
@@ -206,12 +214,17 @@ function renameBot(oldName: string, newName: string) {
             </div>
         </div>
 
-        <div v-if="!current" class="rounded-xl border border-dashed border-slate-700 p-6 text-center text-sm text-slate-500">
+        <div
+            v-if="!current"
+            class="rounded-xl border border-dashed border-slate-700 p-6 text-center text-sm text-slate-500"
+        >
             暂无 bot，请添加
         </div>
 
         <template v-else>
-            <div class="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-slate-700/80 bg-slate-950/40 p-3">
+            <div
+                class="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-slate-700/80 bg-slate-950/40 p-3"
+            >
                 <Field label="Bot 名称（JSON 键）" hint="输入新名称后点「重命名」">
                     <div class="flex flex-wrap gap-2">
                         <div class="min-w-[12rem] flex-1">
@@ -237,7 +250,9 @@ function renameBot(oldName: string, newName: string) {
             </div>
 
             <section class="space-y-4">
-                <h3 class="text-sm font-semibold tracking-wide text-slate-300 uppercase">身份与密钥</h3>
+                <h3 class="text-sm font-semibold tracking-wide text-slate-300 uppercase">
+                    身份与密钥
+                </h3>
                 <div class="grid gap-4 sm:grid-cols-2">
                     <Field label="appID">
                         <TextInput
@@ -285,7 +300,9 @@ function renameBot(oldName: string, newName: string) {
             </section>
 
             <section class="space-y-4">
-                <h3 class="text-sm font-semibold tracking-wide text-slate-300 uppercase">能力开关</h3>
+                <h3 class="text-sm font-semibold tracking-wide text-slate-300 uppercase">
+                    能力开关
+                </h3>
                 <div class="grid gap-4 sm:grid-cols-2">
                     <Field label="allowMarkdown">
                         <BoolInput
@@ -301,11 +318,72 @@ function renameBot(oldName: string, newName: string) {
                             @update:model-value="patchCurrent((b) => (b.allowMariadb = $event))"
                         />
                     </Field>
+                    <Field label="allowMongo">
+                        <BoolInput
+                            :model-value="Boolean(current.allowMongo)"
+                            label="允许连接 MongoDB（双写）"
+                            @update:model-value="patchCurrent((b) => (b.allowMongo = $event))"
+                        />
+                    </Field>
+                </div>
+            </section>
+
+            <section v-if="current.allowMongo" class="space-y-4">
+                <h3 class="text-sm font-semibold tracking-wide text-slate-300 uppercase">
+                    MongoDB 账号
+                </h3>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <Field label="mongo.user">
+                        <TextInput
+                            :model-value="current.mongo?.user || ''"
+                            mono
+                            @update:model-value="
+                                patchCurrent((b) => {
+                                    b.mongo = { ...(b.mongo || {}), user: $event };
+                                })
+                            "
+                        />
+                    </Field>
+                    <Field label="mongo.password">
+                        <TextInput
+                            type="password"
+                            :model-value="current.mongo?.password || ''"
+                            @update:model-value="
+                                patchCurrent((b) => {
+                                    b.mongo = { ...(b.mongo || {}), password: $event };
+                                })
+                            "
+                        />
+                    </Field>
+                    <Field label="mongo.database">
+                        <TextInput
+                            :model-value="current.mongo?.database || ''"
+                            mono
+                            @update:model-value="
+                                patchCurrent((b) => {
+                                    b.mongo = { ...(b.mongo || {}), database: $event };
+                                })
+                            "
+                        />
+                    </Field>
+                    <Field label="mongo.authSource">
+                        <TextInput
+                            :model-value="current.mongo?.authSource || ''"
+                            mono
+                            @update:model-value="
+                                patchCurrent((b) => {
+                                    b.mongo = { ...(b.mongo || {}), authSource: $event };
+                                })
+                            "
+                        />
+                    </Field>
                 </div>
             </section>
 
             <section class="space-y-4">
-                <h3 class="text-sm font-semibold tracking-wide text-slate-300 uppercase">Webhook 端口</h3>
+                <h3 class="text-sm font-semibold tracking-wide text-slate-300 uppercase">
+                    Webhook 端口
+                </h3>
                 <div class="grid gap-4 sm:grid-cols-2">
                     <Field label="prod" hint="生产启动监听端口">
                         <NumberInput
@@ -333,7 +411,9 @@ function renameBot(oldName: string, newName: string) {
             </section>
 
             <section class="space-y-3">
-                <h3 class="text-sm font-semibold tracking-wide text-slate-300 uppercase">intents</h3>
+                <h3 class="text-sm font-semibold tracking-wide text-slate-300 uppercase">
+                    intents
+                </h3>
                 <CheckboxGroup
                     :model-value="current.intents || []"
                     :options="INTENT_OPTIONS"
@@ -343,7 +423,9 @@ function renameBot(oldName: string, newName: string) {
             </section>
 
             <section class="space-y-3">
-                <h3 class="text-sm font-semibold tracking-wide text-slate-300 uppercase">groupMap</h3>
+                <h3 class="text-sm font-semibold tracking-wide text-slate-300 uppercase">
+                    groupMap
+                </h3>
                 <p class="text-xs text-slate-500">群 openid → 数字群号 映射</p>
                 <KeyValueMap
                     :model-value="current.groupMap || {}"
@@ -366,7 +448,9 @@ function renameBot(oldName: string, newName: string) {
             </section>
 
             <section class="space-y-4">
-                <h3 class="text-sm font-semibold tracking-wide text-slate-300 uppercase">chatbot</h3>
+                <h3 class="text-sm font-semibold tracking-wide text-slate-300 uppercase">
+                    chatbot
+                </h3>
                 <Field label="groups" hint="启用 chatbot 的群 openid 列表">
                     <StringList
                         :model-value="current.chatbot?.groups || []"

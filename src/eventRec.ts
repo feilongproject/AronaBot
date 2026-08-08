@@ -12,6 +12,12 @@ type PluginFnc = (
     data?: string | number,
 ) => Promise<any>;
 
+async function writeMessageDB(rawMsg: Record<string, any>, eventId: string, table: string) {
+    return pushToDB(table, { eventId, ...rawMsg }).then((_) => {
+        if (devEnv) log.debug(`写入数据库 ${table} 成功`, _);
+    });
+}
+
 async function executeChannel(msg: IMessageDIRECT | IMessageGUILD) {
     try {
         global.redis.set(`lastestMsgId:${botType}`, msg.id, { EX: 4 * 60 });
@@ -41,20 +47,23 @@ async function executeChannel(msg: IMessageDIRECT | IMessageGUILD) {
             );
         else await (plugin[opts.fnc] as PluginFnc)(msg);
 
-        await pushToDB('executeRecord', {
-            mid: msg.id,
-            type: String(Object.getPrototypeOf(msg).constructor.name),
-            optFather: opts.path,
-            optChild: opts.fnc,
-            gid: msg.guild_id,
-            cid: msg.channel_id,
-            cName: (msg as IMessageGUILD).channelName || '',
-            aid: msg.author.id,
-            aName: msg.author.username,
-            seq: msg.seq,
-            ts: msg.timestamp,
-            content: msg.content,
-        });
+        return writeMessageDB(
+            {
+                mid: msg.id,
+                type: String(Object.getPrototypeOf(msg).constructor.name),
+                optFather: opts.path,
+                optChild: opts.fnc,
+                guild_id: msg.guild_id,
+                channel_id: msg.channel_id,
+                channel_name: (msg as IMessageGUILD).channelName || '',
+                author: { id: msg.author.id, username: msg.author.username },
+                seq: msg.seq,
+                timestamp: msg.timestamp,
+                content: msg.content,
+            },
+            msg.id,
+            'executeRecord',
+        );
     } catch (err) {
         await mailerError(msg, err instanceof Error ? err : new Error(strFormat(err))).catch(
             (err) => log.error(err),
@@ -109,6 +118,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             if (global.devEnv && !adminId.includes(data.author.id)) return;
             if (devEnv) log.debug(event);
             const msg = new IMessageGUILD(data);
+            writeMessageDB(data, event.eventId, 'guildMessage');
             msg.content = msg.content.replaceAll('@彩奈', '<@!5671091699016759820>');
             if (botType == 'AronaBot')
                 import('./plugins/AvalonSystem')
@@ -123,6 +133,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             if (global.devEnv && !adminId.includes(data.author.id)) return;
             if (devEnv) log.debug(event);
             const msg = new IMessageDIRECT(data);
+            writeMessageDB(data, event.eventId, 'directMessage');
             await global.redis.hSet(`directUid->Gid:${meId}`, msg.author.id, msg.guild_id);
             return executeChannel(msg)
                 .then(() => import('./plugins/admin').then((e) => e.directToAdmin(msg)))
@@ -148,12 +159,14 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
                 const data = event.msg as any as IntentMessage.GROUP_MESSAGE_body;
                 if (devEnv && !adminId.includes(data.author.id)) return;
                 const msg = new IMessageGROUP(data, true, data.isOffical ?? true);
+                if (data.isOffical ?? true) writeMessageDB(data, event.eventId, 'groupMessage');
                 return executeChat(msg);
             } else if (event.eventType == IntentEventType.C2C_MESSAGE_CREATE) {
                 const data = event.msg as any as IntentMessage.C2C_MESSAGE_body;
                 if (devEnv && !adminId.includes(data.author.id)) return;
 
                 const msg = new IMessageC2C(data);
+                writeMessageDB(data, event.eventId, 'c2cMessage');
                 return executeChat(msg);
             } else if (
                 [IntentEventType.GROUP_DEL_ROBOT, IntentEventType.GROUP_ADD_ROBOT].includes(
@@ -191,37 +204,26 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
                 .catch((err) => log.error(err));
             if (devEnv) return;
             const msg = (event as IntentMessage.GUILD_MEMBERS).msg;
-            if (msg.user.id != '15874984758683127001')
-                return pushToDB('GUILD_MEMBERS', {
-                    type: event.eventType,
-                    eId: event.eventId,
-                    aId: msg.user.id,
-                    aAvatar: msg.user.avatar,
-                    aName: msg.user.username,
-                    nick: msg.nick,
-                    gid: msg.guild_id,
-                    jts: msg.joined_at,
-                    cts: new Date().toDBString(),
-                    opUserId: msg.op_user_id || '',
-                    roles: (msg.roles || []).join() || '',
-                });
-            else return;
+            // if (msg.user.id != '15874984758683127001')
+            return writeMessageDB(
+                { type: event.eventType, ...msg },
+                event.eventId,
+                'GUILD_MEMBERS',
+            );
+            // else return;
         }
 
         case AvailableIntentsEventsEnum.GUILD_MESSAGE_REACTIONS: {
             if (botType != 'AronaBot') return;
             const msg = (event as IntentMessage.GUILD_MESSAGE_REACTIONS).msg;
             if (global.devEnv && !adminId.includes(msg.user_id)) return;
+            if (devEnv) log.debug(event);
 
-            await pushToDB('GUILD_MESSAGE_REACTIONS', {
-                cid: msg.channel_id,
-                emojiId: msg.emoji.id,
-                emojiType: msg.emoji.type,
-                gid: msg.guild_id,
-                targetId: msg.target.id,
-                targetType: msg.target.type,
-                aid: msg.user_id,
-            })
+            await writeMessageDB(
+                { timestamp_custom: new Date(), ...msg },
+                event.eventId,
+                'GUILD_MESSAGE_REACTIONS',
+            )
                 .catch((err) => {
                     log.error(err);
                     return sendToAdmin(`error: pushToDB GUILD_MESSAGE_REACTIONS`);

@@ -150,30 +150,42 @@ export async function callWithRetry<T extends (...args: A) => Promise<R>, R, A e
     }
 }
 
-export async function pushToDB(table: string, data: Record<string, any>) {
-    if (devEnv) return;
-
-    const keys: string[] = [];
-    const keyss: string[] = [];
-    const values: string[] = [];
-    for (const k in data) {
-        keys.push(k);
-        keyss.push('?');
-        values.push(typeof data[k] == 'object' ? JSON.stringify(data[k]) : `${data[k]}`);
+/** 时间字段统一转成 Date，避免新数据字符串与迁移数据 Date 混存 */
+function toDate(value: unknown): unknown {
+    if (value instanceof Date) return value;
+    if (typeof value === 'string' || typeof value === 'number') {
+        const d = new Date(value);
+        if (!Number.isNaN(d.getTime())) return d;
     }
-    //log.debug(`INSERT INTO ${table} (${keys.join()}) VALUES (${keyss.join()})`);
-    return mariadb
-        .query(`INSERT INTO ${table} (${keys.join()}) VALUES (${keyss.join()})`, values)
-        .catch((err) => {
-            // if(err instanceof SqlError)mariadb.isValid
-            log.error(err);
-        });
+    return value;
 }
 
-export async function searchDB(table: string, key: string, value: string) {
-    return mariadb.query(`SELECT * FROM ${table} WHERE ${key} = ?`, value).catch((err) => {
-        log.error(err);
-    });
+export async function pushToDB(table: string, data: Record<string, any>) {
+    if (!global.mongoDb) return;
+    try {
+        const doc: Record<string, any> = { ...data };
+        if (doc.ts !== undefined) doc.ts = toDate(doc.ts);
+        if (doc.timestamp !== undefined) doc.timestamp = toDate(doc.timestamp);
+        for (const k of Object.keys(doc)) {
+            if (doc[k] === undefined) delete doc[k];
+        }
+        if (doc._id !== undefined) {
+            return await global.mongoDb
+                .collection(table)
+                .replaceOne({ _id: doc._id }, doc, { upsert: true });
+        }
+        const primaryKey = ['eventId', 'eId', 'msgId', 'mid', 'id'].find((k) => doc[k] != null);
+        if (primaryKey) {
+            doc._id = String(doc[primaryKey]);
+            return await global.mongoDb
+                .collection(table)
+                .replaceOne({ _id: doc._id }, doc, { upsert: true });
+        } else {
+            return await global.mongoDb.collection(table).insertOne(doc);
+        }
+    } catch (err) {
+        log.error(`pushToMongo ${table}`, err);
+    }
 }
 
 export async function settingUserConfig(

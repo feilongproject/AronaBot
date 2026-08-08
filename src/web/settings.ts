@@ -84,6 +84,7 @@ function validateConfigShape(data: unknown): data is AppConfigFile {
     if (typeof obj.retryTime !== 'number') return false;
     if (!obj.redis || typeof obj.redis !== 'object') return false;
     if (!obj.mariadb || typeof obj.mariadb !== 'object') return false;
+    if (!obj.mongo || typeof obj.mongo !== 'object') return false;
     if (!obj.cos || typeof obj.cos !== 'object') return false;
     return true;
 }
@@ -96,7 +97,7 @@ async function saveConfigHandler(ctx: Context) {
         ctx.status = 400;
         ctx.body = {
             message:
-                '配置结构不合法：需要包含 bots / redis / mariadb / cos / cosUrl / retryTime 等字段',
+                '配置结构不合法：需要包含 bots / redis / mariadb / mongo / cos / cosUrl / retryTime 等字段',
         };
         return;
     }
@@ -226,7 +227,9 @@ export function registerSettingsRoutes(router: Router): void {
             ctx.body = {
                 ok: true,
                 joined,
-                rootPathResolved: resolveRootPath({ rootPath: body.rootPath ?? '' } as AppConfigFile),
+                rootPathResolved: resolveRootPath({
+                    rootPath: body.rootPath ?? '',
+                } as AppConfigFile),
             };
         } catch (err) {
             ctx.status = 500;
