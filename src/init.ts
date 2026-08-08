@@ -114,7 +114,7 @@ export async function init() {
     // webhook / websocket 模式均保持 WebSocket：
     // - webhook：官方 Webhook 注入 + WS 双通道（eventId 去重）
     // - websocket：仅 WS 收事件
-    global.ws = createWebsocket(config.bots[botType]);
+    global.ws = createWebsocket({ ...config.bots[botType], sandbox: devEnv });
     global.ws.once('READY', async (data: IntentMessage.READY) => {
         log.mark(`ws已建立, 机器人信息: ${data.msg.user.username}(${data.msg.user.id})`);
     });

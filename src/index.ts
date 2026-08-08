@@ -30,6 +30,38 @@ if (!PORT || !devPORT) process.exit(1);
 const eventTransport = resolveEventTransport(botCfg);
 const listenPort = devEnv ? devPORT : PORT;
 
+/** 本机回环地址，用于正式 → 开发事件镜像鉴权 */
+const LOOPBACK_IPS = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+
+/**
+ * 正式进程将已归一化的事件转发到本机开发进程。
+ * - websocket / webhook 统一走此路径（webhook 先 emit 到 global.ws，再由此镜像）
+ * - 依赖 Redis 键 `devEnv`（由 --dev 进程看门狗续期）
+ * - 开发侧沙箱 WS 收不到平台消息时，靠此注入仍可调试
+ * - 按 eventId 短去重，避免 webhook+ws 双通道各镜像一次
+ */
+async function mirrorEventToDev(payload: {
+    eventRootType: string;
+    eventId: string;
+    eventType: string;
+    msg: unknown;
+}) {
+    if (devEnv) return;
+    if (!(await redis.get('devEnv'))) return;
+    if (payload.eventId) {
+        const mirrorKey = `devMirror:${payload.eventType}:${payload.eventId}`;
+        if (await redis.exists(mirrorKey)) return;
+        await redis.setEx(mirrorKey, 60, '1');
+    }
+    await axios({
+        url: `http://127.0.0.1:${devPORT}/internal/dev-mirror/${botType}`,
+        method: 'POST',
+        timeout: 2000,
+        headers: { 'Content-Type': 'application/json' },
+        data: payload,
+    }).catch(() => {});
+}
+
 init().then(() => {
     for (const eventRootType of config.bots[botType].intents) {
         log.mark(`开始监听 ${eventRootType} 事件`);
@@ -39,6 +71,13 @@ init().then(() => {
                 log.debug(
                     `收到事件: ${eventRootType} ${data.eventType} ${data.eventId} ${JSON.stringify(data.msg)}`,
                 );
+            // 正式侧异步镜像；不阻塞本进程 eventRec（开发进程仍会 adminId 过滤）
+            void mirrorEventToDev({
+                eventRootType,
+                eventId: data.eventId,
+                eventType: data.eventType,
+                msg: data.msg,
+            });
             return import('./eventRec').then((e) => e.eventRec(data));
         });
     }
@@ -76,6 +115,7 @@ init().then(() => {
             );
             // log.debug(rootType, body.t);
             if (rootType) {
+                // 经 global.ws 统一分发；正式 → 开发镜像在 ws.on 内完成（不再在此二次 HTTP 转发）
                 global.ws.emit(rootType[0], {
                     eventId: body.id,
                     eventType: body.t,
@@ -83,14 +123,6 @@ init().then(() => {
                 });
             }
 
-            if ((await redis.get('devEnv')) && !devEnv) {
-                await axios({
-                    url: `http://127.0.0.1:${devPORT}/webhook/${botType}`,
-                    method: 'POST',
-                    headers: ctx.headers as Record<string, string>,
-                    data: rawBody,
-                }).catch((err) => {});
-            }
             ctx.body = { msg: 'ok' };
             ctx.status = 200;
         });
@@ -100,6 +132,37 @@ init().then(() => {
             `eventTransport=websocket：未注册 Webhook 事件入口，仅 WebSocket 收事件；HTTP :${listenPort} 仍提供设置页等`,
         );
     }
+
+    // 正式 → 开发事件镜像入口（websocket / webhook 均注册；仅 --dev 进程接受）
+    router.post(`/internal/dev-mirror/${botType}`, async (ctx) => {
+        if (!devEnv) {
+            ctx.status = 403;
+            return (ctx.body = { msg: 'only dev process accepts event mirror' });
+        }
+        const ip = (ctx.ip || ctx.request.ip || '').replace(/^::ffff:/, '');
+        if (!LOOPBACK_IPS.has(ctx.ip) && !LOOPBACK_IPS.has(ip) && ip !== '127.0.0.1') {
+            ctx.status = 403;
+            return (ctx.body = { msg: 'loopback only' });
+        }
+        const body = (ctx.request.body || {}) as {
+            eventRootType?: string;
+            eventId?: string;
+            eventType?: string;
+            msg?: unknown;
+        };
+        if (!body.eventRootType || !body.eventType) {
+            ctx.status = 400;
+            return (ctx.body = { msg: 'need eventRootType and eventType' });
+        }
+        // 注入本进程事件总线；dev 侧 mirrorEventToDev 会因 devEnv 直接 return，不会回环
+        global.ws.emit(body.eventRootType, {
+            eventId: body.eventId,
+            eventType: body.eventType,
+            msg: body.msg,
+        });
+        ctx.body = { msg: 'ok' };
+        ctx.status = 200;
+    });
 
     router
         .get(`${botType}`, (ctx, next) => {
