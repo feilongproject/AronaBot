@@ -6,7 +6,7 @@ import Router from '@koa/router';
 import { init } from './init';
 import { initRuntime } from './bootloader';
 // import { handlerSync } from './handlerSync';
-import config from '../config/config';
+import config, { resolveEventTransport } from '../config/config';
 import { EventMap } from './constants/EventMap';
 import { registerSettingsRoutes } from './web/settings';
 
@@ -23,8 +23,12 @@ app.use(async (ctx, next) => {
     await next();
 });
 
-const { dev: devPORT, prod: PORT } = config.bots[botType]?.webhookPort;
+const botCfg = config.bots[botType];
+const { dev: devPORT, prod: PORT } = botCfg?.webhookPort || {};
 if (!PORT || !devPORT) process.exit(1);
+
+const eventTransport = resolveEventTransport(botCfg);
+const listenPort = devEnv ? devPORT : PORT;
 
 init().then(() => {
     for (const eventRootType of config.bots[botType].intents) {
@@ -39,8 +43,9 @@ init().then(() => {
         });
     }
 
-    router
-        .post(`/webhook/${botType}`, async (ctx, next) => {
+    // webhook 模式：注册官方事件入口；websocket 模式不注册（设置页等 HTTP 仍可用）
+    if (eventTransport === 'webhook') {
+        router.post(`/webhook/${botType}`, async (ctx, next) => {
             if (!ctx.request.body) {
                 ctx.status = 400;
                 return (ctx.body = { msg: 'need body' });
@@ -88,7 +93,15 @@ init().then(() => {
             }
             ctx.body = { msg: 'ok' };
             ctx.status = 200;
-        })
+        });
+        log.info(`eventTransport=webhook：已注册 POST /webhook/${botType}，并保持 WebSocket 双通道`);
+    } else {
+        log.info(
+            `eventTransport=websocket：未注册 Webhook 事件入口，仅 WebSocket 收事件；HTTP :${listenPort} 仍提供设置页等`,
+        );
+    }
+
+    router
         .get(`${botType}`, (ctx, next) => {
             ctx.body = { msg: 'hello world' };
         })
@@ -120,8 +133,10 @@ init().then(() => {
     app.use(koaBody({ multipart: true }));
     app.use(router.routes());
     app.use(router.allowedMethods());
-    app.listen(devEnv ? devPORT : PORT, async () => {
-        log.info(`webhook PORT: ${devEnv ? devPORT : PORT} 服务运行中......`);
+    app.listen(listenPort, async () => {
+        log.info(
+            `HTTP PORT: ${listenPort} 服务运行中......（eventTransport=${eventTransport}，设置页 /settings）`,
+        );
     });
     // global.devEnv = true; // BREAK
 });

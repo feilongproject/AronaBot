@@ -8,6 +8,8 @@ import StringList from './fields/StringList.vue';
 import KeyValueMap from './fields/KeyValueMap.vue';
 import CheckboxGroup from './fields/CheckboxGroup.vue';
 
+export type EventTransportMode = 'webhook' | 'websocket';
+
 export type BotConfigModel = {
     appID?: string;
     botUid?: string;
@@ -15,6 +17,8 @@ export type BotConfigModel = {
     secret?: string;
     dsKey?: string;
     intents?: string[];
+    /** webhook=双通道；websocket=仅 WS，HTTP 仍提供设置页 */
+    eventTransport?: EventTransportMode;
     allowMarkdown?: boolean;
     allowMariadb?: boolean;
     allowMongo?: boolean;
@@ -90,6 +94,7 @@ const current = computed(() => {
 });
 
 function ensureShape(bot: BotConfigModel): BotConfigModel {
+    if (bot.eventTransport !== 'webhook') bot.eventTransport = 'websocket';
     if (!bot.webhookPort || typeof bot.webhookPort !== 'object') {
         bot.webhookPort = { prod: 0, dev: 0 };
     }
@@ -145,6 +150,7 @@ function addBot() {
             secret: '',
             dsKey: '',
             intents: ['GUILD_MESSAGES'],
+            eventTransport: 'websocket',
             allowMarkdown: false,
             allowMariadb: false,
             allowMongo: false,
@@ -382,8 +388,40 @@ function renameBot(oldName: string, newName: string) {
 
             <section class="space-y-4">
                 <h3 class="text-sm font-semibold tracking-wide text-slate-300 uppercase">
-                    Webhook 端口
+                    事件传输
                 </h3>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <Field
+                        label="eventTransport"
+                        hint="默认 websocket=仅 WebSocket；webhook=Webhook+WebSocket 双通道（HTTP 仍提供设置页）。修改后需重启"
+                    >
+                        <select
+                            class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 outline-none focus:border-sky-500"
+                            :value="current.eventTransport === 'webhook' ? 'webhook' : 'websocket'"
+                            @change="
+                                patchCurrent(
+                                    (b) =>
+                                        (b.eventTransport =
+                                            ($event.target as HTMLSelectElement).value === 'webhook'
+                                                ? 'webhook'
+                                                : 'websocket'),
+                                )
+                            "
+                        >
+                            <option value="websocket">websocket（仅 WS，默认）</option>
+                            <option value="webhook">webhook（双通道）</option>
+                        </select>
+                    </Field>
+                </div>
+            </section>
+
+            <section class="space-y-4">
+                <h3 class="text-sm font-semibold tracking-wide text-slate-300 uppercase">
+                    HTTP 端口（webhookPort）
+                </h3>
+                <p class="text-xs text-slate-500">
+                    Webhook 入口、设置页、/ping 共用；websocket 模式下也需配置以便前端可用
+                </p>
                 <div class="grid gap-4 sm:grid-cols-2">
                     <Field label="prod" hint="生产启动监听端口">
                         <NumberInput

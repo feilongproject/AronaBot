@@ -22,6 +22,7 @@
                 "GROUP_AND_C2C_EVENT",
                 "INTERACTION"
             ],
+            "eventTransport": "websocket",
             "allowMarkdown": true,
             "allowMongo": true,
             "mongo": {
@@ -53,6 +54,7 @@
             "token": "YOUR_TEST_TOKEN",
             "dsKey": "",
             "intents": ["GUILD_MESSAGES"],
+            "eventTransport": "websocket",
             "allowMarkdown": false,
             "allowMongo": false,
             "webhookPort": {

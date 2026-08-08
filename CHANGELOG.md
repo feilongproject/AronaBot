@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-08
+
+### 事件传输：Webhook / WebSocket 可切换
+
+- 各 bot 新增配置项 `eventTransport`：`websocket` | `webhook`（**缺省 `websocket`**）。
+  - **websocket**（默认）：不注册 Webhook 事件入口，仅 WebSocket 收事件；**HTTP 仍监听** `webhookPort`，设置页 `/settings`、`/ping` 等正常可用。
+  - **webhook**：注册 `POST /webhook/{botType}`，**同时** `createWebsocket` 保持官方 WS（双通道，靠 eventId 去重）。
+- 运行时解析见 `config/config.ts` → `resolveEventTransport`；未配置或非法值回落 `websocket`。
+- 设置页 Bot 编辑器增加模式选择；schema / example / `transport.md` / `AGENTS.md` 已同步。
+- 切换模式或改端口 / intents 后需重启进程。
+
 ## 2026-08-06
 
 ### 数据库迁移：MariaDB → MongoDB

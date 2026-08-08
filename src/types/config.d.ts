@@ -124,6 +124,9 @@ interface BotChatbotConfig {
     maxSummaryBlocks: number;
 }
 
+/** 事件接收传输模式 */
+type EventTransport = 'webhook' | 'websocket';
+
 interface BotConfigFile {
     appID: string;
     botUid?: string;
@@ -131,9 +134,16 @@ interface BotConfigFile {
     secret?: string;
     dsKey?: string;
     intents: string[];
+    /**
+     * 事件接收模式（缺省 `websocket`）：
+     * - `websocket`：仅 WebSocket 收事件，不注册 Webhook；HTTP 仍监听（设置页 /ping 等）
+     * - `webhook`：启用官方 Webhook 入口，同时保持 WebSocket 连接（双通道）
+     */
+    eventTransport?: EventTransport;
     allowMarkdown: boolean;
     allowMongo: boolean;
     mongo?: MongoConnectionConfig;
+    /** HTTP 监听端口（Webhook 入口 / 设置页 / ping 等共用） */
     webhookPort: {
         prod: number;
         dev: number;

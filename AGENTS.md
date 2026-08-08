@@ -13,7 +13,7 @@
 | 运行 | `tsx -r dotenv/config src/index.ts <BotType> [--dev]`（加载根目录 `.env`） |
 | 包管理 | pnpm |
 | QQ SDK | `qq-bot-sdk@1.9.1` |
-| HTTP | Koa + `@koa/router` + `koa-body`（webhook） |
+| HTTP | Koa + `@koa/router` + `koa-body`（webhook 入口 + 设置页；由 `eventTransport` 控制是否挂 Webhook） |
 | 缓存 | Redis（业务状态、禁言、历史、按钮 eventId 等） |
 | 持久化 | MongoDB（双写，`allowMongo`）；MariaDB 仅迁移脚本读取旧数据用 |
 | 图片 | `sharp` / `@napi-rs/canvas` + 腾讯 COS 上传后发图 |
@@ -42,7 +42,7 @@ AronaBot/
 │   └── opts.ts                         # ★ 命令路由表（按顺序匹配）
 ├── data/                               # 静态资源、JSON、攻略图、键盘布局等
 ├── src/
-│   ├── index.ts                        # Koa webhook 入口 + 事件总线挂载
+│   ├── index.ts                        # Koa HTTP 入口（Webhook/设置页）+ 事件总线挂载
 │   ├── bootloader.ts                   # 运行时全局初始化
 │   ├── init.ts                         # redis/mongodb/ws/client/热加载/频道树
 │   ├── eventRec.ts                     # ★ 事件分发 → 消息封装 → 插件调用
@@ -68,10 +68,14 @@ AronaBot/
 ## 3. 消息主链路（生成代码必须遵守的调用关系）
 
 ```
-官方 Webhook POST /webhook/{botType}
-  → 签名校验 (client.webhookApi.validSign)
-  → EventMap 映射 rootType
-  → global.ws.emit(rootType, { eventId, eventType, msg })
+事件入站（二选一/并存，见 eventTransport）
+  ├─ webhook 模式：POST /webhook/{botType}
+  │     → 签名校验 (client.webhookApi.validSign)
+  │     → EventMap 映射 rootType
+  │     → global.ws.emit(rootType, { eventId, eventType, msg })
+  │     （同时 createWebsocket 保持官方 WS 双通道）
+  └─ websocket 模式：仅 createWebsocket 官方 WS 推送
+        （不注册 /webhook；HTTP 仍监听 webhookPort 供 /settings、/ping）
   → eventRec(event)
       → new IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C
       → findOpts(msg) 匹配 config/opts.ts
@@ -81,6 +85,7 @@ AronaBot/
 
 要点：
 
+- `bots[botType].eventTransport`：`websocket`（默认，仅 WS）| `webhook`（Webhook+WS 双通道）。改后需重启。
 - 插件**不注册自己**；由 `opts.path` + `opts.fnc` 动态 import 并调用**导出的同名函数**。
 - `path` 对应文件名：`./plugins/${path}.ts`。
 - `fnc` 必须是该文件的 **named export function**，且为 `async`。
@@ -89,7 +94,7 @@ AronaBot/
 
 跨进程：
 
-- 生产实例在 Redis `devEnv` 开启时会把 webhook 镜像到 dev 端口。
+- 生产实例在 Redis `devEnv` 开启且处于 webhook 模式时，会把 webhook 镜像到 dev 端口。
 
 ---
 
@@ -483,7 +488,7 @@ initData().catch((err) => {
   - 前端：`web/`（Vue3 + Vite + Tailwind v4，分组表单编辑）  
   - 构建：`pnpm web:build` → 产物 `public/settings/`  
   - 开发：`pnpm web:dev`（默认代理 API 到 `http://127.0.0.1:2341`，可用 `VITE_API_TARGET` 覆盖）  
-  - 保存：写盘后**热替换**当前进程 `import config` 内存对象；路径 / COS / chatbot 等立即生效；`webhookPort` / intents / 已建 Redis·MongoDB 连接 / OpenAPI token 仍需重启  
+  - 保存：写盘后**热替换**当前进程 `import config` 内存对象；路径 / COS / chatbot 等立即生效；`eventTransport` / `webhookPort` / intents / 已建 Redis·MongoDB 连接 / OpenAPI token 仍需重启  
   - nodemon 已忽略 `config/settings.json`，避免保存配置触发整进程重启  
 - **路径格式**：全局 `rootPath` 只设一次；各路径字段磁盘只存**子路径**字符串（如 `data/studentInfo.json`）。运行时为 `ConfigPath`，**仅 `toString()` 时** `join(rootPath, child)`；绝对 child 不拼接。模板 `` `${config.xxx}` `` 会自动拼接；`fs` 等强类型 API 用 `pathStr(config.xxx)`  
 - 路径类配置集中在 settings，**禁止硬编码绝对路径**（临时目录等可写绝对 child）  

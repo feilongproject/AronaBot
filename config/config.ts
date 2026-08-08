@@ -54,6 +54,17 @@ export class ConfigPath {
     }
 }
 
+/**
+ * 解析 bot 事件接收模式。
+ * - `websocket`（默认）：仅 WebSocket 收事件，不注册 Webhook（HTTP 仍用于设置页等）
+ * - `webhook`：注册官方 Webhook，同时保持 WebSocket 双通道
+ */
+export function resolveEventTransport(
+    bot?: Pick<BotConfig | BotConfigFile, 'eventTransport'> | null,
+): EventTransport {
+    return bot?.eventTransport === 'webhook' ? 'webhook' : 'websocket';
+}
+
 /** fs / path / sharp 等必须 string 时使用 */
 export function pathStr(p: ConfigPath | string | null | undefined): string {
     if (p == null) return '';
@@ -318,7 +329,10 @@ function buildRuntimeConfig(fileData: AppConfigFile): AppConfig {
 
     if (out.bots) {
         for (const bot of Object.values(out.bots)) {
-            if (bot?.chatbot?.memoryDir != null) {
+            if (!bot) continue;
+            // 非法值回落 webhook，保证启动路径可预期
+            bot.eventTransport = resolveEventTransport(bot);
+            if (bot.chatbot?.memoryDir != null) {
                 bot.chatbot.memoryDir = makeConfigPath(root, bot.chatbot.memoryDir as unknown);
             }
         }
@@ -457,6 +471,7 @@ export type ConfigHotReloadResult = {
 export function applyConfigRuntimeHooks(): ConfigHotReloadResult {
     const applied: string[] = [];
     const deferred = [
+        'eventTransport（Webhook/WebSocket 事件入口，需重启切换）',
         'webhookPort（进程已监听的端口）',
         'intents（启动时注册的事件监听）',
         'redis / mongo（已建立的连接）',

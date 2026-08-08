@@ -4,7 +4,7 @@ import { MongoClient } from 'mongodb';
 import { createClient } from 'redis';
 import { IChannel, IGuild, createOpenAPI, createWebsocket } from 'qq-bot-sdk';
 import { sendToAdmin } from './libs/common';
-import config, { pathStr } from '../config/config';
+import config, { pathStr, resolveEventTransport } from '../config/config';
 
 export async function init() {
     log.info(`初始化: 正在加载命令设置`);
@@ -108,8 +108,12 @@ export async function init() {
     // log.info(`初始化: 正在连接 rabbitmq 数据库`);
     // global.mqconn = await amqp.connect("amqp://localhost");
 
-    log.info(`初始化: 正在创建 client 与 ws`);
+    const eventTransport = resolveEventTransport(config.bots[botType]);
+    log.info(`初始化: 正在创建 client 与 ws（eventTransport=${eventTransport}）`);
     global.client = createOpenAPI(config.bots[botType]);
+    // webhook / websocket 模式均保持 WebSocket：
+    // - webhook：官方 Webhook 注入 + WS 双通道（eventId 去重）
+    // - websocket：仅 WS 收事件
     global.ws = createWebsocket(config.bots[botType]);
     global.ws.once('READY', async (data: IntentMessage.READY) => {
         log.mark(`ws已建立, 机器人信息: ${data.msg.user.username}(${data.msg.user.id})`);

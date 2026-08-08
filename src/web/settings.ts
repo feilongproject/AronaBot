@@ -164,7 +164,7 @@ function sendFile(ctx: Context, filePath: string): boolean {
 }
 
 /**
- * 注册 Web 设置页路由（挂在现有 Koa webhook 端口上）
+ * 注册 Web 设置页路由（挂在 Koa HTTP 端口上；与 eventTransport 无关，websocket 模式也可用）
  *
  * SPA:  GET /settings  /settings/*   → public/settings（Vue3 构建产物）
  * API:  GET  /api/settings/auth

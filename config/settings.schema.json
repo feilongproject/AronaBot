@@ -290,6 +290,12 @@
                     "items": { "type": "string" },
                     "description": "事件 intent 名称列表"
                 },
+                "eventTransport": {
+                    "type": "string",
+                    "enum": ["websocket", "webhook"],
+                    "default": "websocket",
+                    "description": "事件接收模式（默认 websocket）。websocket=仅 WebSocket 收事件、不注册 Webhook（HTTP 仍监听供设置页/ping）；webhook=启用官方 Webhook 并同时保持 WebSocket 双通道。修改后需重启进程"
+                },
                 "allowMarkdown": {
                     "type": "boolean",
                     "description": "是否允许 Markdown / 键盘消息"
@@ -313,9 +319,16 @@
                 },
                 "webhookPort": {
                     "type": "object",
+                    "description": "HTTP 监听端口（Webhook 入口 / 设置页 / ping 等共用，websocket 模式下仍需配置）",
                     "properties": {
-                        "prod": { "type": "integer", "description": "生产监听端口" },
-                        "dev": { "type": "integer", "description": "--dev 监听端口" }
+                        "prod": {
+                            "type": "integer",
+                            "description": "生产 HTTP 监听端口"
+                        },
+                        "dev": {
+                            "type": "integer",
+                            "description": "--dev 时 HTTP 监听端口"
+                        }
                     }
                 },
                 "groupMap": {
