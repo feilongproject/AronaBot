@@ -44,6 +44,7 @@
     "dependencies": {
         "@blueshit/aliyun-sms": "^1.0.1",
         "@koa/router": "^14.0.0",
+        "@modelcontextprotocol/sdk": "^1.30.0",
         "@napi-rs/canvas": "^0.1.81",
         "@node-rs/jieba": "^2.0.1",
         "adm-zip": "^0.5.16",

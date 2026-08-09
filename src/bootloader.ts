@@ -19,6 +19,7 @@ export function initRuntime() {
         '15874984758683127001', // 频道？
         '21EE2355F1D4106219EC134842203DF6',
         'D8893EE07438D29FC12B776139EBEC6D',
+        '3A1CC4896BC68BFAD216821313823446', //PlanaBot小号
     ];
     global.botStatus = {
         startTime: new Date(),

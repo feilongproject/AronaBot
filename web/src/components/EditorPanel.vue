@@ -2,6 +2,8 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { fetchConfig, saveConfig, schemaDescription, type SettingsMeta } from '../api';
 import BotEditor, { type BotConfigModel } from './BotEditor.vue';
+import AIConfigEditor from './AIConfigEditor.vue';
+import StickerLibrary from './StickerLibrary.vue';
 import Field from './fields/Field.vue';
 import TextInput from './fields/TextInput.vue';
 import NumberInput from './fields/NumberInput.vue';
@@ -18,6 +20,8 @@ type AnyConfig = Record<string, any>;
 const SECTIONS = [
     { id: 'webSettings', label: 'Web 设置', desc: '设置页开关与访问口令' },
     { id: 'bots', label: 'Bots', desc: '各机器人身份、端口、intent' },
+    { id: 'ai', label: 'AI 配置', desc: '独立 ai.json：dsKey / chatbot' },
+    { id: 'sticker', label: '表情图库', desc: 'chatbot 图库：隐藏/恢复/拒绝/删除' },
     { id: 'redis', label: 'Redis', desc: '缓存与状态存储' },
     { id: 'mariadb', label: 'MariaDB', desc: '业务持久化' },
     { id: 'mongo', label: 'MongoDB', desc: '双写持久化' },
@@ -467,6 +471,13 @@ async function save() {
     setStatus('info', '保存中…');
     try {
         const payload = deepClone(config);
+        // AI 相关字段已迁至 config/ai.json（aiTranslate 除外）；保存 settings.json 时剥离，避免两处并存
+        for (const bot of Object.values(payload.bots || {})) {
+            if (bot && typeof bot === 'object') {
+                delete (bot as Record<string, unknown>).dsKey;
+                delete (bot as Record<string, unknown>).chatbot;
+            }
+        }
         const data = await saveConfig(payload);
         meta.value = {
             configPath: data.configPath,
@@ -686,12 +697,20 @@ onMounted(() => {
                             {{
                                 fieldDesc(
                                     'bots',
-                                    '按 bot 编辑身份、端口、intent、群映射与 chatbot。',
+                                    '按 bot 编辑身份、端口、intent、群映射（AI 配置见「AI 配置」页）。',
                                 )
                             }}
                         </p>
                     </header>
                     <BotEditor :model-value="config.bots" @update:model-value="setBots" />
+                </template>
+
+                <!-- ai（独立 ai.json：dsKey / chatbot；aiTranslate 除外仍留 settings.json） -->
+                <template v-else-if="activeSection === 'ai'">
+                    <AIConfigEditor />
+                </template>
+                <template v-else-if="activeSection === 'sticker'">
+                    <StickerLibrary />
                 </template>
 
                 <!-- redis -->

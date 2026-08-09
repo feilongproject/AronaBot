@@ -93,6 +93,11 @@ interface AppConfig {
     sms: SmsConfig;
     cosUrl: string;
     retryTime: number;
+    /**
+     * AI 相关配置（config/ai.json 运行时合并结果）：
+     * dsKey / chatbot 已从 settings.json 迁出；aiTranslate 除外仍留在 settings.json。
+     */
+    ai: AIConfig;
     studentNameDict: ConfigPath;
     errorMessageTemaple: ConfigPath;
     studentInfo: ConfigPath;
@@ -113,15 +118,128 @@ interface WebSettingsConfig {
     token: string;
 }
 
+/** H2 风控门控（P3 最后配置；默认不启用；Must 触发默认不经过门控，applyToMust=true 时必过） */
+interface ChatbotGateConfig {
+    enabled: boolean; // 默认 false
+    model: string; // 默认 Qwen3Guard-Stream-0.6B（自部署）
+    baseURL: string; // 默认 http://127.0.0.1:8000（FastAPI /moderate）
+    timeoutMs?: number; // 默认 10000
+    /** Must（@/先导词）是否也过门控；默认 false；门控失败时 Must 放行、非 Must 静默 */
+    applyToMust?: boolean;
+    /** 违禁拦截时 Must 的短提示池（随机取一条；支持炸毛/傲娇等状态语气）；默认 1 条通用提示 */
+    refusalMessages?: string[];
+}
+
+/** MCP 服务器配置（P3 接入；一期仅配置空间，具体 server 后续配置） */
+interface ChatbotMcpServerConfig {
+    name: string;
+    transport: 'stdio' | 'http' | 'sse';
+    url?: string;
+    command?: string;
+    args?: string[];
+    /** 白名单 tools；未列出的不暴露给模型 */
+    enabledTools?: string[];
+}
+
+interface ChatbotMcpConfig {
+    enabled: boolean; // 一期默认 false，仅留配置空间
+    servers: ChatbotMcpServerConfig[];
+    maxToolRounds?: number; // 默认 3
+}
+
 interface BotChatbotConfig {
+    /** 总开关；仅 PlanaBot 生效 */
+    enabled: boolean;
+    /** 白名单群 group_openid 列表 */
     groups: string[];
+    /** 猫娘人设 prompt；设置页可改，保存后热替换立即生效 */
+    systemPrompt: string;
+    /** 最高管理员 openid（群消息 @/识别用）；留空不启用特殊标记 */
+    adminOpenid?: string;
+    /** 先导词集合；匹配 `^prefix\s+`（prefix 后必须有空白） */
+    mustPrefixes: string[];
+    /** 普通消息回复概率（冻结默认 0.1） */
     replyProbability: number;
+    /** 回复 bot 后窗口内接话概率（冻结默认 0.7） */
+    replyToBotProbability: number;
+    /** 接话窗口（秒）；默认 180 */
+    replyChainWindowSec?: number;
+    /** 0.7 连续接话链上限，防止刷屏；默认 5 */
+    replyChainMax?: number;
+    /** 决策模式；当前仅 hybrid */
+    decideMode: 'hybrid';
+    /** H2 风控门控（P3；Must 不过门控；noop 必记录） */
+    gate?: ChatbotGateConfig;
+    /** 单条用户消息最大字符数；超长 ignored 落库不调模型 */
+    maxUserChars: number;
+    /** 上下文硬顶 token（冻结 1_000_000） */
+    maxContextTokens: number;
+    /** 日常工作窗口 token */
+    workingContextTokens: number;
     maxHistoryRounds: number;
+    /** 压缩双条件 A：自上次压缩以来新增未归档 raw 条数阈值 */
     compressInterval: number;
-    historyTTL: number;
-    /** 磁盘为子路径；运行时 ConfigPath */
-    memoryDir: string | ConfigPath;
+    /** 压缩双条件 B：未归档 raw 估算 token 阈值（OR） */
+    compressTokenThreshold: number;
     maxSummaryBlocks: number;
+    /** 历史 TTL（秒） */
+    historyTTL: number;
+    /** @deprecated 废弃作为记忆路径；仅保留兼容，新代码不再使用 */
+    memoryDir?: string | ConfigPath;
+    /** DeepSeek 文本模型名 */
+    chatModel: string;
+    /** DeepSeek OpenAI 兼容 baseURL；缺省官方 */
+    baseURL?: string;
+    /** 看图模型（冻结默认 qwen3.7-plus） */
+    visionModel: string;
+    /** 阿里云百炼 OpenAI 兼容 baseURL */
+    visionBaseURL?: string;
+    /** 独立看图密钥，不复用 dsKey / aiTranslate.apiKey */
+    visionApiKey: string;
+    /** 自动抓取群聊图/表情入库（无人工审核，直接 ready） */
+    stickerCaptureEnabled: boolean;
+    /** sticker=动画表情或小尺寸静态表情包；animated_only=只处理动画表情（gif/webp）；emoji_like=只抓小图/表情比例 */
+    stickerCaptureMode: 'emoji_like' | 'all_images' | 'animated_only' | 'sticker';
+    /** 处理完成后是否存入图库；false=只打标不入库（调试/统计用）；默认 true */
+    stickerCaptureStore?: boolean;
+    /** 单张抓取上限（字节）；默认 2MB */
+    stickerMaxBytes: number;
+    /** 图库固化上限；默认 500 */
+    stickerLibraryMax: number;
+    /** 不抓取的用户 id 列表 */
+    stickerBlacklistUserIds?: string[];
+    /** 文字回复后附带图库表情的概率；默认 0.15 */
+    stickerReplyProbability?: number;
+    /** MCP 配置空间（P3 接入；一期默认关） */
+    mcp?: ChatbotMcpConfig;
+    /** 群限流：每秒 */
+    rateLimitPerSecond: number;
+    /** 群限流：每分钟 */
+    rateLimitPerMinute: number;
+    /** 用户/群冷却（秒）；Must 可放宽但仍受 1/s、10/min 硬顶 */
+    cooldownSec: number;
+}
+
+/** config/ai.json 磁盘形态：AI 相关配置独立文件（aiTranslate 除外） */
+interface AIConfigFile {
+    /** 指向 ai.schema.json，供 IDE 补全 */
+    $schema?: string;
+    bots?: Record<string, AIBotConfigFile>;
+}
+
+/** ai.json 中单个 bot 的 AI 配置 */
+interface AIBotConfigFile {
+    /** DeepSeek 等对话密钥（原 settings.json bots.*.dsKey） */
+    dsKey?: string;
+    /** PlanaBot 群聊被动 AI 闲聊参数（原 settings.json bots.*.chatbot） */
+    chatbot?: BotChatbotConfig;
+    /** AI 专用 MongoDB 连接（库/账号建议 PlanaBotChat；chatContext 等 AI 数据写入此库） */
+    mongo?: MongoConnectionConfig;
+}
+
+/** ai.json 运行时形态 */
+interface AIConfig {
+    bots: Record<string, AIBotConfigFile>;
 }
 
 /** 事件接收传输模式 */
@@ -132,6 +250,7 @@ interface BotConfigFile {
     botUid?: string;
     token: string;
     secret?: string;
+    /** @deprecated AI 配置已迁至 config/ai.json（bots.<bot>.dsKey）；存量兼容保留 */
     dsKey?: string;
     intents: string[];
     /**
@@ -148,15 +267,18 @@ interface BotConfigFile {
         prod: number;
         dev: number;
     };
+    /** @deprecated 群 openid → 数字群号 映射；新代码统一使用 group_openid，存量暂不改动 */
     groupMap: Record<string, string>;
     meRealId: string;
     enableFullReceiveGroups: string[];
+    /** @deprecated AI 配置已迁至 config/ai.json（bots.<bot>.chatbot）；存量兼容保留 */
     chatbot?: BotChatbotConfig;
 }
 
 interface BotConfig extends Omit<BotConfigFile, 'intents' | 'chatbot'> {
     intents: import('qq-bot-sdk').AvailableIntentsEventsEnum[];
-    chatbot?: Omit<BotChatbotConfig, 'memoryDir'> & { memoryDir: ConfigPath | string };
+    /** 运行时由 config/ai.json 合并而来（ai.json 优先，settings.json 存量兜底） */
+    chatbot?: Omit<BotChatbotConfig, 'memoryDir'> & { memoryDir?: ConfigPath | string };
 }
 
 interface HotLoadConfigFile {

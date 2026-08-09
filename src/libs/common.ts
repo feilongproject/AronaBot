@@ -1,5 +1,6 @@
 import { IMessageGROUP } from './IMessageEx';
 import config from '../../config/config';
+import type { Db } from 'mongodb';
 
 /**
  * 通知管理员：回调群。
@@ -160,8 +161,12 @@ function toDate(value: unknown): unknown {
     return value;
 }
 
-export async function pushToDB(table: string, data: Record<string, any>) {
-    if (!global.mongoDb) return;
+/**
+ * 写入 MongoDB（默认 bot 主库；AI 数据可显式传 aiDb 指向 AI 专用库）
+ */
+export async function pushToDB(table: string, data: Record<string, any>, db?: Db) {
+    const target = db || global.mongoDb;
+    if (!target) return;
     try {
         const doc: Record<string, any> = { ...data };
         if (doc.ts !== undefined) doc.ts = toDate(doc.ts);
@@ -170,18 +175,18 @@ export async function pushToDB(table: string, data: Record<string, any>) {
             if (doc[k] === undefined) delete doc[k];
         }
         if (doc._id !== undefined) {
-            return await global.mongoDb
+            return await target
                 .collection(table)
                 .replaceOne({ _id: doc._id }, doc, { upsert: true });
         }
         const primaryKey = ['eventId', 'eId', 'msgId', 'mid', 'id'].find((k) => doc[k] != null);
         if (primaryKey) {
             doc._id = String(doc[primaryKey]);
-            return await global.mongoDb
+            return await target
                 .collection(table)
                 .replaceOne({ _id: doc._id }, doc, { upsert: true });
         } else {
-            return await global.mongoDb.collection(table).insertOne(doc);
+            return await target.collection(table).insertOne(doc);
         }
     } catch (err) {
         log.error(`pushToMongo ${table}`, err);

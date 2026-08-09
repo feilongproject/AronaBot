@@ -15,7 +15,6 @@ export type BotConfigModel = {
     botUid?: string;
     token?: string;
     secret?: string;
-    dsKey?: string;
     intents?: string[];
     /** webhook=双通道；websocket=仅 WS，HTTP 仍提供设置页 */
     eventTransport?: EventTransportMode;
@@ -32,15 +31,6 @@ export type BotConfigModel = {
     groupMap?: Record<string, string>;
     meRealId?: string;
     enableFullReceiveGroups?: string[];
-    chatbot?: {
-        groups?: string[];
-        replyProbability?: number;
-        maxHistoryRounds?: number;
-        compressInterval?: number;
-        historyTTL?: number;
-        memoryDir?: string;
-        maxSummaryBlocks?: number;
-    };
     [key: string]: unknown;
 };
 
@@ -101,18 +91,6 @@ function ensureShape(bot: BotConfigModel): BotConfigModel {
     if (!bot.groupMap || typeof bot.groupMap !== 'object') bot.groupMap = {};
     if (!Array.isArray(bot.intents)) bot.intents = [];
     if (!Array.isArray(bot.enableFullReceiveGroups)) bot.enableFullReceiveGroups = [];
-    if (!bot.chatbot || typeof bot.chatbot !== 'object') {
-        bot.chatbot = {
-            groups: [],
-            replyProbability: 0.3,
-            maxHistoryRounds: 20,
-            compressInterval: 5,
-            historyTTL: 3600,
-            memoryDir: 'data/chatbot_memory',
-            maxSummaryBlocks: 10,
-        };
-    }
-    if (!Array.isArray(bot.chatbot.groups)) bot.chatbot.groups = [];
     return bot;
 }
 
@@ -148,7 +126,6 @@ function addBot() {
             botUid: '',
             token: '',
             secret: '',
-            dsKey: '',
             intents: ['GUILD_MESSAGES'],
             eventTransport: 'websocket',
             allowMarkdown: false,
@@ -286,13 +263,6 @@ function renameBot(oldName: string, newName: string) {
                             type="password"
                             :model-value="current.secret || ''"
                             @update:model-value="patchCurrent((b) => (b.secret = $event))"
-                        />
-                    </Field>
-                    <Field label="dsKey" hint="DeepSeek / 对话等密钥（可空）">
-                        <TextInput
-                            type="password"
-                            :model-value="current.dsKey || ''"
-                            @update:model-value="patchCurrent((b) => (b.dsKey = $event))"
                         />
                     </Field>
                     <Field label="meRealId" hint="真实 QQ 号等">
@@ -483,94 +453,6 @@ function renameBot(oldName: string, newName: string) {
                     empty-text="未配置全量接收群"
                     @update:model-value="patchCurrent((b) => (b.enableFullReceiveGroups = $event))"
                 />
-            </section>
-
-            <section class="space-y-4">
-                <h3 class="text-sm font-semibold tracking-wide text-slate-300 uppercase">
-                    chatbot
-                </h3>
-                <Field label="groups" hint="启用 chatbot 的群 openid 列表">
-                    <StringList
-                        :model-value="current.chatbot?.groups || []"
-                        placeholder="group openid"
-                        empty-text="未启用任何群"
-                        @update:model-value="
-                            patchCurrent((b) => {
-                                b.chatbot = { ...(b.chatbot || {}), groups: $event };
-                            })
-                        "
-                    />
-                </Field>
-                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <Field label="replyProbability" hint="0–1">
-                        <NumberInput
-                            :model-value="current.chatbot?.replyProbability ?? 0.3"
-                            :min="0"
-                            :max="1"
-                            :step="0.05"
-                            @update:model-value="
-                                patchCurrent((b) => {
-                                    b.chatbot = { ...(b.chatbot || {}), replyProbability: $event };
-                                })
-                            "
-                        />
-                    </Field>
-                    <Field label="maxHistoryRounds">
-                        <NumberInput
-                            integer
-                            :model-value="current.chatbot?.maxHistoryRounds ?? 20"
-                            @update:model-value="
-                                patchCurrent((b) => {
-                                    b.chatbot = { ...(b.chatbot || {}), maxHistoryRounds: $event };
-                                })
-                            "
-                        />
-                    </Field>
-                    <Field label="compressInterval">
-                        <NumberInput
-                            integer
-                            :model-value="current.chatbot?.compressInterval ?? 5"
-                            @update:model-value="
-                                patchCurrent((b) => {
-                                    b.chatbot = { ...(b.chatbot || {}), compressInterval: $event };
-                                })
-                            "
-                        />
-                    </Field>
-                    <Field label="historyTTL（秒）">
-                        <NumberInput
-                            integer
-                            :model-value="current.chatbot?.historyTTL ?? 3600"
-                            @update:model-value="
-                                patchCurrent((b) => {
-                                    b.chatbot = { ...(b.chatbot || {}), historyTTL: $event };
-                                })
-                            "
-                        />
-                    </Field>
-                    <Field label="maxSummaryBlocks">
-                        <NumberInput
-                            integer
-                            :model-value="current.chatbot?.maxSummaryBlocks ?? 10"
-                            @update:model-value="
-                                patchCurrent((b) => {
-                                    b.chatbot = { ...(b.chatbot || {}), maxSummaryBlocks: $event };
-                                })
-                            "
-                        />
-                    </Field>
-                    <Field label="memoryDir">
-                        <TextInput
-                            mono
-                            :model-value="current.chatbot?.memoryDir || ''"
-                            @update:model-value="
-                                patchCurrent((b) => {
-                                    b.chatbot = { ...(b.chatbot || {}), memoryDir: $event };
-                                })
-                            "
-                        />
-                    </Field>
-                </div>
             </section>
         </template>
     </div>

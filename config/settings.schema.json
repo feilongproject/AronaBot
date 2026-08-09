@@ -284,7 +284,6 @@
                 "botUid": { "type": "string", "description": "机器人 openid / uid（可空）" },
                 "token": { "type": "string", "description": "Bot token" },
                 "secret": { "type": "string", "description": "Webhook 签名 secret" },
-                "dsKey": { "type": "string", "description": "DeepSeek 等对话密钥（可空）" },
                 "intents": {
                     "type": "array",
                     "items": { "type": "string" },
@@ -341,30 +340,6 @@
                     "type": "array",
                     "items": { "type": "string" },
                     "description": "全量接收群号列表"
-                },
-                "chatbot": {
-                    "type": "object",
-                    "description": "群 chatbot 参数",
-                    "properties": {
-                        "groups": {
-                            "type": "array",
-                            "items": { "type": "string" },
-                            "description": "启用 chatbot 的群 openid"
-                        },
-                        "replyProbability": {
-                            "type": "number",
-                            "minimum": 0,
-                            "maximum": 1
-                        },
-                        "maxHistoryRounds": { "type": "integer" },
-                        "compressInterval": { "type": "integer" },
-                        "historyTTL": { "type": "integer", "description": "历史 TTL（秒）" },
-                        "memoryDir": {
-                            "type": "string",
-                            "description": "记忆目录子路径"
-                        },
-                        "maxSummaryBlocks": { "type": "integer" }
-                    }
                 }
             }
         }

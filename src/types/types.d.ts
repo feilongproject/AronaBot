@@ -29,6 +29,9 @@ declare global {
     var redis: RedisClientType;
     var mongo: MongoClient;
     var mongoDb: Db;
+    /** AI 专用 MongoDB 连接（config/ai.json bots.<bot>.mongo；如 PlanaBotChat 库） */
+    var aiMongo: MongoClient;
+    var aiMongoDb: Db;
     var browser: Browser;
     var botStatus: {
         startTime: Date;
@@ -308,8 +311,10 @@ declare global {
         type GROUP_MESSAGE = EventRespose<GROUP_MESSAGE_body>;
         type GROUP_MESSAGE_body = MessageChatCommon & {
             clean_content: string;
+            /** @deprecated 已废除：不再作为准入/过滤/落库条件；存量字段暂保留 */
             group_id: string;
             group_openid: string;
+            /** @deprecated 已废除：不再作为准入/过滤/落库条件；存量字段暂保留 */
             isOffical: boolean;
             pushEventId?: string;
             mentions: CUser[];

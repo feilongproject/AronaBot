@@ -67,7 +67,8 @@ init().then(() => {
         log.mark(`开始监听 ${eventRootType} 事件`);
         global.ws.on(eventRootType, async (data: IntentMessage.EventRespose<any>) => {
             data.eventRootType = eventRootType;
-            if (devEnv)
+
+            if (data?.msg?.author?.id == '2975E2CA5AE779F1899A0AED2D4FA9FD')
                 log.debug(
                     `收到事件: ${eventRootType} ${data.eventType} ${data.eventId} ${JSON.stringify(data.msg)}`,
                 );
@@ -126,7 +127,9 @@ init().then(() => {
             ctx.body = { msg: 'ok' };
             ctx.status = 200;
         });
-        log.info(`eventTransport=webhook：已注册 POST /webhook/${botType}，并保持 WebSocket 双通道`);
+        log.info(
+            `eventTransport=webhook：已注册 POST /webhook/${botType}，并保持 WebSocket 双通道`,
+        );
     } else {
         log.info(
             `eventTransport=websocket：未注册 Webhook 事件入口，仅 WebSocket 收事件；HTTP :${listenPort} 仍提供设置页等`,

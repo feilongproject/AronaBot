@@ -84,6 +84,18 @@ async function executeChat(msg: IMessageGROUP | IMessageC2C) {
         aiAllow(msg);
         const { opts } = msg;
         if (!opts) return;
+
+        // PlanaBot 白名单群：命中其他指令的用户消息也写入群公共历史（chatContext）；
+        // 兜底 chatbot 自身的观察行由插件内 writeObserveRow 写入，不在这里重复处理
+        if (msg instanceof IMessageGROUP && botType === 'PlanaBot' && opts.path !== 'chatbot') {
+            const chatCfg = config.bots[botType]?.chatbot;
+            if (chatCfg?.enabled && chatCfg.groups?.includes(msg.group_openid)) {
+                await import('./plugins/chatbot/db')
+                    .then((m) => m.writeUserObserveRow(msg))
+                    .catch((err) => log.error('writeUserObserveRow failed', err));
+            }
+        }
+
         if (adminId.includes(msg.author.id) && !devEnv && (await redis.get('devEnv'))) return;
         if (await isBan(msg)) return;
         if (global.devEnv) log.debug(`${_path}/src/plugins/${opts.path}:${opts.fnc}`);
@@ -147,6 +159,8 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
                 event.eventType == IntentEventType.GROUP_AT_MESSAGE_CREATE ||
                 event.eventType == IntentEventType.GROUP_MESSAGE_CREATE
             ) {
+                // @deprecated isOffical 已废除：不再作为准入/过滤/落库条件。
+                // 存量行为暂保持不变（非官方消息不写 groupMessage 表），后续清理。
                 if (
                     event.eventType == IntentEventType.GROUP_AT_MESSAGE_CREATE &&
                     config.bots[botType].enableFullReceiveGroups?.includes(
@@ -158,6 +172,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
                 // if (event.eventType == IntentEventType.GROUP_AT_MESSAGE_CREATE || event.eventType == IntentEventType.GROUP_MESSAGE_CREATE) {
                 const data = event.msg as any as IntentMessage.GROUP_MESSAGE_body;
                 if (devEnv && !adminId.includes(data.author.id)) return;
+                // @deprecated isOffical：存量兼容保留，新代码不再依赖
                 const msg = new IMessageGROUP(data, true, data.isOffical ?? true);
                 if (data.isOffical ?? true) writeMessageDB(data, event.eventId, 'groupMessage');
                 return executeChat(msg);
@@ -361,15 +376,16 @@ async function isBan(
     return false;
 }
 
+/**
+ * 群聊被动 AI 闲聊兜底（指令优先：仅 findOpts 未命中时挂载）。
+ * 准入：仅 PlanaBot + IMessageGROUP + chatbot.enabled + group_openid 白名单；
+ * 封禁由 executeChat 的 isBan 后置处理；isOffical 已废除，不再校验。
+ */
 function aiAllow(msg: IMessageGROUP | IMessageC2C) {
-    const allowGroup = [
-        'C677AE4F115CC3FB4ED3AA1CCEF6ABC1',
-        '2EA07C40CCAA6E3358A2DB5EA5527D8A',
-        'FCD8D4FF03575F550D495003F48A3D01',
-    ];
     if (!(msg instanceof IMessageGROUP) || msg.opts) return;
-    if (!allowGroup.includes(msg.group_id)) return;
-    if (/^[0-9a-zA-Z\/<>@!]+$/.test(msg.content)) return;
+    const chatCfg = config.bots[botType]?.chatbot;
+    if (botType !== 'PlanaBot' || !chatCfg?.enabled) return;
+    if (!chatCfg.groups?.includes(msg.group_openid)) return;
 
     msg.opts = {
         path: 'chatbot',

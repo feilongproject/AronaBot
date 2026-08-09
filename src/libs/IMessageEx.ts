@@ -15,6 +15,7 @@ import {
     CUser,
 } from 'qq-bot-sdk';
 import { callWithRetry } from './common';
+import { recordGroupBotOutbound } from '../plugins/chatbot/outbound';
 import config from '../../config/config';
 
 export function findOpts(
@@ -272,6 +273,7 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
     seq = 1;
     event_id: string;
 
+    /** @deprecated isOffical 已废除；新代码不再使用，存量保留 */
     isOffical: boolean;
     pushEventId?: string;
     _atta: string;
@@ -287,7 +289,7 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
     constructor(
         msg: IntentMessage.MessageChatCommon & Partial<{ group_id: string; group_openid: string }>,
         meaasgeType: MessageType,
-        isOffical = true,
+        isOffical = true, // @deprecated isOffical 已废除；存量兼容保留
     ) {
         this.id = msg.id;
         this.author = msg.author;
@@ -354,7 +356,10 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         if ((options.fileType as number) == -1) options.fileType = undefined;
         if (options.fileType || options.fileInfo || options.fileUrl || options.imageUrl)
             options.msgType = 7;
-        return callWithRetry(this._sendMsgEx, [options]);
+        const ret = await callWithRetry(this._sendMsgEx, [options]);
+        if (this.messageType == MessageType.GROUP)
+            await recordGroupBotOutbound(options, ret.result).catch((err) => log.error(err));
+        return ret;
     }
 
     private _sendMsgEx = async (options: Partial<SendOption.Chat>) => {
@@ -462,9 +467,17 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
 
         const markdownConfig = await getMarkdown(options, true);
         if (!markdownConfig || !allowMarkdown) return this.sendMsgEx(options);
-        return callWithRetry(this._sendMarkdown, [{ ...options, ...markdownConfig }]).catch((err) =>
-            this.sendMsgEx(options),
-        );
+        try {
+            const ret = await callWithRetry(this._sendMarkdown, [
+                { ...options, ...markdownConfig },
+            ]);
+            if (this.messageType == MessageType.GROUP && ret?.result)
+                await recordGroupBotOutbound(options, ret.result).catch((err) => log.error(err));
+            return ret;
+        } catch (err) {
+            // 降级走 sendMsgEx，出站记录由 sendMsgEx 自身完成
+            return this.sendMsgEx(options);
+        }
     }
 
     private _sendMarkdown = async (

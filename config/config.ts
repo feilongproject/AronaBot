@@ -117,6 +117,19 @@ export function makeConfigPath(root: string, child: unknown): ConfigPath {
     return new ConfigPath(root, coerceChildPath(child));
 }
 
+/** 磁盘 chatbot 配置 → 运行时（memoryDir 变为 ConfigPath） */
+function toRuntimeChatbot(
+    chatbot: BotChatbotConfig | undefined,
+    root: string,
+): (Omit<BotChatbotConfig, 'memoryDir'> & { memoryDir?: ConfigPath | string }) | undefined {
+    if (!chatbot) return undefined;
+    const out = { ...chatbot } as Omit<BotChatbotConfig, 'memoryDir'> & {
+        memoryDir?: ConfigPath | string;
+    };
+    if (out.memoryDir != null) out.memoryDir = makeConfigPath(root, out.memoryDir as unknown);
+    return out;
+}
+
 // ---------------------------------------------------------------------------
 // 文件路径
 // ---------------------------------------------------------------------------
@@ -124,6 +137,7 @@ export function makeConfigPath(root: string, child: unknown): ConfigPath {
 global._path = process.cwd();
 
 const SCHEMA_REF = './settings.schema.json';
+const AI_SCHEMA_REF = './ai.schema.json';
 
 function configDir(): string {
     return path.join(global._path || process.cwd(), 'config');
@@ -141,12 +155,32 @@ function settingsSchemaFile(): string {
     return path.join(configDir(), 'settings.schema.json');
 }
 
+function aiConfigFile(): string {
+    return path.join(configDir(), 'ai.json');
+}
+
+function aiExampleFile(): string {
+    return path.join(configDir(), 'ai.example.json');
+}
+
+function aiSchemaFile(): string {
+    return path.join(configDir(), 'ai.schema.json');
+}
+
 export function getConfigFilePath(): string {
     return settingsFile();
 }
 
 export function getSettingsSchemaPath(): string {
     return settingsSchemaFile();
+}
+
+export function getAIConfigFilePath(): string {
+    return aiConfigFile();
+}
+
+export function getAISchemaPath(): string {
+    return aiSchemaFile();
 }
 
 // ---------------------------------------------------------------------------
@@ -332,9 +366,7 @@ function buildRuntimeConfig(fileData: AppConfigFile): AppConfig {
             if (!bot) continue;
             // 非法值回落 webhook，保证启动路径可预期
             bot.eventTransport = resolveEventTransport(bot);
-            if (bot.chatbot?.memoryDir != null) {
-                bot.chatbot.memoryDir = makeConfigPath(root, bot.chatbot.memoryDir as unknown);
-            }
+            bot.chatbot = toRuntimeChatbot(bot.chatbot, root);
         }
     }
 
@@ -424,6 +456,87 @@ export function readSettingsSchema(): Record<string, unknown> | null {
     return JSON.parse(fs.readFileSync(p, 'utf-8')) as Record<string, unknown>;
 }
 
+export function readAISchema(): Record<string, unknown> | null {
+    const p = aiSchemaFile();
+    if (!fs.existsSync(p)) return null;
+    return JSON.parse(fs.readFileSync(p, 'utf-8')) as Record<string, unknown>;
+}
+
+export function readRawAIConfigFile(): AIConfigFile {
+    const file = aiConfigFile();
+    if (!fs.existsSync(file)) {
+        throw new Error(`[config] AI 配置文件不存在: ${file}`);
+    }
+    try {
+        return JSON.parse(fs.readFileSync(file, 'utf-8')) as AIConfigFile;
+    } catch (err) {
+        throw new Error(`[config] 解析 ai.json 失败: ${(err as Error).message}`);
+    }
+}
+
+/**
+ * 首次运行：ai.json 不存在时，把 settings.json 中的存量 AI 配置（bots.*.dsKey / chatbot）
+ * 迁移到 ai.json，避免独立文件后原有配置失效；无存量则复制 ai.example.json。
+ */
+function seedAIConfigFromLegacy(fileData: AppConfigFile): void {
+    const file = aiConfigFile();
+    if (fs.existsSync(file)) return;
+
+    const bots: Record<string, AIBotConfigFile> = {};
+    for (const [name, bot] of Object.entries(fileData.bots || {})) {
+        const ai: AIBotConfigFile = {};
+        if (bot?.dsKey) ai.dsKey = bot.dsKey;
+        if (bot?.chatbot) ai.chatbot = bot.chatbot;
+        if (Object.keys(ai).length) bots[name] = ai;
+    }
+
+    if (!Object.keys(bots).length) {
+        const ex = aiExampleFile();
+        if (fs.existsSync(ex)) {
+            fs.copyFileSync(ex, file);
+            // eslint-disable-next-line no-console
+            console.warn(`[config] 未找到 ai.json，已从 ai.example.json 复制，请填写 AI 密钥`);
+        } else {
+            throw new Error(
+                `[config] 缺少 ${file}，且无 ai.example.json 可复制，请先创建 AI 配置文件`,
+            );
+        }
+        return;
+    }
+
+    const text = JSON.stringify({ $schema: AI_SCHEMA_REF, bots }, null, 4) + '\n';
+    const dir = configDir();
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(file, text, 'utf-8');
+    // eslint-disable-next-line no-console
+    console.warn(`[config] 已从 settings.json 迁移 AI 配置（dsKey/chatbot）到 ${file}`);
+}
+
+/** 读取 ai.json 并构建运行时形态（memoryDir 等路径字段包装） */
+function loadAIConfigFromDisk(root: string): AIConfig {
+    const raw = readRawAIConfigFile();
+    const bots: Record<string, AIBotConfigFile> = {};
+    for (const [name, botAi] of Object.entries(raw.bots || {})) {
+        bots[name] = {
+            dsKey: botAi?.dsKey,
+            chatbot: toRuntimeChatbot(botAi?.chatbot, root),
+            mongo: botAi?.mongo,
+        };
+    }
+    return { bots };
+}
+
+/** 把 ai.json 合并进运行时 config：ai.json 优先，settings.json 存量兜底 */
+function overlayAIConfig(resolved: AppConfig, ai: AIConfig): void {
+    (resolved as { ai?: AIConfig }).ai = ai;
+    for (const [name, bot] of Object.entries(resolved.bots)) {
+        const botAi = ai.bots?.[name];
+        if (!botAi) continue;
+        if (botAi.dsKey != null) bot.dsKey = botAi.dsKey;
+        if (botAi.chatbot != null) bot.chatbot = botAi.chatbot;
+    }
+}
+
 export function loadConfigFromDisk(): AppConfig {
     const file = settingsFile();
     if (!fs.existsSync(file)) {
@@ -442,7 +555,10 @@ export function loadConfigFromDisk(): AppConfig {
     }
 
     const fileData = readRawConfigFile();
+    // AI 配置独立文件：首次运行时把存量迁出（aiTranslate 除外，仍在 settings.json）
+    seedAIConfigFromLegacy(fileData);
     const resolved = buildRuntimeConfig(fileData);
+    overlayAIConfig(resolved, loadAIConfigFromDisk(resolved.rootPath));
     injectSystemPrompt(resolved);
     applyEnvFromConfig(resolved, file);
     return resolved;
@@ -556,6 +672,37 @@ export function writeRawConfigFile(data: AppConfigFile | unknown): ConfigHotRelo
 
     reloadConfigFromDisk();
     return applyConfigRuntimeHooks();
+}
+
+/** 写入 ai.json（带 $schema）并热替换内存中的 AI 配置 */
+export function writeRawAIConfigFile(data: unknown): ConfigHotReloadResult {
+    const file = aiConfigFile();
+    const normalized = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+
+    const ordered: Record<string, unknown> = { $schema: AI_SCHEMA_REF };
+    for (const [k, v] of Object.entries(normalized)) {
+        if (k === '$schema') continue;
+        ordered[k] = v;
+    }
+
+    const text = JSON.stringify(ordered, null, 4);
+    JSON.parse(text); // 校验可序列化
+
+    const dir = configDir();
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const tmp = `${file}.${Date.now()}.tmp`;
+    fs.writeFileSync(tmp, text + '\n', 'utf-8');
+    fs.renameSync(tmp, file);
+
+    reloadAIConfigFromDisk();
+    return applyConfigRuntimeHooks();
+}
+
+/** 重新读取 ai.json 并覆盖内存中的 AI 配置（chatbot / dsKey 立即生效） */
+export function reloadAIConfigFromDisk(): AIConfig {
+    const ai = loadAIConfigFromDisk(config.rootPath);
+    overlayAIConfig(config, ai);
+    return ai;
 }
 
 // ---------------------------------------------------------------------------

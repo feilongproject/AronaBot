@@ -5,54 +5,10 @@
         "token": "YOUR_WEB_SETTINGS_TOKEN"
     },
     "bots": {
-        "AronaBot": {
-            "appID": "YOUR_APP_ID",
-            "botUid": "",
-            "token": "YOUR_TOKEN",
-            "secret": "YOUR_SECRET",
-            "dsKey": "",
-            "intents": [
-                "GUILD_MESSAGES",
-                "DIRECT_MESSAGE",
-                "GUILDS",
-                "FORUMS_EVENT",
-                "GUILD_MEMBERS",
-                "GUILD_MESSAGE_REACTIONS",
-                "MESSAGE_AUDIT",
-                "GROUP_AND_C2C_EVENT",
-                "INTERACTION"
-            ],
-            "eventTransport": "websocket",
-            "allowMarkdown": true,
-            "allowMongo": true,
-            "mongo": {
-                "user": "AronaBot",
-                "password": "YOUR_ARONA_MONGO_PASSWORD",
-                "database": "AronaBot",
-                "authSource": "AronaBot"
-            },
-            "webhookPort": {
-                "prod": 2340,
-                "dev": 2341
-            },
-            "groupMap": {},
-            "meRealId": "YOUR_REAL_ID",
-            "enableFullReceiveGroups": [],
-            "chatbot": {
-                "groups": [],
-                "replyProbability": 0.3,
-                "maxHistoryRounds": 20,
-                "compressInterval": 5,
-                "historyTTL": 3600,
-                "memoryDir": "data/chatbot_memory",
-                "maxSummaryBlocks": 10
-            }
-        },
         "TestBot": {
             "appID": "YOUR_TEST_APP_ID",
             "botUid": "",
             "token": "YOUR_TEST_TOKEN",
-            "dsKey": "",
             "intents": ["GUILD_MESSAGES"],
             "eventTransport": "websocket",
             "allowMarkdown": false,
@@ -63,16 +19,7 @@
             },
             "groupMap": {},
             "meRealId": "",
-            "enableFullReceiveGroups": [],
-            "chatbot": {
-                "groups": [],
-                "replyProbability": 0.3,
-                "maxHistoryRounds": 20,
-                "compressInterval": 5,
-                "historyTTL": 3600,
-                "memoryDir": "data/chatbot_memory",
-                "maxSummaryBlocks": 10
-            }
+            "enableFullReceiveGroups": []
         }
     },
     "hotLoadConfigs": [

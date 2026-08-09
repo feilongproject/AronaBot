@@ -1,6 +1,7 @@
 node_modules*
 dist
 config/settings.json
+config/ai.json
 .env
 log
 generate
@@ -32,3 +33,5 @@ data/dynamicPush.ts
 data/aiPrompt.txt
 data/rollpig/cache/*
 data/rollpig/images/*
+.omx/*
+transport.md

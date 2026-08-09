@@ -53,14 +53,19 @@ onMounted(() => {
                 <p class="mt-1 text-sm text-slate-400">
                     分组表单 ·
                     <code class="text-slate-300">settings.json</code>
+                    / <code class="text-slate-300">ai.json</code>
                     · 说明见
                     <code class="text-slate-300">settings.schema.json</code>
+                    / <code class="text-slate-300">ai.schema.json</code>
                     · 保存后热加载
                 </p>
             </div>
         </header>
 
-        <div v-if="!ready" class="rounded-2xl border border-slate-700/80 bg-slate-900/50 p-8 text-center text-slate-400">
+        <div
+            v-if="!ready"
+            class="rounded-2xl border border-slate-700/80 bg-slate-900/50 p-8 text-center text-slate-400"
+        >
             初始化中…
         </div>
 

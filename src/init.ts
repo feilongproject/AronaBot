@@ -9,6 +9,7 @@ import config, { pathStr, resolveEventTransport } from '../config/config';
 export async function init() {
     log.info(`初始化: 正在加载命令设置`);
     global.commandConfig = (await import('../config/opts')).default;
+    validateChatbotFullReceive();
 
     log.info(`初始化: 正在创建模块热加载监听`);
     for (const { type: hlType, path: hlPath } of config.hotLoadConfigs) {
@@ -103,7 +104,25 @@ export async function init() {
             log.error('mongodb.error', err);
         });
     };
-    if (config.bots[botType].allowMongo) await connectMongo();
+    if (config.bots[botType].allowMongo) {
+        await connectMongo();
+    }
+
+    // PlanaBot 被动 AI 闲聊：AI 专用 MongoDB（config/ai.json bots.PlanaBot.mongo，如 PlanaBotChat 库）
+    if (botType === 'PlanaBot') {
+        const aiMongoCfg = config.ai?.bots?.PlanaBot?.mongo;
+        if (aiMongoCfg) {
+            await connectAIMongo(aiMongoCfg);
+        } else {
+            log.warn('未配置 AI 专用 MongoDB（ai.json bots.PlanaBot.mongo），chatbot 数据回落主库');
+        }
+        if (global.aiMongoDb || global.mongoDb) {
+            // 建 chatContext / chatMemory / chatSticker / chatNoop 索引
+            await import('./plugins/chatbot/db')
+                .then((m) => m.ensureChatbotIndexes())
+                .catch((err) => log.error('ensureChatbotIndexes failed', err));
+        }
+    }
 
     // log.info(`初始化: 正在连接 rabbitmq 数据库`);
     // global.mqconn = await amqp.connect("amqp://localhost");
@@ -143,9 +162,57 @@ export async function init() {
     process.on('SIGINT', async () => {
         await global.browser?.close();
         await mongo?.close();
+        await aiMongo?.close();
         await schedule.gracefulShutdown();
         process.exit(0);
     });
+}
+
+/** AI 专用 MongoDB（PlanaBotChat 库/账号） */
+async function connectAIMongo(
+    aiMongoCfg: NonNullable<AIConfig['bots'][string]>['mongo'],
+    retry = 0,
+): Promise<void> {
+    if (!aiMongoCfg) return;
+    const authSource = aiMongoCfg.authSource || aiMongoCfg.database;
+    const uri = `mongodb://${encodeURIComponent(aiMongoCfg.user)}:${encodeURIComponent(
+        aiMongoCfg.password,
+    )}@${config.mongo.host}:${config.mongo.port}/${aiMongoCfg.database}?authSource=${encodeURIComponent(
+        authSource,
+    )}`;
+    global.aiMongo = new MongoClient(uri, {
+        connectTimeoutMS: config.mongo.connectTimeoutMS,
+        serverSelectionTimeoutMS: config.mongo.serverSelectionTimeoutMS,
+    });
+    try {
+        await global.aiMongo.connect();
+        global.aiMongoDb = global.aiMongo.db(aiMongoCfg.database);
+        log.info(`初始化: AI mongodb 连接成功 ${aiMongoCfg.database}（${aiMongoCfg.user}）`);
+    } catch (err) {
+        log.error(`初始化: AI mongodb 连接失败, retry: ${retry}\n`, err);
+        if (retry > 5) process.exit();
+        else return connectAIMongo(aiMongoCfg, ++retry);
+    }
+    global.aiMongo.on('error', (err) => {
+        log.error('aiMongo.error', err);
+    });
+}
+
+/**
+ * 启动校验：chatbot 白名单群必须配置 enableFullReceiveGroups（按 group_openid）。
+ * 仅告警，不静默改行为。
+ */
+function validateChatbotFullReceive() {
+    const cfg = config.bots[botType]?.chatbot;
+    if (!cfg?.enabled || !cfg.groups?.length) return;
+    const full = config.bots[botType]?.enableFullReceiveGroups || [];
+    const missing = cfg.groups.filter((g) => !full.includes(g));
+    if (missing.length) {
+        log.warn(
+            `chatbot 白名单群未配置 enableFullReceiveGroups 全量接收（group_openid），` +
+                `将无法稳定入站: ${missing.join(', ')}`,
+        );
+    }
 }
 
 /**

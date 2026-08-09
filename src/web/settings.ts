@@ -2,15 +2,32 @@ import fs from 'fs';
 import path from 'path';
 import Router from '@koa/router';
 import type { Context, Next } from 'koa';
-import {
+import config, {
+    getAIConfigFilePath,
     getConfigFilePath,
     normalizeRawConfigPaths,
     previewJoinedPath,
+    readAISchema,
+    readRawAIConfigFile,
     readRawConfigFile,
     readSettingsSchema,
     resolveRootPath,
+    writeRawAIConfigFile,
     writeRawConfigFile,
 } from '../../config/config';
+import { chatCollection, CHAT_COLLECTION, aiDb } from '../plugins/chatbot/db';
+
+const STICKER_STATUSES = new Set(['ready', 'hidden', 'rejected']);
+
+/** 删除 COS 对象（回调风格封装为 Promise） */
+function cosDeleteObject(key: string): Promise<unknown> {
+    return new Promise((resolve, reject) => {
+        global.cos.deleteObject(
+            { Bucket: config.cos.Bucket, Region: config.cos.Region, Key: key },
+            (err: unknown, data: unknown) => (err ? reject(err) : resolve(data)),
+        );
+    });
+}
 
 /** Vue3 构建产物目录（pnpm --dir web build → public/settings） */
 const SETTINGS_DIST = path.join(process.cwd(), 'public', 'settings');
@@ -135,6 +152,39 @@ async function saveConfigHandler(ctx: Context) {
     }
 }
 
+async function saveAIConfigHandler(ctx: Context) {
+    if (!requireSettingsAuth(ctx)) return;
+    const body = (ctx.request.body || {}) as { config?: unknown };
+    const data = body.config ?? body;
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        ctx.status = 400;
+        ctx.body = { message: 'AI 配置格式不合法：需要 JSON 对象（含 bots 等字段）' };
+        return;
+    }
+    try {
+        const hot = writeRawAIConfigFile(data);
+        if (typeof log !== 'undefined') {
+            log.mark(
+                `[web-settings] AI 配置已写入并热加载 by remote ${ctx.ip} applied=${hot.applied.join(',') || '-'}`,
+            );
+        }
+        ctx.body = {
+            ok: true,
+            configPath: getAIConfigFilePath(),
+            botType: typeof botType !== 'undefined' ? botType : null,
+            devEnv: typeof devEnv !== 'undefined' ? devEnv : false,
+            hotReload: hot,
+            hint: [
+                '已写入 ai.json（含 $schema），并热替换当前进程 AI 配置（dsKey/chatbot 立即生效）。',
+                '字段说明见 config/ai.schema.json（编辑器可补全/校验）。',
+            ].join('\n'),
+        };
+    } catch (err) {
+        ctx.status = 500;
+        ctx.body = { message: `写入 AI 配置失败: ${(err as Error).message}` };
+    }
+}
+
 /**
  * 安全解析 SPA 静态资源路径，防止 path traversal
  */
@@ -203,6 +253,24 @@ export function registerSettingsRoutes(router: Router): void {
         }
     });
 
+    /** AI 独立配置（config/ai.json：dsKey / chatbot；aiTranslate 除外仍在 settings.json） */
+    router.get('/api/settings/ai', async (ctx) => {
+        if (!requireSettingsAuth(ctx)) return;
+        try {
+            const ai = readRawAIConfigFile();
+            ctx.body = {
+                config: ai,
+                schema: readAISchema(),
+                configPath: getAIConfigFilePath(),
+                botType: typeof botType !== 'undefined' ? botType : null,
+                devEnv: typeof devEnv !== 'undefined' ? devEnv : false,
+            };
+        } catch (err) {
+            ctx.status = 500;
+            ctx.body = { message: `读取 AI 配置失败: ${(err as Error).message}` };
+        }
+    });
+
     /** JSON Schema（字段说明 / 校验，替代文件内注释） */
     router.get('/api/settings/schema', async (ctx) => {
         if (!requireSettingsAuth(ctx)) return;
@@ -239,6 +307,142 @@ export function registerSettingsRoutes(router: Router): void {
 
     router.put('/api/settings/config', saveConfigHandler);
     router.post('/api/settings/config', saveConfigHandler);
+    router.put('/api/settings/ai', saveAIConfigHandler);
+    router.post('/api/settings/ai', saveAIConfigHandler);
+
+    // —— 表情包图库管理（chatSticker）——
+    router.get('/api/settings/stickers', async (ctx) => {
+        if (!requireSettingsAuth(ctx)) return;
+        try {
+            if (!aiDb()) {
+                ctx.status = 503;
+                ctx.body = { message: 'AI MongoDB 未连接（chatSticker 集合不可用）' };
+                return;
+            }
+            const q = String(ctx.query.q || '').trim();
+            const status = String(ctx.query.status || '').trim();
+            const page = Math.max(1, Number(ctx.query.page) || 1);
+            const pageSize = Math.min(100, Math.max(1, Number(ctx.query.pageSize) || 24));
+            const col = chatCollection(CHAT_COLLECTION.sticker);
+            const filter: Record<string, unknown> = {};
+            if (status) filter.status = status;
+            if (q)
+                filter.$or = [
+                    { summary: { $regex: q, $options: 'i' } },
+                    { tags: { $regex: q, $options: 'i' } },
+                    { cosKey: { $regex: q, $options: 'i' } },
+                ];
+            const [total, list] = await Promise.all([
+                col.countDocuments(filter),
+                col
+                    .find(filter)
+                    .sort({ ts: -1 })
+                    .skip((page - 1) * pageSize)
+                    .limit(pageSize)
+                    .toArray(),
+            ]);
+            const stats: Record<string, number> = {};
+            for (const s of STICKER_STATUSES) {
+                stats[s] = await col.countDocuments({ status: s });
+            }
+            stats.total = total;
+            ctx.body = {
+                total,
+                page,
+                pageSize,
+                stats,
+                list: list.map((d) => ({
+                    _id: String(d._id),
+                    summary: d.summary || '',
+                    tags: d.tags || [],
+                    status: d.status || 'ready',
+                    nsfwRisk: d.nsfwRisk || 'low',
+                    isMeme: !!d.isMeme,
+                    width: d.width,
+                    height: d.height,
+                    byteSize: d.byteSize,
+                    useCount: d.useCount || 0,
+                    ts: d.ts ? new Date(d.ts).toISOString() : null,
+                    groupOpenid: d.groupOpenid || '',
+                    captureAuthorId: d.captureAuthorId || '',
+                    imageUrl: d.cosKey ? cosUrl(d.cosKey, '') : '',
+                })),
+            };
+        } catch (err) {
+            ctx.status = 500;
+            ctx.body = { message: `图库查询失败: ${(err as Error).message}` };
+        }
+    });
+
+    router.post('/api/settings/stickers/status', async (ctx) => {
+        if (!requireSettingsAuth(ctx)) return;
+        try {
+            if (!aiDb()) {
+                ctx.status = 503;
+                ctx.body = { message: 'AI MongoDB 未连接' };
+                return;
+            }
+            const body = (ctx.request.body || {}) as { _id?: string; status?: string };
+            if (!body._id || !STICKER_STATUSES.has(body.status || '')) {
+                ctx.status = 400;
+                ctx.body = { message: `status 必须是 ${[...STICKER_STATUSES].join('/')}` };
+                return;
+            }
+            const col = chatCollection(CHAT_COLLECTION.sticker);
+            const res = await col.updateOne(
+                { _id: body._id },
+                { $set: { status: body.status, statusUpdatedAt: new Date() } },
+            );
+            if (!res.matchedCount) {
+                ctx.status = 404;
+                ctx.body = { message: '图库条目不存在' };
+                return;
+            }
+            ctx.body = { ok: true, _id: body._id, status: body.status };
+        } catch (err) {
+            ctx.status = 500;
+            ctx.body = { message: `更新状态失败: ${(err as Error).message}` };
+        }
+    });
+
+    router.post('/api/settings/stickers/delete', async (ctx) => {
+        if (!requireSettingsAuth(ctx)) return;
+        try {
+            if (!aiDb()) {
+                ctx.status = 503;
+                ctx.body = { message: 'AI MongoDB 未连接' };
+                return;
+            }
+            const body = (ctx.request.body || {}) as { ids?: string[] };
+            const ids = Array.isArray(body.ids) ? body.ids.filter(Boolean) : [];
+            if (!ids.length) {
+                ctx.status = 400;
+                ctx.body = { message: 'ids 不能为空' };
+                return;
+            }
+            const col = chatCollection(CHAT_COLLECTION.sticker);
+            const docs = await col
+                .find({ _id: { $in: ids } }, { projection: { _id: 1, cosKey: 1 } })
+                .toArray();
+            const failed: string[] = [];
+            let deleted = 0;
+            for (const d of docs) {
+                try {
+                    if (d.cosKey) await cosDeleteObject(d.cosKey);
+                } catch (err) {
+                    log.error(`图库删除 COS 失败: ${d.cosKey}`, err);
+                }
+                const r = await col.deleteOne({ _id: d._id });
+                if (r.deletedCount) deleted++;
+                else failed.push(String(d._id));
+            }
+            const missing = ids.filter((id) => !docs.some((d) => String(d._id) === id));
+            ctx.body = { ok: true, deleted, failed: [...failed, ...missing] };
+        } catch (err) {
+            ctx.status = 500;
+            ctx.body = { message: `删除失败: ${(err as Error).message}` };
+        }
+    });
 
     // SPA 页面与静态资源
     router.get('/settings', async (ctx) => {

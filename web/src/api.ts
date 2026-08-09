@@ -19,6 +19,12 @@ export type ConfigResponse = SettingsMeta & {
     schema?: Record<string, unknown> | null;
 };
 
+export type AIConfigResponse = SettingsMeta & {
+    config: Record<string, unknown>;
+    /** JSON Schema（字段说明） */
+    schema?: Record<string, unknown> | null;
+};
+
 function getToken(): string {
     return sessionStorage.getItem(TOKEN_KEY) || '';
 }
@@ -54,9 +60,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export function auth() {
-    return request<{ ok: boolean; botType: string | null; devEnv: boolean }>(
-        '/api/settings/auth',
-    );
+    return request<{ ok: boolean; botType: string | null; devEnv: boolean }>('/api/settings/auth');
 }
 
 export function fetchConfig() {
@@ -68,6 +72,72 @@ export function saveConfig(config: unknown) {
         method: 'PUT',
         body: JSON.stringify({ config }),
     });
+}
+
+export function fetchAIConfig() {
+    return request<AIConfigResponse>('/api/settings/ai');
+}
+
+export function saveAIConfig(config: unknown) {
+    return request<AIConfigResponse>('/api/settings/ai', {
+        method: 'PUT',
+        body: JSON.stringify({ config }),
+    });
+}
+
+// —— 表情包图库 ——
+
+export type StickerItem = {
+    _id: string;
+    summary: string;
+    tags: string[];
+    status: string;
+    nsfwRisk: string;
+    isMeme: boolean;
+    width?: number;
+    height?: number;
+    byteSize?: number;
+    useCount: number;
+    ts: string | null;
+    groupOpenid: string;
+    captureAuthorId: string;
+    imageUrl: string;
+};
+
+export type StickerListResponse = {
+    total: number;
+    page: number;
+    pageSize: number;
+    stats: Record<string, number>;
+    list: StickerItem[];
+};
+
+export function fetchStickers(params: {
+    q?: string;
+    status?: string;
+    page?: number;
+    pageSize?: number;
+}): Promise<StickerListResponse> {
+    const sp = new URLSearchParams();
+    if (params.q) sp.set('q', params.q);
+    if (params.status) sp.set('status', params.status);
+    sp.set('page', String(params.page || 1));
+    sp.set('pageSize', String(params.pageSize || 24));
+    return request<StickerListResponse>(`/api/settings/stickers?${sp.toString()}`);
+}
+
+export function setStickerStatus(_id: string, status: string) {
+    return request<{ ok: boolean }>('/api/settings/stickers/status', {
+        method: 'POST',
+        body: JSON.stringify({ _id, status }),
+    });
+}
+
+export function deleteStickers(ids: string[]) {
+    return request<{ ok: boolean; deleted: number; failed: string[] }>(
+        '/api/settings/stickers/delete',
+        { method: 'POST', body: JSON.stringify({ ids }) },
+    );
 }
 
 export function fetchSchema() {
