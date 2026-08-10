@@ -533,7 +533,7 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
 
     constructor(msg: IntentMessage.GROUP_MESSAGE_body, register = true, isOffical = true) {
         super(msg, MessageType.GROUP, isOffical);
-        this.author = msg.author as any;
+        this.author = msg.author;
         this.group_id = msg.group_id;
         this.group_openid = msg.group_openid;
         this.pushEventId = msg.pushEventId;
@@ -542,7 +542,7 @@ export class IMessageGROUP extends IMessageChatCommon implements IntentMessage.G
 
         if (!register) return;
         log.info(
-            `群聊[${isOffical ? this.group_id : this.group_openid}](${this.author.id}): ${this.content}`,
+            `群聊[${isOffical ? this.group_id : this.group_openid}](${this.author.username}|${this.author.id}): ${this.content}`,
         );
         this.opts = findOpts(this);
     }
