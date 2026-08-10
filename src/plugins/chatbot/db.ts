@@ -107,7 +107,7 @@ export async function writeObserveRow(
         CHAT_COLLECTION.context,
         {
             _id: rowId(msg),
-            botType: 'PlanaBot',
+            botType,
             groupOpenid: msg.group_openid,
             role: 'user',
             authorId: msg.author.id,
@@ -269,7 +269,7 @@ export async function recordNoop(
         CHAT_COLLECTION.noop,
         {
             _id: `${msg.group_openid}:${rowId(msg)}`,
-            botType: 'PlanaBot',
+            botType,
             groupOpenid: msg.group_openid,
             authorId: msg.author.id,
             trigger,
@@ -337,7 +337,7 @@ export async function maybeCompress(groupOpenid: string, cfg: ChatbotRuntimeConf
             CHAT_COLLECTION.memory,
             {
                 _id: `${groupOpenid}:${seq}`,
-                botType: 'PlanaBot',
+                botType,
                 groupOpenid,
                 seq,
                 summary,

@@ -21,6 +21,8 @@ export type ConfigResponse = SettingsMeta & {
 
 export type AIConfigResponse = SettingsMeta & {
     config: Record<string, unknown>;
+    /** settings.json 中的 bot 键列表（activeBot 候选） */
+    botNames?: string[];
     /** JSON Schema（字段说明） */
     schema?: Record<string, unknown> | null;
 };

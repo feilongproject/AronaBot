@@ -475,22 +475,28 @@ export function readRawAIConfigFile(): AIConfigFile {
 }
 
 /**
- * 首次运行：ai.json 不存在时，把 settings.json 中的存量 AI 配置（bots.*.dsKey / chatbot）
- * 迁移到 ai.json，避免独立文件后原有配置失效；无存量则复制 ai.example.json。
+ * 首次运行：ai.json 不存在时，把 settings.json 中的存量 AI 配置
+ * 迁成扁平结构（activeBot + dsKey + chatbot），无存量则复制 ai.example.json。
  */
 function seedAIConfigFromLegacy(fileData: AppConfigFile): void {
     const file = aiConfigFile();
     if (fs.existsSync(file)) return;
 
-    const bots: Record<string, AIBotConfigFile> = {};
+    let activeBot = '';
+    let dsKey: string | undefined;
+    let chatbot: BotChatbotConfig | undefined;
     for (const [name, bot] of Object.entries(fileData.bots || {})) {
-        const ai: AIBotConfigFile = {};
-        if (bot?.dsKey) ai.dsKey = bot.dsKey;
-        if (bot?.chatbot) ai.chatbot = bot.chatbot;
-        if (Object.keys(ai).length) bots[name] = ai;
+        if (!bot?.dsKey && !bot?.chatbot) continue;
+        // 优先选 chatbot.enabled 的 bot
+        if (bot.chatbot?.enabled || !activeBot) {
+            activeBot = name;
+            dsKey = bot.dsKey;
+            chatbot = bot.chatbot;
+            if (bot.chatbot?.enabled) break;
+        }
     }
 
-    if (!Object.keys(bots).length) {
+    if (!activeBot && !dsKey && !chatbot) {
         const ex = aiExampleFile();
         if (fs.existsSync(ex)) {
             fs.copyFileSync(ex, file);
@@ -504,36 +510,59 @@ function seedAIConfigFromLegacy(fileData: AppConfigFile): void {
         return;
     }
 
-    const text = JSON.stringify({ $schema: AI_SCHEMA_REF, bots }, null, 4) + '\n';
+    const payload: AIConfigFile = {
+        $schema: AI_SCHEMA_REF,
+        activeBot: activeBot || 'PlanaBot',
+        dsKey: dsKey || '',
+        chatbot,
+    };
+    const text = JSON.stringify(payload, null, 4) + '\n';
     const dir = configDir();
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(file, text, 'utf-8');
     // eslint-disable-next-line no-console
-    console.warn(`[config] 已从 settings.json 迁移 AI 配置（dsKey/chatbot）到 ${file}`);
+    console.warn(`[config] 已从 settings.json 迁移 AI 配置到扁平 ai.json（activeBot/dsKey/chatbot）`);
 }
 
 /** 读取 ai.json 并构建运行时形态（memoryDir 等路径字段包装） */
 function loadAIConfigFromDisk(root: string): AIConfig {
-    const raw = readRawAIConfigFile();
-    const bots: Record<string, AIBotConfigFile> = {};
-    for (const [name, botAi] of Object.entries(raw.bots || {})) {
-        bots[name] = {
-            dsKey: botAi?.dsKey,
-            chatbot: toRuntimeChatbot(botAi?.chatbot, root),
-            mongo: botAi?.mongo,
-        };
+    const raw = readRawAIConfigFile() as AIConfigFile;
+    let activeBot = String(raw.activeBot || '').trim();
+    let dsKey = raw.dsKey;
+    let chatbot = raw.chatbot;
+    let mongo = raw.mongo;
+
+    // 兼容旧 bots.<name> 形态：合并到顶层
+    if (raw.bots && typeof raw.bots === 'object') {
+        if (!activeBot) {
+            const enabled = Object.entries(raw.bots).find(([, b]) => b?.chatbot?.enabled);
+            activeBot =
+                enabled?.[0] ||
+                (raw.bots.PlanaBot ? 'PlanaBot' : Object.keys(raw.bots)[0] || '');
+        }
+        const from = (activeBot && raw.bots[activeBot]) || Object.values(raw.bots)[0];
+        if (from) {
+            if (dsKey == null) dsKey = from.dsKey;
+            if (chatbot == null) chatbot = from.chatbot;
+            if (mongo == null) mongo = from.mongo;
+        }
     }
-    return { bots };
+
+    return {
+        activeBot,
+        dsKey,
+        chatbot: toRuntimeChatbot(chatbot, root),
+        mongo,
+    };
 }
 
-/** 把 ai.json 合并进运行时 config：ai.json 优先，settings.json 存量兜底 */
+/** 把 ai.json 合并进运行时 config：ai.json 优先；chatbot/dsKey 挂到 activeBot 供兼容读取 */
 function overlayAIConfig(resolved: AppConfig, ai: AIConfig): void {
     (resolved as { ai?: AIConfig }).ai = ai;
-    for (const [name, bot] of Object.entries(resolved.bots)) {
-        const botAi = ai.bots?.[name];
-        if (!botAi) continue;
-        if (botAi.dsKey != null) bot.dsKey = botAi.dsKey;
-        if (botAi.chatbot != null) bot.chatbot = botAi.chatbot;
+    const owner = ai.activeBot;
+    if (owner && resolved.bots[owner]) {
+        if (ai.dsKey != null) resolved.bots[owner].dsKey = ai.dsKey;
+        if (ai.chatbot != null) resolved.bots[owner].chatbot = ai.chatbot as BotConfig['chatbot'];
     }
 }
 

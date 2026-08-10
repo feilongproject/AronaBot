@@ -37,7 +37,7 @@
 | 群 id        | **统一使用 `group_openid`**；`group_id` / `groupMap` 即将废除，新代码不再依赖                                                                                                      |
 | 全量接收     | 白名单群**均需配置全量接收**；`enableFullReceiveGroups` 以 **openid** 为准（此前数字群号为错误配置，已改正）；实现期做启动校验告警，不再作为「能力降级」主路径                     |
 | 消息合法性   | **`isOffical` 废除**；不再作为准入/过滤/落库条件                                                                                                                                   |
-| 启停         | **仅 PlanaBot**；AronaBot / TestBot 不开启                                                                                                                                         |
+| 启停         | **全局 `ai.activeBot` 指定唯一宿主** + 顶层唯一一份 `ai.chatbot`（设置页切换宿主、编辑同一份参数）                                                                                 |
 | 触发 · Must  | **@ 本 bot** 或 **先导词** → **必须回复**；**忽略抽卡**（不掷骰、不累加、不重置累计）                                                                                              |
 | 先导词格式   | **`xxx[空格]`** 前缀：去 @ 后 `trim`，以 `先导词 + 至少一个空格` 开头才命中；`xxx` 为 `mustPrefixes`；示例：`星奈 今天天气怎么样`                                                  |
 | 触发 · Maybe | **抽卡累计**：初始 `replyProbability`（默认 0.0005），未中每条 `+replyProbabilityStep`（默认 0.0001），真正发出后重置；Must 不参与                                                 |

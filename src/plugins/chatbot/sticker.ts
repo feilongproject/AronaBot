@@ -163,7 +163,7 @@ async function captureOne(
 
     const doc = {
         _id: contentHash,
-        botType: 'PlanaBot',
+        botType,
         groupOpenid: msg.group_openid,
         cosKey,
         sourceUrl: img.att.url,

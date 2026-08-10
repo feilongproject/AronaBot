@@ -72,13 +72,24 @@ function num(v: unknown, dft: number): number {
     return Number.isFinite(n) ? n : dft;
 }
 
+/** 全局指定的被动 AI 宿主 bot 名；空=未指定 */
+export function getChatbotOwnerBot(): string {
+    return String(config.ai?.activeBot || '').trim();
+}
+
+/** 当前进程是否为全局 AI 宿主（与 ai.activeBot 一致） */
+export function isChatbotOwnerProcess(): boolean {
+    const owner = getChatbotOwnerBot();
+    return !!owner && typeof botType !== 'undefined' && botType === owner;
+}
+
 /**
- * 读取 PlanaBot chatbot 运行时配置（缺省字段回落冻结默认值）。
- * 仅 PlanaBot + enabled 时返回，否则 null。
+ * 读取全局 chatbot 运行时配置（缺省字段回落冻结默认值）。
+ * 仅当本进程为 ai.activeBot 且 chatbot.enabled 时返回，否则 null。
  */
 export function getChatbotConfig(): ChatbotRuntimeConfig | null {
-    if (botType !== 'PlanaBot') return null;
-    const c = config.bots.PlanaBot?.chatbot;
+    if (!isChatbotOwnerProcess()) return null;
+    const c = config.ai?.chatbot;
     if (!c?.enabled) return null;
 
     return {

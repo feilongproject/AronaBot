@@ -108,13 +108,14 @@ export async function init() {
         await connectMongo();
     }
 
-    // PlanaBot 被动 AI 闲聊：AI 专用 MongoDB（config/ai.json bots.PlanaBot.mongo，如 PlanaBotChat 库）
-    if (botType === 'PlanaBot') {
-        const aiMongoCfg = config.ai?.bots?.PlanaBot?.mongo;
+    // 全局 AI 宿主 bot：AI 专用 MongoDB（config/ai.json 顶层 mongo）
+    const aiOwner = String(config.ai?.activeBot || '').trim();
+    if (aiOwner && botType === aiOwner) {
+        const aiMongoCfg = config.ai?.mongo;
         if (aiMongoCfg) {
             await connectAIMongo(aiMongoCfg);
         } else {
-            log.warn('未配置 AI 专用 MongoDB（ai.json bots.PlanaBot.mongo），chatbot 数据回落主库');
+            log.warn('未配置 AI 专用 MongoDB（ai.json mongo），chatbot 数据回落主库');
         }
         if (global.aiMongoDb || global.mongoDb) {
             // 建 chatContext / chatMemory / chatSticker / chatNoop 索引
@@ -136,6 +137,10 @@ export async function init() {
     global.ws = createWebsocket({ ...config.bots[botType], sandbox: devEnv });
     global.ws.once('READY', async (data: IntentMessage.READY) => {
         log.mark(`ws已建立, 机器人信息: ${data.msg.user.username}(${data.msg.user.id})`);
+    });
+    global.ws.on('ERROR', (err) => {
+        log.error(`ws错误`, err);
+        // process.exit(1);
     });
 
     log.info(`初始化: 正在创建频道树`);
@@ -168,9 +173,9 @@ export async function init() {
     });
 }
 
-/** AI 专用 MongoDB（PlanaBotChat 库/账号） */
+/** AI 专用 MongoDB（ai.json 顶层 mongo） */
 async function connectAIMongo(
-    aiMongoCfg: NonNullable<AIConfig['bots'][string]>['mongo'],
+    aiMongoCfg: NonNullable<AIConfig['mongo']>,
     retry = 0,
 ): Promise<void> {
     if (!aiMongoCfg) return;

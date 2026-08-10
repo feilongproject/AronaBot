@@ -147,7 +147,7 @@ async function shortGateRefusalReply(msg: IMessageGROUP, cfg: ChatbotRuntimeConf
 }
 
 /**
- * PlanaBot 群聊被动 AI 闲聊（opts.path=chatbot / fnc=chatbot 兜底入口）。
+ * 群聊被动 AI 闲聊（opts.path=chatbot / fnc=chatbot 兜底入口；仅 ai.activeBot 宿主进程）。
  *
  * 流水线：
  * 观察写库（含 ignored）→ 表情异步抓取 → H0（超长/空噪声）→ 限流/冷却

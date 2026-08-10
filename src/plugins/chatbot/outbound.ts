@@ -9,7 +9,7 @@ export function normalizeOutboundContent(content?: string): string {
 
 /**
  * 发送层统一出站记录（所有 bot 发送必须入 Mongo）。
- * - 仅 PlanaBot + chatbot 白名单群（group_openid）
+ * - 仅全局 AI 宿主（ai.activeBot）+ chatbot 白名单群（group_openid）
  * - 在 callWithRetry 最终成功后调用，重试不重复写入
  * - 去重统一按消息 id（msgId 唯一稀疏索引）；不做 content hash 严格去重
  * - 同步缓存 bot 出站 msgId 近 3 小时（isReplyToBot 判定主路径）
@@ -27,10 +27,11 @@ export async function recordGroupBotOutbound(
 ): Promise<void> {
     try {
         const db = aiDb();
-        if (botType !== 'PlanaBot' || !db) return;
+        const owner = String(config.ai?.activeBot || '').trim();
+        if (!owner || botType !== owner || !db) return;
         const groupOpenid = options.sendToId;
         if (!groupOpenid) return;
-        const cfg = config.bots.PlanaBot?.chatbot;
+        const cfg = config.ai?.chatbot;
         if (!cfg?.enabled || !cfg.groups?.includes(groupOpenid)) return;
 
         const text = normalizeOutboundContent(options.content);
@@ -63,7 +64,7 @@ export async function recordGroupBotOutbound(
                 _id: msgId
                     ? String(msgId)
                     : `${groupOpenid}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
-                botType: 'PlanaBot',
+                botType,
                 groupOpenid,
                 role: 'assistant',
                 authorId: typeof meId !== 'undefined' ? meId : '',

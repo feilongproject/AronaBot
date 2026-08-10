@@ -253,13 +253,21 @@ export function registerSettingsRoutes(router: Router): void {
         }
     });
 
-    /** AI 独立配置（config/ai.json：dsKey / chatbot；aiTranslate 除外仍在 settings.json） */
+    /** AI 独立配置（config/ai.json 扁平：activeBot/dsKey/chatbot/mongo） */
     router.get('/api/settings/ai', async (ctx) => {
         if (!requireSettingsAuth(ctx)) return;
         try {
             const ai = readRawAIConfigFile();
+            // 宿主候选列表来自 settings.json 的 bots 键
+            let botNames: string[] = [];
+            try {
+                botNames = Object.keys(readRawConfigFile().bots || {});
+            } catch {
+                botNames = [];
+            }
             ctx.body = {
                 config: ai,
+                botNames,
                 schema: readAISchema(),
                 configPath: getAIConfigFilePath(),
                 botType: typeof botType !== 'undefined' ? botType : null,

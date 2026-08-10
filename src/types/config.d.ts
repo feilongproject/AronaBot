@@ -152,7 +152,7 @@ interface ChatbotMcpConfig {
 }
 
 interface BotChatbotConfig {
-    /** 总开关；仅 PlanaBot 生效 */
+    /** 总开关；仅全局 activeBot 指定的 bot 进程生效 */
     enabled: boolean;
     /** 白名单群 group_openid 列表 */
     groups: string[];
@@ -242,22 +242,40 @@ interface BotChatbotConfig {
 interface AIConfigFile {
     /** 指向 ai.schema.json，供 IDE 补全 */
     $schema?: string;
+    /**
+     * 全局唯一被动 AI 宿主 bot 名（AronaBot / PlanaBot / TestBot 等）。
+     * 空字符串或不设 = 不启用被动 AI；任意时刻仅一个 bot 可运行 chatbot。
+     */
+    activeBot?: string;
+    /** DeepSeek 等对话密钥（全局唯一） */
+    dsKey?: string;
+    /** 群聊被动 AI 闲聊参数（全局唯一一份） */
+    chatbot?: BotChatbotConfig;
+    /** AI 专用 MongoDB 连接 */
+    mongo?: MongoConnectionConfig;
+    /**
+     * @deprecated 旧 per-bot 形态（bots.<name>.dsKey/chatbot/mongo）；
+     * 加载时合并到顶层，新配置勿再使用。
+     */
     bots?: Record<string, AIBotConfigFile>;
 }
 
-/** ai.json 中单个 bot 的 AI 配置 */
+/**
+ * @deprecated 旧 ai.json bots 条目；仅兼容加载。
+ */
 interface AIBotConfigFile {
-    /** DeepSeek 等对话密钥（原 settings.json bots.*.dsKey） */
     dsKey?: string;
-    /** PlanaBot 群聊被动 AI 闲聊参数（原 settings.json bots.*.chatbot） */
     chatbot?: BotChatbotConfig;
-    /** AI 专用 MongoDB 连接（库/账号建议 PlanaBotChat；chatContext 等 AI 数据写入此库） */
     mongo?: MongoConnectionConfig;
 }
 
-/** ai.json 运行时形态 */
+/** ai.json 运行时形态（扁平：一份 chatbot + 一个 activeBot） */
 interface AIConfig {
-    bots: Record<string, AIBotConfigFile>;
+    /** 全局唯一被动 AI 宿主 bot；空=不启用 */
+    activeBot: string;
+    dsKey?: string;
+    chatbot?: Omit<BotChatbotConfig, 'memoryDir'> & { memoryDir?: ConfigPath | string };
+    mongo?: MongoConnectionConfig;
 }
 
 /** 事件接收传输模式 */

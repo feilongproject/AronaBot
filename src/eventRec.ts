@@ -79,20 +79,24 @@ async function executeChat(msg: IMessageGROUP | IMessageC2C) {
             !msg.mentions?.some((m) => m.is_you)
         )
             return;
+        if (msg.author.bot) return;
 
         global.commandConfig = (await import('../config/opts')).default;
         aiAllow(msg);
         const { opts } = msg;
         if (!opts) return;
 
-        // PlanaBot 白名单群：命中其他指令的用户消息也写入群公共历史（chatContext）；
+        // AI 宿主 bot 白名单群：命中其他指令的用户消息也写入群公共历史（chatContext）；
         // 兜底 chatbot 自身的观察行由插件内 writeObserveRow 写入，不在这里重复处理
-        if (msg instanceof IMessageGROUP && botType === 'PlanaBot' && opts.path !== 'chatbot') {
-            const chatCfg = config.bots[botType]?.chatbot;
-            if (chatCfg?.enabled && chatCfg.groups?.includes(msg.group_openid)) {
-                await import('./plugins/chatbot/db')
-                    .then((m) => m.writeUserObserveRow(msg))
-                    .catch((err) => log.error('writeUserObserveRow failed', err));
+        if (msg instanceof IMessageGROUP && opts.path !== 'chatbot') {
+            const owner = String(config.ai?.activeBot || '').trim();
+            if (owner && botType === owner) {
+                const chatCfg = config.ai?.chatbot;
+                if (chatCfg?.enabled && chatCfg.groups?.includes(msg.group_openid)) {
+                    await import('./plugins/chatbot/db')
+                        .then((m) => m.writeUserObserveRow(msg))
+                        .catch((err) => log.error('writeUserObserveRow failed', err));
+                }
             }
         }
 
@@ -378,13 +382,17 @@ async function isBan(
 
 /**
  * 群聊被动 AI 闲聊兜底（指令优先：仅 findOpts 未命中时挂载）。
- * 准入：仅 PlanaBot + IMessageGROUP + chatbot.enabled + group_openid 白名单；
+ * 准入：仅全局 activeBot 指定的宿主进程 + IMessageGROUP + chatbot.enabled + group_openid 白名单；
  * 封禁由 executeChat 的 isBan 后置处理；isOffical 已废除，不再校验。
  */
 function aiAllow(msg: IMessageGROUP | IMessageC2C) {
     if (!(msg instanceof IMessageGROUP) || msg.opts) return;
-    const chatCfg = config.bots[botType]?.chatbot;
-    if (botType !== 'PlanaBot' || !chatCfg?.enabled) return;
+    // 同步读取配置：getChatbotConfig 内部校验 activeBot + enabled
+    // 注意：此处不 async，用 config 直接判宿主，避免动态 import
+    const owner = String(config.ai?.activeBot || '').trim();
+    if (!owner || botType !== owner) return;
+    const chatCfg = config.ai?.chatbot;
+    if (!chatCfg?.enabled) return;
     if (!chatCfg.groups?.includes(msg.group_openid)) return;
 
     msg.opts = {

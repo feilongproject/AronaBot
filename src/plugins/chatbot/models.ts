@@ -58,8 +58,8 @@ export async function chatCompletion(
     messages: ChatCompletionMessageParam[],
     cfg: ChatbotRuntimeConfig,
 ): Promise<ChatResult> {
-    const apiKey = config.bots[botType]?.dsKey;
-    if (!apiKey) throw new Error('chatbot: dsKey 未配置');
+    const apiKey = config.ai?.dsKey || config.bots[botType]?.dsKey;
+    if (!apiKey) throw new Error('chatbot: dsKey 未配置（ai.json 顶层 dsKey）');
     const openai = new OpenAI({ apiKey, baseURL: cfg.baseURL });
     const completion = await openai.chat.completions.create({
         model: cfg.chatModel,
@@ -84,8 +84,8 @@ export async function chatCompletionWithTools(
     tools: ChatCompletionTool[],
     onToolCall: (fullName: string, argsText: string) => Promise<string>,
 ): Promise<ChatResult> {
-    const apiKey = config.bots[botType]?.dsKey;
-    if (!apiKey) throw new Error('chatbot: dsKey 未配置');
+    const apiKey = config.ai?.dsKey || config.bots[botType]?.dsKey;
+    if (!apiKey) throw new Error('chatbot: dsKey 未配置（ai.json 顶层 dsKey）');
     const openai = new OpenAI({ apiKey, baseURL: cfg.baseURL });
     const msgs: ChatCompletionMessageParam[] = [...messages];
     for (let round = 0; round <= cfg.maxToolRounds; round++) {
