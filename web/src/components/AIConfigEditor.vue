@@ -56,6 +56,7 @@ const DEFAULT_CHATBOT: Record<string, any> = {
     stickerCaptureMode: 'all_images',
     stickerCaptureStore: true,
     stickerAutoApprove: false,
+    stickerDedupHamming: 8,
     stickerMaxBytes: 2097152,
     stickerLibraryMax: 500,
     stickerBlacklistUserIds: [],
@@ -685,6 +686,20 @@ onMounted(load);
                                 label="自动通过审核（跳过人工）"
                                 @update:model-value="
                                     patchChatbot((c) => (c.stickerAutoApprove = $event))
+                                "
+                            />
+                        </Field>
+                        <Field
+                            label="stickerDedupHamming"
+                            hint="dHash 相似去重阈值 0–64；默认 8；0=仅精确去重"
+                        >
+                            <NumberInput
+                                integer
+                                :model-value="ai.chatbot?.stickerDedupHamming ?? 8"
+                                :min="0"
+                                :max="64"
+                                @update:model-value="
+                                    patchChatbot((c) => (c.stickerDedupHamming = $event))
                                 "
                             />
                         </Field>

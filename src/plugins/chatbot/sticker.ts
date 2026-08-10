@@ -1,6 +1,7 @@
 import axios from 'axios';
 import crypto from 'crypto';
 import imageSize from 'image-size';
+import sharp from 'sharp';
 import { Jieba } from '@node-rs/jieba';
 import { pushToDB } from '../../libs/common';
 import { IMessageGROUP } from '../../libs/IMessageEx';
@@ -109,7 +110,11 @@ async function captureOne(
     const col = chatCollection(CHAT_COLLECTION.sticker);
     const contentHash = crypto.createHash('sha1').update(img.buffer).digest('hex');
     const exists = await col.findOne({ contentHash }, { projection: { _id: 1 } }).catch(() => null);
-    if (exists) return;
+    if (exists) {
+        if (devEnv)
+            log.debug(`chatbot 跳过精确重复 hash=${contentHash.slice(0, 8)}`);
+        return;
+    }
 
     if (!isCapturable(img, cfg)) return;
 
@@ -121,6 +126,19 @@ async function captureOne(
                 `chatbot 跳过非表情包截图 hash=${contentHash.slice(0, 8)} reason=${shotReason}`,
             );
         return;
+    }
+
+    // 感知哈希相似度去重（须在 vision 前，省看图费用）
+    const phash = await computeDHash(img.buffer);
+    if (phash) {
+        const similar = await findSimilarByPhash(col, phash, cfg.stickerDedupHamming);
+        if (similar) {
+            if (devEnv)
+                log.debug(
+                    `chatbot 跳过相似表情 hash=${contentHash.slice(0, 8)} phash=${phash} dist=${similar.dist} exist=${String(similar._id).slice(0, 8)}`,
+                );
+            return;
+        }
     }
 
     const result = await analyzeSticker(img, cfg);
@@ -168,6 +186,7 @@ async function captureOne(
         cosKey,
         sourceUrl: img.att.url,
         contentHash,
+        phash: phash || undefined,
         summary: result.summary,
         tags: result.tags,
         nsfwRisk: result.nsfwRisk,
@@ -184,8 +203,87 @@ async function captureOne(
     await pushToDB(CHAT_COLLECTION.sticker, doc, aiDb());
     if (devEnv)
         log.debug(
-            `chatbot 表情入库 ${doc.status} hash=${contentHash.slice(0, 8)} summary=${doc.summary}`,
+            `chatbot 表情入库 ${doc.status} hash=${contentHash.slice(0, 8)} phash=${phash || '-'} summary=${doc.summary}`,
         );
+}
+
+/**
+ * dHash（difference hash）：9×8 灰度 → 64 bit hex。
+ * 对重编码 / 轻微缩放 / 压缩噪声较稳健，适合表情包相似去重。
+ */
+export async function computeDHash(buffer: Buffer): Promise<string | null> {
+    try {
+        const raw = await sharp(buffer, { animated: false, pages: 1 })
+            .rotate()
+            .greyscale()
+            .resize(9, 8, { fit: 'fill' })
+            .raw()
+            .toBuffer();
+        // 72 像素：每行 9 列，比较相邻列 → 8×8 位
+        let bits = '';
+        for (let y = 0; y < 8; y++) {
+            for (let x = 0; x < 8; x++) {
+                const left = raw[y * 9 + x];
+                const right = raw[y * 9 + x + 1];
+                bits += left < right ? '1' : '0';
+            }
+        }
+        let hex = '';
+        for (let i = 0; i < 64; i += 4) {
+            hex += parseInt(bits.slice(i, i + 4), 2).toString(16);
+        }
+        return hex;
+    } catch (err) {
+        if (devEnv) log.debug('computeDHash failed', err);
+        return null;
+    }
+}
+
+function hammingHex64(a: string, b: string): number {
+    if (!a || !b || a.length !== b.length) return 64;
+    let dist = 0;
+    for (let i = 0; i < a.length; i++) {
+        let x = parseInt(a[i], 16) ^ parseInt(b[i], 16);
+        // 4-bit popcount（Brian Kernighan）
+        while (x) {
+            dist++;
+            x &= x - 1;
+        }
+    }
+    return dist;
+}
+
+/**
+ * 在库内找感知哈希距离 ≤ threshold 的已有表情。
+ * 库规模通常 ≤ stickerLibraryMax（百级），全量扫描 phash 可接受。
+ * threshold≤0 时关闭相似去重（仅 contentHash 精确去重）。
+ */
+async function findSimilarByPhash(
+    col: ReturnType<typeof chatCollection>,
+    phash: string,
+    threshold: number,
+): Promise<{ _id: string; phash: string; dist: number } | null> {
+    if (!phash || threshold <= 0) return null;
+    const docs = await col
+        .find(
+            { phash: { $type: 'string', $ne: '' } },
+            { projection: { _id: 1, phash: 1 } },
+        )
+        .limit(2000)
+        .toArray()
+        .catch(() => [] as { _id: unknown; phash?: string }[]);
+
+    let best: { _id: string; phash: string; dist: number } | null = null;
+    for (const d of docs) {
+        const other = String(d.phash || '');
+        if (!other) continue;
+        const dist = hammingHex64(phash, other);
+        if (dist <= threshold && (!best || dist < best.dist)) {
+            best = { _id: String(d._id), phash: other, dist };
+            if (dist === 0) break;
+        }
+    }
+    return best;
 }
 
 function isAnimatedImage(

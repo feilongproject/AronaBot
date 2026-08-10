@@ -210,6 +210,12 @@
                     "type": "boolean",
                     "description": "true=抓取后直接 ready；false（默认）=pending 待设置页人工审核通过后才可被选图发送"
                 },
+                "stickerDedupHamming": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 64,
+                    "description": "表情相似去重：dHash 汉明距离阈值（0–64）。≤阈值视为相似跳过入库；默认 8；0=仅 contentHash 精确去重"
+                },
                 "stickerMaxBytes": {
                     "type": "integer",
                     "description": "单张抓取上限字节，默认 2097152（2MB）"
@@ -484,6 +490,12 @@
                         "stickerAutoApprove": {
                             "type": "boolean",
                             "description": "true=抓取后直接 ready；false（默认）=pending 待设置页人工审核通过后才可被选图发送"
+                        },
+                        "stickerDedupHamming": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 64,
+                            "description": "表情相似去重：dHash 汉明距离阈值（0–64）。≤阈值视为相似跳过入库；默认 8；0=仅 contentHash 精确去重"
                         },
                         "stickerMaxBytes": {
                             "type": "integer",

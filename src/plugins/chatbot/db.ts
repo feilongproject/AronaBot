@@ -78,6 +78,8 @@ export async function ensureChatbotIndexes(): Promise<void> {
             db
                 .collection(CHAT_COLLECTION.sticker)
                 .createIndex({ contentHash: 1 }, { unique: true }),
+            // 感知哈希：相似去重查询；非唯一（仅加速存在性扫描，比对在应用层）
+            db.collection(CHAT_COLLECTION.sticker).createIndex({ phash: 1 }, { sparse: true }),
             db.collection(CHAT_COLLECTION.noop).createIndex({ groupOpenid: 1, ts: -1 }),
             db.collection(CHAT_COLLECTION.meta).createIndex({ groupOpenid: 1 }, { unique: true }),
         ]);

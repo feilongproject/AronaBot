@@ -220,6 +220,11 @@ interface BotChatbotConfig {
      * true= 抓取后直接 ready（旧行为）。
      */
     stickerAutoApprove?: boolean;
+    /**
+     * 表情相似去重：dHash 汉明距离阈值（0–64）。
+     * ≤ 阈值视为相似不入库；默认 8；0=仅 contentHash 精确去重。
+     */
+    stickerDedupHamming?: number;
     /** 单张抓取上限（字节）；默认 2MB */
     stickerMaxBytes: number;
     /** 图库固化上限（ready+pending 合计）；默认 500 */

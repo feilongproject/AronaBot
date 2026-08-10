@@ -55,6 +55,11 @@ export interface ChatbotRuntimeConfig {
     stickerCaptureStore: boolean;
     /** true=抓取后直接 ready；false=pending 待人工审核（默认） */
     stickerAutoApprove: boolean;
+    /**
+     * 感知哈希（dHash）汉明距离阈值；≤ 此值视为相似跳过入库。
+     * 默认 8；0=关闭相似去重（仅 contentHash 精确去重）。
+     */
+    stickerDedupHamming: number;
     stickerMaxBytes: number;
     stickerLibraryMax: number;
     stickerBlacklistUserIds: string[];
@@ -138,6 +143,7 @@ export function getChatbotConfig(): ChatbotRuntimeConfig | null {
         stickerCaptureStore: c.stickerCaptureStore !== false,
         // 默认需人工审核；仅显式 true 时自动通过
         stickerAutoApprove: c.stickerAutoApprove === true,
+        stickerDedupHamming: Math.max(0, Math.min(64, num(c.stickerDedupHamming, 8))),
         stickerMaxBytes: num(c.stickerMaxBytes, 2 * 1024 * 1024),
         stickerLibraryMax: num(c.stickerLibraryMax, 500),
         stickerBlacklistUserIds: Array.isArray(c.stickerBlacklistUserIds)
