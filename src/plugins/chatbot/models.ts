@@ -182,6 +182,16 @@ function toVisionDataUrl(img: VisionInputImage): Promise<string> {
     return Promise.resolve(`data:${mime};base64,${buf.toString('base64')}`);
 }
 
+/** is_meme 判定准则：供图库入库；聊天记录/App 截图等必须 false */
+const VISION_MEME_RULES = [
+    'is_meme 判定（严格）：',
+    'true=适合在群聊快速发送的表情包/反应图/梗图：主体单一、画面简洁、常带夸张表情或短文案，边长通常不大。',
+    'false=以下一律 false：聊天记录/会话长截图（多条气泡、头像列表、时间戳）；微信/QQ/Telegram 等 IM 界面；',
+    '手机/电脑 App 界面截图（状态栏、导航栏、底部 Tab、设置页、浏览器、相册、游戏全屏 UI、文档表格）；',
+    '实拍照片、风景/合影、海报长图、多页拼图、二维码为主的图。',
+    '拿不准时 is_meme=false。',
+].join('');
+
 /**
  * 阿里云百炼 qwen3.7-plus 看图（OpenAI 兼容、独立 visionApiKey）。
  * 多图同一请求批量分析，返回与入参顺序一致的结果数组；失败返回 null。
@@ -199,11 +209,14 @@ export async function visionSummarize(
               '用简洁中文输出 JSON（不要多余文字）：',
               '{"images":[{"summary":"一句话内容概要","is_meme":true|false,"tags":["3~8个短标签"],"nsfw_risk":"low|mid|high"},...]}',
               '每张图对应一个元素，顺序与输入一致。',
+              'summary 供检索与回复；tags 覆盖情绪/角色/梗/OCR 关键词。',
+              VISION_MEME_RULES,
           ].join('\n')
         : [
               '用简洁中文输出 JSON（不要多余文字）：',
               '{"summary":"一句话内容概要","is_meme":true|false,"tags":["3~8个短标签"],"nsfw_risk":"low|mid|high"}',
-              'summary 供检索与回复；is_meme 标记是否为表情包；tags 覆盖情绪/角色/梗/OCR 关键词。',
+              'summary 供检索与回复；tags 覆盖情绪/角色/梗/OCR 关键词。',
+              VISION_MEME_RULES,
           ].join('\n');
 
     const completion = await openai.chat.completions.create({
@@ -236,8 +249,13 @@ export async function visionSummarize(
 
 function normalizeVisionResult(v: unknown): VisionResult {
     const o = (v || {}) as Record<string, any>;
-    const risk = ['low', 'mid', 'high'].includes(String(o.nsfwRisk)) ? o.nsfwRisk! : 'low';
-    const rawMeme = o.is_meme;
+    // 模型常返回 snake_case（nsfw_risk / is_meme）
+    const riskRaw = o.nsfw_risk ?? o.nsfwRisk;
+    const risk = (['low', 'mid', 'high'].includes(String(riskRaw)) ? String(riskRaw) : 'low') as
+        | 'low'
+        | 'mid'
+        | 'high';
+    const rawMeme = o.is_meme ?? o.isMeme;
     return {
         summary: String(o.summary || '').trim(),
         tags: Array.isArray(o.tags) ? o.tags.map(String).filter(Boolean).slice(0, 8) : [],

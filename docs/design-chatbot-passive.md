@@ -424,7 +424,9 @@ attachments 下载 → 体积/类型门禁 → 可选 sharp 缩边
   → 计算 contentHash / phash
   → 已在 chatSticker 或拒绝列表？跳过
   → 下载 → 上传 COS（key: chatbot/sticker/{groupOpenid}/{hash}.ext）
-  → analyze（qwen3.7-plus → summary + tags + nsfw）
+  → 尺寸启发式拦截聊天长截图/App 大屏等非表情包（动画除外）
+  → analyze（qwen3.7-plus → summary + tags + nsfw + **严格 is_meme**）
+  → is_meme=false 或 summary/tags 命中「聊天记录/截图/界面…」→ 不入库
   → nsfw_risk=high → status: rejected
   → 否则：`stickerAutoApprove` ? ready : **pending**
   → 设置页人工通过 → ready，可供检索发送；可编辑 summary/tags

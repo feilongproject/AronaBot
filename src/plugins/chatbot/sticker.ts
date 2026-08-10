@@ -113,6 +113,16 @@ async function captureOne(
 
     if (!isCapturable(img, cfg)) return;
 
+    // 尺寸启发式：明显手机/长截图等非表情包，跳过 vision 节省费用
+    const shotReason = looksLikeNonStickerShot(img);
+    if (shotReason) {
+        if (devEnv)
+            log.debug(
+                `chatbot 跳过非表情包截图 hash=${contentHash.slice(0, 8)} reason=${shotReason}`,
+            );
+        return;
+    }
+
     const result = await analyzeSticker(img, cfg);
     if (!result) return; // 无 vision 密钥或分析失败：暂不入库（等待补标可选）
 
@@ -125,11 +135,12 @@ async function captureOne(
         return;
     }
 
-    // is_meme 判定：非表情包不入库（只打标，供统计/调试）
-    if (!result.isMeme) {
+    // is_meme + 文本复核：聊天记录 / App 截图等一律不入库
+    const rejectReason = nonStickerRejectReason(result, img);
+    if (rejectReason) {
         if (devEnv)
             log.debug(
-                `chatbot 非表情包不入库 hash=${contentHash.slice(0, 8)} summary=${result.summary}`,
+                `chatbot 非表情包不入库 hash=${contentHash.slice(0, 8)} reason=${rejectReason} summary=${result.summary}`,
             );
         return;
     }
@@ -160,7 +171,7 @@ async function captureOne(
         summary: result.summary,
         tags: result.tags,
         nsfwRisk: result.nsfwRisk,
-        isMeme: result.isMeme,
+        isMeme: true,
         status,
         width: img.width,
         height: img.height,
@@ -177,36 +188,89 @@ async function captureOne(
         );
 }
 
+function isAnimatedImage(
+    img: Pick<PreparedImage, 'ext' | 'mime'>,
+): boolean {
+    return img.ext === 'gif' || img.ext === 'webp' || /^image\/(gif|webp)$/.test(img.mime);
+}
+
+/**
+ * 尺寸启发式：拦截明显非表情包的截图/长图（动画表情除外）。
+ * 返回拒绝原因字符串；通过则 null。
+ */
+export function looksLikeNonStickerShot(
+    img: Pick<PreparedImage, 'ext' | 'mime' | 'width' | 'height' | 'buffer'>,
+): string | null {
+    if (isAnimatedImage(img)) return null;
+    const w = img.width || 0;
+    const h = img.height || 0;
+    if (!w || !h) return null;
+    const long = Math.max(w, h);
+    const short = Math.min(w, h);
+    const ratio = long / short;
+
+    // 竖长/横长：典型手机全屏截图、聊天长截图
+    if (ratio >= 1.9 && long >= 640) return `aspect_screenshot ratio=${ratio.toFixed(2)} ${w}x${h}`;
+    // 超长滚动截图
+    if (ratio >= 2.4 && long >= 900) return `long_scroll_shot ratio=${ratio.toFixed(2)} ${w}x${h}`;
+    // 高分辨率大图且明显非方图（海报/相册/App 大屏）
+    if (long >= 1200 && short >= 500 && ratio >= 1.5)
+        return `large_ui_shot ratio=${ratio.toFixed(2)} ${w}x${h}`;
+    // 体积偏大且边长很大：表情包极少超过 1MB 的静态大图
+    if (img.buffer.length >= 900 * 1024 && long >= 900)
+        return `heavy_static_shot size=${img.buffer.length} ${w}x${h}`;
+    return null;
+}
+
+/**
+ * summary/tags 中出现聊天记录、App 界面等关键词时强制非表情包。
+ * 覆盖 vision 误标 is_meme=true 的情况。
+ */
+const NON_STICKER_TEXT_RE =
+    /聊天记录|聊天截图|对话记录|会话截图|消息记录|消息列表|气泡列表|微信截图|QQ截图|QQ界面|微信界面|App截图|应用截图|软件截图|手机截图|屏幕截图|界面截图|系统截图|桌面截图|通知栏|状态栏|导航栏|底部栏|浏览器截图|网页截图|游戏截图|设置页|控制面板|长截图|滚动截图|IM界面|会话列表|通讯录|朋友圈|相册截图|截屏|screenshot|chat\s*log|chat\s*history/i;
+
+export function nonStickerRejectReason(
+    result: Pick<VisionResult, 'isMeme' | 'summary' | 'tags'>,
+    img?: Pick<PreparedImage, 'ext' | 'mime' | 'width' | 'height' | 'buffer'>,
+): string | null {
+    if (!result.isMeme) return 'vision_is_meme_false';
+    const text = `${result.summary || ''} ${(result.tags || []).join(' ')}`;
+    if (NON_STICKER_TEXT_RE.test(text)) return `text_hint:${text.slice(0, 80)}`;
+    if (img) {
+        const shot = looksLikeNonStickerShot(img);
+        if (shot) return shot;
+    }
+    return null;
+}
+
 /**
  * 抓取过滤：
  * - sticker（默认）：动画表情（gif/webp）或 小尺寸静态表情包（jpg/png，≤512px 或 ≤512KB），普通大照片不保存
  * - animated_only：只收动画表情（gif/webp）
  * - emoji_like：只收小图/表情比例
- * - all_images：全部图片
+ * - all_images：全部图片（仍会经截图启发式 + is_meme 二次过滤）
  */
 export function isCapturable(
     img: Pick<PreparedImage, 'ext' | 'mime' | 'width' | 'height' | 'buffer'>,
     cfg: ChatbotRuntimeConfig,
 ): boolean {
     if (cfg.stickerCaptureMode === 'sticker') {
-        const animated =
-            img.ext === 'gif' || img.ext === 'webp' || /^image\/(gif|webp)$/.test(img.mime);
-        if (animated) return true;
+        if (isAnimatedImage(img)) return true;
         const w = img.width || 0;
         const h = img.height || 0;
         const small = w && h && Math.max(w, h) <= 512;
         const tiny = img.buffer.length <= 512 * 1024;
-        return small || tiny;
+        return !!(small || tiny);
     }
     if (cfg.stickerCaptureMode === 'animated_only') {
-        return img.ext === 'gif' || img.ext === 'webp' || /^image\/(gif|webp)$/.test(img.mime);
+        return isAnimatedImage(img);
     }
     if (cfg.stickerCaptureMode === 'emoji_like') {
         const w = img.width || 0;
         const h = img.height || 0;
-        const small = (w && h && Math.max(w, h) <= 512) || img.ext === 'gif' || img.ext === 'webp';
+        const small = (w && h && Math.max(w, h) <= 512) || isAnimatedImage(img);
         const tiny = img.buffer.length <= 512 * 1024;
-        return small || tiny;
+        return !!(small || tiny);
     }
     return true;
 }
