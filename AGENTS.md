@@ -488,11 +488,22 @@ initData().catch((err) => {
   - 前端：`web/`（Vue3 + Vite + Tailwind v4，分组表单编辑）  
   - 构建：`pnpm web:build` → 产物 `public/settings/`  
   - 开发：`pnpm web:dev`（默认代理 API 到 `http://127.0.0.1:2341`，可用 `VITE_API_TARGET` 覆盖）  
-  - 保存：写盘后**热替换**当前进程 `import config` 内存对象；路径 / COS / chatbot 等立即生效；`eventTransport` / `webhookPort` / intents / 已建 Redis·MongoDB 连接 / OpenAPI token 仍需重启  
-  - nodemon 已忽略 `config/settings.json`，避免保存配置触发整进程重启  
+  - 保存：写盘后**热替换**当前进程 `import config` 内存对象；路径 / COS / chatbot 等立即生效；`eventTransport` / `webhookPort` / intents / 已建 Redis·MongoDB 连接 / OpenAPI token 仍需重启
+  - nodemon 已忽略 `config/settings.json`，避免保存配置触发整进程重启
 - **路径格式**：全局 `rootPath` 只设一次；各路径字段磁盘只存**子路径**字符串（如 `data/studentInfo.json`）。运行时为 `ConfigPath`，**仅 `toString()` 时** `join(rootPath, child)`；绝对 child 不拼接。模板 `` `${config.xxx}` `` 会自动拼接；`fs` 等强类型 API 用 `pathStr(config.xxx)`  
 - 路径类配置集中在 settings，**禁止硬编码绝对路径**（临时目录等可写绝对 child）  
 - 注意：数据文件**不要**命名为 `config.json`，否则 `import .../config/config` 会被 Node 解析成 JSON 而非加载器
+
+### 8.5 日志（logger）
+
+- 入口：`src/libs/logger.ts`（log4js），全局 `log`。
+- 开发环境（`--dev`）：所有级别（含 trace/debug）输出到**控制台**（pattern 含 `%F`），**不写任何文件**。
+- 正式环境：
+  - 控制台默认仅 INFO 及以上。
+  - 主日志：INFO 及以上 → `log/<BotType>_<yyyy-MM-dd--HH:mm:ss>.log`（命名与 PM2 一致，按进程启动时间一个文件）。
+  - `settings.debugLog=true`（**热加载立即生效，无需重启**）：控制台额外输出 debug 及以上；debug 消息落盘 `log/debug/<BotType>_<yyyy-MM-dd--HH:mm:ss>.log`（仅 DEBUG 级别）。
+- 动态过滤由自定义 appender 在事件发生时实时读取 `config.debugLog` 实现（内置 logLevelFilter 级别固定，无法热更新）。
+- `log.mark` 为最高级别（大于 INFO），正式环境主日志与控制台均会输出；插件无需关心日志路由。
 
 ### 8.2 data/
 

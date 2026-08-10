@@ -46,6 +46,8 @@ interface AppConfigFile {
     sms: SmsConfig;
     cosUrl: string;
     retryTime: number;
+    /** 调试日志开关（默认 false：控制台与主日志仅 INFO 及以上）；热加载生效，无需重启 */
+    debugLog?: boolean;
     /** 以下路径字段磁盘上均为子路径字符串（或兼容旧 PathRef） */
     studentNameDict: string | PathRefLegacy;
     errorMessageTemaple: string | PathRefLegacy;
@@ -93,6 +95,8 @@ interface AppConfig {
     sms: SmsConfig;
     cosUrl: string;
     retryTime: number;
+    /** 调试日志开关（默认 false：控制台与主日志仅 INFO 及以上）；热加载生效，无需重启 */
+    debugLog?: boolean;
     /**
      * AI 相关配置（config/ai.json 运行时合并结果）：
      * dsKey / chatbot 已从 settings.json 迁出；aiTranslate 除外仍留在 settings.json。

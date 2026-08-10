@@ -108,6 +108,7 @@
     },
     "cosUrl": "https://oss-your-domain.com",
     "retryTime": 5,
+    "debugLog": false,
     "studentNameDict": "data/jiebaDict.txt",
     "errorMessageTemaple": "data/errorMessageTemaple.html",
     "studentInfo": "data/studentInfo.json",

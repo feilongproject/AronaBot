@@ -174,6 +174,10 @@
             "minimum": 0,
             "description": "消息发送失败重试次数"
         },
+        "debugLog": {
+            "type": "boolean",
+            "description": "调试日志开关（默认 false）；开启后控制台输出 debug 及以上，且 debug 消息落盘 log/debug/；热加载生效，无需重启"
+        },
         "studentNameDict": {
             "type": "string",
             "description": "jieba 词典子路径，如 data/jiebaDict.txt"
