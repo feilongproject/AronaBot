@@ -17,7 +17,8 @@ import {
 import {
     detectMust,
     cleanContent,
-    effectiveMaybeProbability,
+    rollMaybePity,
+    resetReplyPity,
     checkRateLimit,
     checkCooldown,
     bumpChain,
@@ -229,11 +230,17 @@ export async function chatbot(msg: IMessageGROUP): Promise<any> {
     }
 
     // —— [6] Must / Maybe 判定 ——
-    let shouldReply = must.must;
-    if (!must.must) {
-        const dec = await effectiveMaybeProbability(msg, cfg);
-        if (Math.random() < dec.p) {
+    // 先导词 / @（Must）：忽略抽卡累计，不掷骰、不累加、不因本条重置，直接回复
+    // 普通消息（Maybe）：抽卡累计概率；未中 +step，真正发出后重置
+    let shouldReply = false;
+    let pityTriggered = false;
+    if (must.must) {
+        shouldReply = true;
+    } else {
+        const dec = await rollMaybePity(msg, cfg);
+        if (dec.hit) {
             shouldReply = true;
+            pityTriggered = true;
             trigger = dec.isReplyToBot ? 'hybrid_reply_chain' : 'hybrid';
         }
     }
@@ -347,7 +354,11 @@ export async function chatbot(msg: IMessageGROUP): Promise<any> {
         log.error('chatbot send failed', err);
         return null;
     });
-    if (ret?.result?.id) await bumpChain(groupOpenid, cfg);
+    if (ret?.result?.id) {
+        await bumpChain(groupOpenid, cfg);
+        // 仅 Maybe 抽卡命中发出后重置；先导词/@ 不参与、不重置累计
+        if (pityTriggered) await resetReplyPity(groupOpenid, cfg);
+    }
     if (sticker) await markStickerUsed(sticker._id).catch(() => {});
 
     await updateSessionMeta(groupOpenid, { lastReplyAt: new Date() }).catch(() => {});

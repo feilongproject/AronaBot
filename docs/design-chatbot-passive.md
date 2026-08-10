@@ -38,9 +38,9 @@
 | 全量接收     | 白名单群**均需配置全量接收**；`enableFullReceiveGroups` 以 **openid** 为准（此前数字群号为错误配置，已改正）；实现期做启动校验告警，不再作为「能力降级」主路径                     |
 | 消息合法性   | **`isOffical` 废除**；不再作为准入/过滤/落库条件                                                                                                                                   |
 | 启停         | **仅 PlanaBot**；AronaBot / TestBot 不开启                                                                                                                                         |
-| 触发 · Must  | **@ 本 bot**（`mentions.is_you`，全场景可用）或 **先导词** → **必须回复**                                                                                                          |
-| 先导词格式   | **`xxx[空格]`** 前缀：去 @ 后 `trim`，以 `先导词 + 至少一个空格` 开头才命中；`xxx` 为 `mustPrefixes` 名称集合；示例：`星奈 今天天气怎么样`                                         |
-| 触发 · Maybe | 普通消息 **`replyProbability = 0.1`**；回复 bot 后 **`replyToBotProbability = 0.7`**                                                                                               |
+| 触发 · Must  | **@ 本 bot** 或 **先导词** → **必须回复**；**忽略抽卡**（不掷骰、不累加、不重置累计）                                                                                              |
+| 先导词格式   | **`xxx[空格]`** 前缀：去 @ 后 `trim`，以 `先导词 + 至少一个空格` 开头才命中；`xxx` 为 `mustPrefixes`；示例：`星奈 今天天气怎么样`                                                  |
+| 触发 · Maybe | **抽卡累计**：初始 `replyProbability`（默认 0.0005），未中每条 `+replyProbabilityStep`（默认 0.0001），真正发出后重置；Must 不参与                                                 |
 | 决策         | **hybrid**；H2 风控采用**自部署 `Qwen3Guard-Stream-0.6B`**（最后配置，**Must 不使用门控**），输出 `noop` 必须记录（含上下文与用户信息）；AI 逻辑参照 **MumuBot / Muice / AstrBot** |
 | 限流         | **每秒 1 条 / 每分钟 10 条**（提供配置项）                                                                                                                                         |
 | 上下文       | **群公共历史**；含未回复观察消息；**bot 其余 @ 消息与回复也入库**                                                                                                                  |
@@ -314,7 +314,7 @@ Redis：限流 / 锁 / 短 CD / **bot 出站 msgId 缓存（近 3 小时全量�
 - `enabled`、`groups`
 - `systemPrompt`（多行文本）
 - `mustPrefixes`（数组）
-- `replyProbability`（默认 0.1）、`replyToBotProbability`（默认 0.7）
+- `replyProbability`（抽卡初始，默认 0.0005）、`replyProbabilityStep`（未中累加，默认 0.0001）；`replyToBotProbability` 已弃用
 - `rateLimitPerSecond`（默认 1）、`rateLimitPerMinute`（默认 10）
 - `maxUserChars`、`workingContextTokens`、`maxContextTokens`
 - `compressInterval`、`compressTokenThreshold`、`maxSummaryBlocks`

@@ -162,13 +162,21 @@ interface BotChatbotConfig {
     adminOpenid?: string;
     /** 先导词集合；匹配 `^prefix\s+`（prefix 后必须有空白） */
     mustPrefixes: string[];
-    /** 普通消息回复概率（冻结默认 0.1） */
+    /**
+     * Maybe 抽卡初始概率（默认 0.0005）。
+     * 未命中每条消息累加 replyProbabilityStep，真正发出回复后重置为此值。
+     */
     replyProbability: number;
-    /** 回复 bot 后窗口内接话概率（冻结默认 0.7） */
-    replyToBotProbability: number;
+    /** 每条未命中消息累计增加量（默认 0.0001） */
+    replyProbabilityStep?: number;
+    /**
+     * @deprecated 已由抽卡累计模型替代，保留配置兼容。
+     * 回复 bot 后窗口内接话概率（历史默认 0.7）
+     */
+    replyToBotProbability?: number;
     /** 接话窗口（秒）；默认 180 */
     replyChainWindowSec?: number;
-    /** 0.7 连续接话链上限，防止刷屏；默认 5 */
+    /** 连续接话链上限（仍用于链状态计数）；默认 5 */
     replyChainMax?: number;
     /** 决策模式；当前仅 hybrid */
     decideMode: 'hybrid';

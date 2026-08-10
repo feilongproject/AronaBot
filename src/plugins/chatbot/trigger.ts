@@ -35,9 +35,10 @@ export interface MustResult {
 }
 
 /**
- * Must 判定：
- * - @ 本 bot：mentions.is_you
+ * Must 判定（命中后忽略 Maybe 抽卡规则，直接回复）：
  * - 先导词：去 @ 后 trim，满足 `^prefix\s+`（prefix 后必须至少一个空白）
+ * - @ 本 bot：mentions.is_you
+ * 先导词优先于 @（同时存在时记为 must_prefix）。
  */
 export function detectMust(msg: IMessageGROUP, cfg: ChatbotRuntimeConfig): MustResult {
     const atYou = msg.mentions?.some((m) => m.is_you);
@@ -94,16 +95,73 @@ export async function bumpChain(groupOpenid: string, cfg: ChatbotRuntimeConfig):
         .catch(() => {});
 }
 
-/** Maybe 动态概率：回复 bot 后 0.7（链长超限回落 0.1），否则 0.1 */
+function clamp01(n: number): number {
+    if (!Number.isFinite(n)) return 0;
+    return Math.min(1, Math.max(0, n));
+}
+
+function pityKey(groupOpenid: string): string {
+    return `chat:pity:${groupOpenid}`;
+}
+
+/** 读取当前群 Maybe 累计概率；无状态则回落初始值 replyProbability */
+export async function getReplyPity(
+    groupOpenid: string,
+    cfg: ChatbotRuntimeConfig,
+): Promise<number> {
+    const base = clamp01(cfg.replyProbability);
+    const raw = await redis.get(pityKey(groupOpenid)).catch(() => null);
+    if (raw == null || raw === '') return base;
+    const n = Number(raw);
+    return Number.isFinite(n) ? clamp01(n) : base;
+}
+
+/**
+ * Maybe 抽卡概率：
+ * - 用当前累计 p 掷骰；命中则本条尝试回复（真正发出后再 reset）
+ * - 未命中则 p += replyProbabilityStep（上限 1）
+ * - 初始 p = replyProbability（默认 0.0005）
+ */
+export async function rollMaybePity(
+    msg: IMessageGROUP,
+    cfg: ChatbotRuntimeConfig,
+): Promise<{ hit: boolean; p: number; isReplyToBot: boolean }> {
+    const isReplyToBot = await isReplyToBotMsg(msg);
+    const base = clamp01(cfg.replyProbability);
+    const step = Math.max(0, Number(cfg.replyProbabilityStep) || 0);
+    const p = await getReplyPity(msg.group_openid, cfg);
+    const hit = Math.random() < p;
+    if (hit) {
+        if (devEnv) log.debug(`chatbot pity hit p=${p} base=${base} step=${step}`);
+        // 命中后暂不重置，等 send 成功再 resetReplyPity；失败则下次仍以当前 p 再试
+    } else {
+        const next = clamp01(p + step);
+        await redis.set(pityKey(msg.group_openid), String(next)).catch(() => {});
+        if (devEnv) log.debug(`chatbot pity miss p=${p} → ${next}`);
+    }
+    return { hit, p, isReplyToBot };
+}
+
+/** 成功发出消息后清空累计概率到初始值 */
+export async function resetReplyPity(
+    groupOpenid: string,
+    cfg: ChatbotRuntimeConfig,
+): Promise<void> {
+    const base = clamp01(cfg.replyProbability);
+    await redis.set(pityKey(groupOpenid), String(base)).catch(() => {});
+    if (devEnv) log.debug(`chatbot pity reset → ${base}`);
+}
+
+/**
+ * @deprecated 已由 rollMaybePity 抽卡模型替代；只读当前累计 p，无副作用。
+ */
 export async function effectiveMaybeProbability(
     msg: IMessageGROUP,
     cfg: ChatbotRuntimeConfig,
 ): Promise<{ p: number; isReplyToBot: boolean }> {
-    const isReply = await isReplyToBotMsg(msg);
-    if (!isReply) return { p: cfg.replyProbability, isReplyToBot: false };
-    const chain = await getChainState(msg.group_openid, cfg);
-    if (chain.count >= cfg.replyChainMax) return { p: cfg.replyProbability, isReplyToBot: true };
-    return { p: cfg.replyToBotProbability, isReplyToBot: true };
+    const isReplyToBot = await isReplyToBotMsg(msg);
+    const p = await getReplyPity(msg.group_openid, cfg);
+    return { p, isReplyToBot };
 }
 
 /** 群限流：1/s、10/min 硬顶（可配置） */

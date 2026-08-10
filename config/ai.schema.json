@@ -55,21 +55,27 @@
                             "type": "number",
                             "minimum": 0,
                             "maximum": 1,
-                            "description": "普通消息回复概率（冻结默认 0.1）"
+                            "description": "Maybe 抽卡初始概率（默认 0.0005）；发出回复后重置为此值"
+                        },
+                        "replyProbabilityStep": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1,
+                            "description": "每条未命中消息累计增加的概率（默认 0.0001），上限 1"
                         },
                         "replyToBotProbability": {
                             "type": "number",
                             "minimum": 0,
                             "maximum": 1,
-                            "description": "回复 bot 后窗口内接话概率（冻结默认 0.7）"
+                            "description": "@deprecated 已由抽卡累计模型替代；历史字段：回复 bot 后接话概率"
                         },
                         "replyChainWindowSec": {
                             "type": "integer",
-                            "description": "接话窗口秒数；窗口内 0.7 接话，超过链长上限降回普通概率"
+                            "description": "接话窗口秒数（链状态计数仍用）"
                         },
                         "replyChainMax": {
                             "type": "integer",
-                            "description": "0.7 连续接话链上限，防止刷屏"
+                            "description": "连续接话链上限（链状态计数仍用）"
                         },
                         "decideMode": {
                             "type": "string",
