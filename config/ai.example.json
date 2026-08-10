@@ -41,6 +41,8 @@
                 "visionApiKey": "",
                 "stickerCaptureEnabled": true,
                 "stickerCaptureMode": "all_images",
+                "stickerCaptureStore": true,
+                "stickerAutoApprove": false,
                 "stickerMaxBytes": 2097152,
                 "stickerLibraryMax": 500,
                 "stickerBlacklistUserIds": [],

@@ -63,6 +63,8 @@ function ensureChatbotShape(bot: AIBot) {
             visionApiKey: '',
             stickerCaptureEnabled: true,
             stickerCaptureMode: 'all_images',
+            stickerCaptureStore: true,
+            stickerAutoApprove: false,
             stickerMaxBytes: 2097152,
             stickerLibraryMax: 500,
             stickerBlacklistUserIds: [],
@@ -503,7 +505,7 @@ onMounted(load);
                                 "
                             />
                         </Field>
-                        <Field label="stickerLibraryMax" hint="图库固化上限">
+                        <Field label="stickerLibraryMax" hint="图库上限（ready+pending 合计）">
                             <NumberInput
                                 integer
                                 :model-value="currentBot.chatbot?.stickerLibraryMax ?? 500"
@@ -536,7 +538,7 @@ onMounted(load);
                     </div>
                     <Field
                         label="stickerCaptureEnabled"
-                        hint="自动抓取群聊图/表情入库（无人工审核，直接 ready）"
+                        hint="自动抓取群聊图/表情入库；默认 pending 待人工审核"
                     >
                         <BoolInput
                             :model-value="Boolean(currentBot.chatbot?.stickerCaptureEnabled)"
@@ -584,6 +586,18 @@ onMounted(load);
                                 label="动画表情处理后入库"
                                 @update:model-value="
                                     patchChatbot((c) => (c.stickerCaptureStore = $event))
+                                "
+                            />
+                        </Field>
+                        <Field
+                            label="stickerAutoApprove"
+                            hint="false（默认）= pending 待设置页审核；true=抓取后直接 ready"
+                        >
+                            <BoolInput
+                                :model-value="Boolean(currentBot.chatbot?.stickerAutoApprove)"
+                                label="自动通过审核（跳过人工）"
+                                @update:model-value="
+                                    patchChatbot((c) => (c.stickerAutoApprove = $event))
                                 "
                             />
                         </Field>
@@ -720,7 +734,8 @@ onMounted(load);
                         </Field>
                     </div>
                     <p class="text-xs text-slate-500">
-                        说明：图库无需人工审核，抓取即 ready；MCP 服务器连接失败不影响普通闲聊。
+                        说明：默认抓取后进入 pending，在「表情包图库」页人工通过并校对摘要后才可被选图发送；开启
+                        stickerAutoApprove 可恢复旧行为。MCP 服务器连接失败不影响普通闲聊。
                     </p>
                 </section>
             </template>

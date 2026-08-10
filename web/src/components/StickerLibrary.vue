@@ -1,12 +1,19 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { deleteStickers, fetchStickers, setStickerStatus, type StickerItem } from '../api';
+import {
+    deleteStickers,
+    fetchStickers,
+    setStickerStatus,
+    updateSticker,
+    type StickerItem,
+} from '../api';
 
 const STATUS_TABS = [
-    { id: '', label: '全部' },
+    { id: 'pending', label: '待审核' },
     { id: 'ready', label: '可用' },
     { id: 'hidden', label: '已隐藏' },
     { id: 'rejected', label: '已拒绝' },
+    { id: '', label: '全部' },
 ];
 
 const PAGE_SIZE = 24;
@@ -18,8 +25,14 @@ const total = ref(0);
 const page = ref(1);
 const stats = ref<Record<string, number>>({});
 const q = ref('');
-const status = ref('');
+/** 默认打开待审核，便于人工过审 */
+const status = ref('pending');
 const busyId = ref('');
+
+/** 行内编辑 */
+const editingId = ref('');
+const editSummary = ref('');
+const editTags = ref('');
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)));
 const statText = computed(() =>
@@ -41,6 +54,10 @@ async function load() {
         list.value = res.list;
         total.value = res.total;
         stats.value = res.stats;
+        // 若正在编辑的项已不在列表，关闭编辑
+        if (editingId.value && !res.list.some((i) => i._id === editingId.value)) {
+            cancelEdit();
+        }
     } catch (e) {
         err.value = e instanceof Error ? e.message : String(e);
     } finally {
@@ -57,6 +74,7 @@ function switchStatus(s: string) {
     if (status.value === s) return;
     status.value = s;
     page.value = 1;
+    cancelEdit();
     load();
 }
 
@@ -66,6 +84,40 @@ async function act(item: StickerItem, next: string, label: string) {
     try {
         await setStickerStatus(item._id, next);
         await load();
+    } catch (e) {
+        err.value = e instanceof Error ? e.message : String(e);
+    } finally {
+        busyId.value = '';
+    }
+}
+
+function startEdit(item: StickerItem) {
+    editingId.value = item._id;
+    editSummary.value = item.summary || '';
+    editTags.value = (item.tags || []).join(', ');
+}
+
+function cancelEdit() {
+    editingId.value = '';
+    editSummary.value = '';
+    editTags.value = '';
+}
+
+async function saveEdit(item: StickerItem) {
+    const summary = editSummary.value.trim();
+    if (!summary) {
+        err.value = '摘要不能为空';
+        return;
+    }
+    busyId.value = item._id;
+    try {
+        const res = await updateSticker(item._id, {
+            summary,
+            tags: editTags.value,
+        });
+        item.summary = res.summary;
+        item.tags = res.tags;
+        cancelEdit();
     } catch (e) {
         err.value = e instanceof Error ? e.message : String(e);
     } finally {
@@ -117,10 +169,10 @@ onMounted(load);
         <!-- stats + toolbar -->
         <div class="flex flex-wrap items-center gap-2">
             <span class="font-mono text-xs text-slate-400">{{ statText || '加载中…' }}</span>
-            <span class="ml-auto flex gap-2">
+            <span class="ml-auto flex w-full flex-wrap gap-2 sm:w-auto">
                 <input
                     v-model="q"
-                    class="input w-48"
+                    class="input min-w-0 flex-1 sm:w-48 sm:flex-none"
                     type="text"
                     placeholder="搜索摘要 / 标签 / key"
                     @keyup.enter="search"
@@ -147,7 +199,7 @@ onMounted(load);
         <div class="flex flex-wrap gap-2">
             <button
                 v-for="t in STATUS_TABS"
-                :key="t.id"
+                :key="t.id || 'all'"
                 type="button"
                 class="rounded-full border px-3 py-1 text-xs transition"
                 :class="
@@ -162,21 +214,31 @@ onMounted(load);
             </button>
         </div>
 
-        <!-- grid -->
+        <!-- list -->
         <div v-if="loading && !list.length" class="py-10 text-center text-sm text-slate-400">
             加载中…
         </div>
         <div v-else-if="!list.length" class="py-10 text-center text-sm text-slate-400">
             图库为空或没有匹配结果
         </div>
-        <div v-else class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <!--
+          纵向卡片：图片单独在上，摘要/标签/操作在下
+          手机：单列；宽屏：多列网格
+        -->
+        <div
+            v-else
+            class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+        >
             <div
                 v-for="item in list"
                 :key="item._id"
-                class="overflow-hidden rounded-xl border border-slate-700/80 bg-slate-900/60"
+                class="overflow-hidden rounded-xl border border-slate-700/80 bg-slate-900/60 transition hover:border-slate-600"
                 :class="{ 'opacity-50': busyId === item._id }"
             >
-                <div class="flex h-40 items-center justify-center overflow-hidden bg-slate-950/60">
+                <!-- 图片：独立在文字上方 -->
+                <div
+                    class="flex h-44 items-center justify-center overflow-hidden bg-slate-950/70 sm:h-48"
+                >
                     <img
                         :src="item.imageUrl"
                         :alt="item.summary"
@@ -184,27 +246,35 @@ onMounted(load);
                         loading="lazy"
                     />
                 </div>
-                <div class="space-y-1.5 p-2.5">
-                    <div class="line-clamp-2 text-xs leading-snug text-slate-200">
+
+                <!-- 文字区 -->
+                <div class="space-y-2 p-2.5 sm:p-3">
+                    <div
+                        class="text-xs leading-snug text-slate-200 sm:text-sm"
+                        :title="item.summary || '（无摘要）'"
+                    >
                         {{ item.summary || '（无摘要）' }}
                     </div>
-                    <div class="flex flex-wrap gap-1">
+
+                    <!-- 状态 + 元信息（单行） -->
+                    <div class="flex min-w-0 flex-wrap items-center gap-1">
                         <span
-                            v-for="t in item.tags.slice(0, 4)"
-                            :key="t"
-                            class="rounded bg-sky-500/10 px-1.5 py-0.5 text-[10px] text-sky-300"
+                            v-if="item.status === 'pending'"
+                            class="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] text-amber-300"
                         >
-                            {{ t }}
+                            待审
                         </span>
                         <span
-                            class="rounded px-1.5 py-0.5 text-[10px]"
-                            :class="
-                                item.nsfwRisk === 'high'
-                                    ? 'bg-rose-500/15 text-rose-300'
-                                    : 'bg-slate-700/60 text-slate-400'
-                            "
+                            v-if="item.nsfwRisk === 'high'"
+                            class="rounded bg-rose-500/15 px-1.5 py-0.5 text-[10px] text-rose-300"
                         >
-                            {{ item.nsfwRisk === 'high' ? '高危' : item.nsfwRisk }}
+                            高危
+                        </span>
+                        <span
+                            v-else-if="item.nsfwRisk && item.nsfwRisk !== 'low'"
+                            class="rounded bg-slate-700/60 px-1.5 py-0.5 text-[10px] text-slate-400"
+                        >
+                            {{ item.nsfwRisk }}
                         </span>
                         <span
                             v-if="item.isMeme"
@@ -212,16 +282,49 @@ onMounted(load);
                         >
                             表情包
                         </span>
-                    </div>
-                    <div class="text-[11px] text-slate-500">
-                        使用 {{ item.useCount }} 次 · {{ fmtSize(item.byteSize) }} ·
-                        {{ fmtDate(item.ts) }}
-                        <span v-if="item.width && item.height">
-                            · {{ item.width }}×{{ item.height }}
+                        <span class="text-[10px] text-slate-500">
+                            {{ fmtSize(item.byteSize) }}
+                            <span v-if="item.width && item.height">
+                                · {{ item.width }}×{{ item.height }}
+                            </span>
+                            · {{ fmtDate(item.ts) }}
+                            <span v-if="item.useCount"> · 用{{ item.useCount }}</span>
                         </span>
                     </div>
+
+                    <!-- 全部标签 -->
+                    <div v-if="item.tags?.length" class="flex flex-wrap gap-1">
+                        <span
+                            v-for="t in item.tags"
+                            :key="t"
+                            class="rounded bg-sky-500/10 px-1.5 py-0.5 text-[10px] text-sky-300"
+                        >
+                            {{ t }}
+                        </span>
+                    </div>
+                    <div v-else class="text-[10px] text-slate-600">（无标签）</div>
+
+                    <!-- 操作 -->
                     <div class="flex flex-wrap gap-1.5 pt-0.5">
-                        <template v-if="item.status === 'ready'">
+                        <template v-if="item.status === 'pending'">
+                            <button
+                                type="button"
+                                class="rounded border border-emerald-500/40 px-2 py-1 text-[11px] text-emerald-300 transition hover:bg-emerald-500/10"
+                                :disabled="busyId === item._id"
+                                @click="act(item, 'ready', '通过')"
+                            >
+                                通过
+                            </button>
+                            <button
+                                type="button"
+                                class="rounded border border-rose-500/40 px-2 py-1 text-[11px] text-rose-300 transition hover:bg-rose-500/10"
+                                :disabled="busyId === item._id"
+                                @click="act(item, 'rejected', '拒绝')"
+                            >
+                                拒绝
+                            </button>
+                        </template>
+                        <template v-else-if="item.status === 'ready'">
                             <button
                                 type="button"
                                 class="rounded border border-amber-500/40 px-2 py-1 text-[11px] text-amber-300 transition hover:bg-amber-500/10"
@@ -250,12 +353,65 @@ onMounted(load);
                         </button>
                         <button
                             type="button"
+                            class="rounded border border-sky-500/40 px-2 py-1 text-[11px] text-sky-300 transition hover:bg-sky-500/10"
+                            :disabled="busyId === item._id"
+                            @click="editingId === item._id ? cancelEdit() : startEdit(item)"
+                        >
+                            {{ editingId === item._id ? '取消' : '编辑' }}
+                        </button>
+                        <button
+                            type="button"
                             class="ml-auto rounded border border-rose-500/40 px-2 py-1 text-[11px] text-rose-300 transition hover:bg-rose-500/10"
                             :disabled="busyId === item._id"
                             @click="remove(item)"
                         >
                             删除
                         </button>
+                    </div>
+
+                    <!-- 展开编辑区 -->
+                    <div
+                        v-if="editingId === item._id"
+                        class="space-y-2 border-t border-slate-800 pt-2"
+                    >
+                        <label class="block text-[11px] text-slate-400">
+                            摘要（检索主字段）
+                            <input
+                                v-model="editSummary"
+                                class="input mt-1 w-full text-sm"
+                                type="text"
+                                maxlength="500"
+                                placeholder="一句话描述表情内容"
+                                @keyup.enter="saveEdit(item)"
+                            />
+                        </label>
+                        <label class="block text-[11px] text-slate-400">
+                            标签（逗号分隔）
+                            <input
+                                v-model="editTags"
+                                class="input mt-1 w-full text-sm"
+                                type="text"
+                                placeholder="开心, 点头, OCR文字…"
+                                @keyup.enter="saveEdit(item)"
+                            />
+                        </label>
+                        <div class="flex gap-2">
+                            <button
+                                type="button"
+                                class="rounded border border-emerald-500/40 px-3 py-1.5 text-xs text-emerald-300 transition hover:bg-emerald-500/10"
+                                :disabled="busyId === item._id"
+                                @click="saveEdit(item)"
+                            >
+                                保存
+                            </button>
+                            <button
+                                type="button"
+                                class="rounded border border-slate-600 px-3 py-1.5 text-xs text-slate-300 transition hover:border-slate-400"
+                                @click="cancelEdit"
+                            >
+                                取消
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

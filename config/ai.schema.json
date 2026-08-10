@@ -156,7 +156,7 @@
                         },
                         "stickerCaptureEnabled": {
                             "type": "boolean",
-                            "description": "自动抓取群聊图/表情入库（无人工审核，直接 ready）"
+                            "description": "自动抓取群聊图/表情入库；默认需人工审核（pending→ready）"
                         },
                         "stickerCaptureMode": {
                             "type": "string",
@@ -167,13 +167,17 @@
                             "type": "boolean",
                             "description": "处理完成后是否存入图库；false=只打标不入库；默认 true"
                         },
+                        "stickerAutoApprove": {
+                            "type": "boolean",
+                            "description": "true=抓取后直接 ready；false（默认）=pending 待设置页人工审核通过后才可被选图发送"
+                        },
                         "stickerMaxBytes": {
                             "type": "integer",
                             "description": "单张抓取上限字节，默认 2097152（2MB）"
                         },
                         "stickerLibraryMax": {
                             "type": "integer",
-                            "description": "图库固化上限（群/全局），默认 500"
+                            "description": "图库固化上限（ready+pending 合计），默认 500"
                         },
                         "stickerBlacklistUserIds": {
                             "type": "array",

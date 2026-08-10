@@ -49,6 +49,8 @@ export interface ChatbotRuntimeConfig {
     stickerCaptureEnabled: boolean;
     stickerCaptureMode: 'emoji_like' | 'all_images' | 'animated_only' | 'sticker';
     stickerCaptureStore: boolean;
+    /** true=抓取后直接 ready；false=pending 待人工审核（默认） */
+    stickerAutoApprove: boolean;
     stickerMaxBytes: number;
     stickerLibraryMax: number;
     stickerBlacklistUserIds: string[];
@@ -118,6 +120,8 @@ export function getChatbotConfig(): ChatbotRuntimeConfig | null {
                 ? c.stickerCaptureMode
                 : 'all_images',
         stickerCaptureStore: c.stickerCaptureStore !== false,
+        // 默认需人工审核；仅显式 true 时自动通过
+        stickerAutoApprove: c.stickerAutoApprove === true,
         stickerMaxBytes: num(c.stickerMaxBytes, 2 * 1024 * 1024),
         stickerLibraryMax: num(c.stickerLibraryMax, 500),
         stickerBlacklistUserIds: Array.isArray(c.stickerBlacklistUserIds)

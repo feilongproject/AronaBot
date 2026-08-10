@@ -71,8 +71,9 @@ async function prepareOne(
 }
 
 /**
- * 自动抓取流水线（偷图 → 去重 → COS → qwen3.7-plus 打标 → chatSticker ready，无人工审核）。
- * 与观察写库并行调用，不阻塞回复路径。
+ * 自动抓取流水线（偷图 → 去重 → COS → qwen3.7-plus 打标 → chatSticker）。
+ * 默认 status=pending 待人工审核；stickerAutoApprove=true 时直接 ready。
+ * nsfw_risk=high 一律 rejected。与观察写库并行调用，不阻塞回复路径。
  */
 export async function captureStickerAsync(
     msg: IMessageGROUP,
@@ -84,8 +85,11 @@ export async function captureStickerAsync(
     if (cfg.stickerBlacklistUserIds?.includes(msg.author.id)) return;
 
     const col = chatCollection(CHAT_COLLECTION.sticker);
-    const readyCount = await col.countDocuments({ status: 'ready' }).catch(() => 0);
-    if (readyCount >= cfg.stickerLibraryMax) return;
+    // ready + pending 合计计入库上限，避免待审池无限堆积
+    const storedCount = await col
+        .countDocuments({ status: { $in: ['ready', 'pending'] } })
+        .catch(() => 0);
+    if (storedCount >= cfg.stickerLibraryMax) return;
 
     const images = await prepareMessageImages(msg, cfg, 4);
     for (const img of images) {
@@ -138,6 +142,14 @@ async function captureOne(
         ContentType: img.mime || 'image/png',
     });
 
+    // nsfw high → rejected；否则按 stickerAutoApprove 决定 ready 或 pending
+    const status =
+        result.nsfwRisk === 'high'
+            ? ('rejected' as const)
+            : cfg.stickerAutoApprove
+              ? ('ready' as const)
+              : ('pending' as const);
+
     const doc = {
         _id: contentHash,
         botType: 'PlanaBot',
@@ -149,7 +161,7 @@ async function captureOne(
         tags: result.tags,
         nsfwRisk: result.nsfwRisk,
         isMeme: result.isMeme,
-        status: result.nsfwRisk === 'high' ? ('rejected' as const) : ('ready' as const),
+        status,
         width: img.width,
         height: img.height,
         byteSize: img.buffer.length,

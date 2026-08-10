@@ -1,8 +1,10 @@
 # PlanaBot 群聊被动 AI 闲聊 — 需求与设计总结
 
-> 状态：P0/P1/P2 已实现；P3 中 **MCP 接入、H2 门控（Qwen3Guard-Stream-0.6B /moderate）、设置页图库管理（列表/搜索/隐藏/恢复/拒绝/删除）已实现**，剩余 Top-K LLM 精排、斗图窗口  
+> 状态：P0/P1/P2 已实现；P3 中 **MCP 接入、H2 门控（Qwen3Guard-Stream-0.6B /moderate）、设置页图库管理（列表/搜索/隐藏/恢复/拒绝/删除/编辑摘要、pending 人工审核）已实现**，剩余 Top-K LLM 精排、斗图窗口  
 > 日期：2026-08-08（修订：vision=`qwen3.7-plus`、群聊表情自动抓取与语义回图）  
-> 决议 v2（2026-08-08）：统一 `group_openid`；删除 aiAllow 硬编码与旧 `^chat` 路由；`isOffical` 废除；bot 出站消息入库；回复判定缓存 Redis 3h；限流 1/s、10/min；图库无人工审核且发送必入 Mongo；dpsk 压缩 / qwen 看图 / vision 独立密钥；动图按图片发送；多图批量分析；nsfw 性格化拒答  
+> 决议 v2（2026-08-08）：统一 `group_openid`；删除 aiAllow 硬编码与旧 `^chat` 路由；`isOffical` 废除；bot 出站消息入库；回复判定缓存 Redis 3h；限流 1/s、10/min；图库发送必入 Mongo；dpsk 压缩 / qwen 看图 / vision 独立密钥；动图按图片发送；多图批量分析；nsfw 性格化拒答  
+> 决议 v6（2026-08-10）：**图库人工审核**：默认 `status=pending`，设置页通过后才 `ready` 可被选图；可编辑 `summary`/`tags`；`stickerAutoApprove=true` 可恢复旧行为；手机端图库单行展示  
+
 > 决议 v3（2026-08-08）：bot 出站统一在发送层入库（与重试逻辑对应）；非关键数值参照其余 bot 实现；默认猫娘 prompt 参照主流 chatbot；MCP 后续配置留出空间  
 > 决议 v4（2026-08-08）：风控自部署 `Qwen3Guard-Stream-0.6B`；去重统一按消息 id（msgId），不做 content hash 严格去重；存量仅清理 opts，其余暂不改并打 `@deprecated` 标记  
 > 决议 v5（2026-08-08）：H2 门控对接自部署 `Qwen3Guard-Stream-0.6B` FastAPI `/moderate`（`baseURL` 默认 `http://127.0.0.1:8000`、已启用）；**只判定本次用户消息**（不携带历史/元信息，截断 600 字防超时）；**Must 默认不过门控**，`gate.applyToMust=true` 时必过（拦截从 `refusalMessages` 台词池随机短提示、故障放行）；`noop` 记录含当前上下文与用户信息；**上下文保留用户 @ 为 `<@openid>`**，回复支持 `mention` part（仅允许本轮出现过的 openid），`adminOpenid` 标记最高管理员；**回复一律走 `sendMarkdown`**（@ 渲染用 `<qqbot-at-user id="openid" />` 协议，图库表情用 markdown 图片），并输出 `chatbot 回复原始正文` / `chatbot 发送 markdown` 调试日志；去重实现选最合适策略；`@deprecated` 仅加注释  
@@ -46,7 +48,7 @@
 | 上下文容量   | 硬顶 `maxContextTokens`（1M）；日常用 `workingContextTokens`；token 估算优先 API 返回 usage，缺失时本地 tokenizer                                                                  |
 | 模型 · 文本  | **DeepSeek（dpsk）**                                                                                                                                                               |
 | 模型 · 图片  | **阿里云百炼 `qwen3.7-plus`**（OpenAI 兼容接口）；**独立 `visionApiKey`**；多图**批量分析**（请求形态按官方文档）；摘要后再交 dpsk 做人设回复                                      |
-| 发图 / 图库  | **自动抓取群聊表情包/图片** → `qwen3.7-plus` **总结 + 标签** 入库（**无需人工审核**）→ 按语境选图发送；**动图按图片发送**                                                          |
+| 发图 / 图库  | **自动抓取群聊表情包/图片** → `qwen3.7-plus` **总结 + 标签** 入库（**默认 pending 人工审核**，可编辑摘要）→ 通过后按语境选图发送；**动图按图片发送**                                                          |
 | 人设         | **猫娘风格**；文案可后续微调；**设置页可改**（`systemPrompt` 等热替换）                                                                                                            |
 | 内容安全     | 图片 `nsfw` 命中时按人设给出**性格化的拒绝回复**                                                                                                                                   |
 | MCP          | **可接入部分 MCP**（配置白名单 tools；禁止危险工具默认开启）                                                                                                                       |
@@ -85,7 +87,7 @@
 | 存量清理范围        | **仅清理 `config/opts.ts`**（删 `^chat`）；eventRec / IMessageEx / schema 等暂时保持不变，**仅在相关位置加 `@deprecated` 注释**，不改结构/行为 |
 | 动态接话概率        | 需检测「回复 bot」；**出站 msgId 近 3 小时全量缓存 Redis**                                                                                     |
 | 先导词 `xxx + 空格` | 需规范化匹配与剥离                                                                                                                             |
-| Vision / 图库       | 未实现；需 `qwen3.7-plus` + **自动偷图入库（无人工审核）** + 语义选图                                                                          |
+| Vision / 图库       | 已实现：`qwen3.7-plus` + **自动偷图入库（默认 pending 审核）** + 语义选图 + 设置页编辑摘要                                                                          |
 | noop / 风控         | H2 门控**最后配置**（自部署 `Qwen3Guard-Stream-0.6B`，**Must 不过门控**）；`noop` 必须记录（含上下文与用户信息）                               |
 | MCP                 | 已接入 `@modelcontextprotocol/sdk` 客户端（stdio/http/sse），dpsk function calling 循环执行                                                                |
 | 人设设置页字段      | schema 需增加 `systemPrompt` 等                                                                                                                |
@@ -108,7 +110,7 @@
             [3] 写 Mongo 观察行（含未回复；公共历史）
             [4] 判定 Must / 动态 Maybe / Never
             [5] 本条有图：qwen3.7-plus 转述 → visionSummary（对话用）
-            [5b] 异步/同步：表情抓取管道 → 摘要+标签 → chatSticker 入库（去重；无审核直接 ready）
+            [5b] 异步/同步：表情抓取管道 → 摘要+标签 → chatSticker 入库（去重；默认 pending 待审）
             [6] 装上下文（system 猫娘+安全 + memory 块 + 近期 raw 含 observe）
             [7] dpsk（± MCP / 选图 tool）→ 结构化动作（text / image_from_library）
             [8] 发送（限流 1/s、10/min）；从图库按 summary/tags 匹配发图；回写 assistant；发送记录必入 Mongo
@@ -318,7 +320,7 @@ Redis：限流 / 锁 / 短 CD / **bot 出站 msgId 缓存（近 3 小时全量�
 - `compressInterval`、`compressTokenThreshold`、`maxSummaryBlocks`
 - `chatModel`、`baseURL`（可选）、依赖 `dsKey`
 - `visionModel`（默认 **`qwen3.7-plus`**）、`visionBaseURL`、**独立 `visionApiKey`**
-- 表情抓取：`stickerCaptureEnabled`、`stickerCaptureMode`、库上限等（**无人工审核**）
+- 表情抓取：`stickerCaptureEnabled`、`stickerCaptureMode`、`stickerAutoApprove`（默认 false）、库上限等
 - `stickerReplyProbability`
 - MCP：`mcpServers` / `mcpEnabledTools`（一期仅配置空间，server 后续接入）
 - H2 风控：`gateEnabled`（已启用）/ `gateModel`（默认 `Qwen3Guard-Stream-0.6B`）/ `gateBaseURL`（默认 `http://127.0.0.1:8000`，POST `/moderate`，**只判定本次用户消息**，截断 600 字：`Safe`→回复，`Controversial`/`Unsafe`→noop）/ `gateApplyToMust`（默认 false；true 时 Must 也过门控，拦截从 `refusalMessages` 随机短提示、故障放行；非 Must 故障仍 fail-closed 静默）
@@ -406,7 +408,7 @@ attachments 下载 → 体积/类型门禁 → 可选 sharp 缩边
 | **自动抓取群聊图/表情**   | P2 起 ✅ | 白名单群全量消息中的 `attachments`                         |
 | **summary + tags 入库**   | P2 起 ✅ | 供语义检索，不只存裸 URL                                   |
 | **回复时语义选图发送**    | P2 起 ✅ | 按 bot 回复意图 / 用户要图 / 主动表情概率                  |
-| **人工审核**              | **不做** | 抓取后直接 ready；防垃圾靠 nsfw 拒收、黑名单、库上限       |
+| **人工审核**              | ✅       | 默认 `pending`，设置页通过后 `ready`；可编辑 summary/tags；`stickerAutoApprove` 可跳过 |
 | **动图**                  | ✅       | 按图片发送（`msg_type:7` / `file_info`），不走 QQ 表情体系 |
 | **多图批量分析**          | ✅       | 同一请求批量分析，请求形态按官方文档                       |
 | **感知哈希去重**          | ✅       | 同表情反复出现不重复入库                                   |
@@ -422,10 +424,10 @@ attachments 下载 → 体积/类型门禁 → 可选 sharp 缩边
   → 计算 contentHash / phash
   → 已在 chatSticker 或拒绝列表？跳过
   → 下载 → 上传 COS（key: chatbot/sticker/{groupOpenid}/{hash}.ext）
-  → 直接 analyze（**无人工审核**）
-  → qwen3.7-plus → summary + tags + nsfw
-  → nsfw_risk=high → 拒绝入库（记 reject）
-  → status: ready，可供检索发送
+  → analyze（qwen3.7-plus → summary + tags + nsfw）
+  → nsfw_risk=high → status: rejected
+  → 否则：`stickerAutoApprove` ? ready : **pending**
+  → 设置页人工通过 → ready，可供检索发送；可编辑 summary/tags
 ```
 
 **触发时机：**
@@ -442,11 +444,12 @@ nsfw_risk=high：不限于图库拒收；对话场景中附图触发 nsfw 时，
 | ------------------------- | ------------------- | ---------------------------- |
 | `stickerCaptureEnabled`   | 总开关              | true                         |
 | `stickerCaptureMode`      | 抓取范围            | `all_images` 或 `emoji_like` |
+| `stickerAutoApprove`      | 跳过人工审核        | **false**（需审核）          |
 | `stickerMaxBytes`         | 单张上限            | 1～2 MB                      |
-| `stickerLibraryMax`       | 固化库上限/群或全局 | 300～1000                    |
+| `stickerLibraryMax`       | ready+pending 合计  | 300～1000                    |
 | `stickerBlacklistUserIds` | 不抓取的用户        | []                           |
 
-（无 `stickerPendingMax` / `stickerAutoApprove`：不设人工审核池，抓取即入 ready。）
+设置页 API：`GET /api/settings/stickers`、`POST .../status`（含 pending→ready）、`POST .../update`（summary/tags）、`POST .../delete`。
 
 ### 9.3 Mongo：`chatSticker`（表情/图片库）
 
@@ -459,10 +462,10 @@ nsfw_risk=high：不限于图库拒收；对话场景中附图触发 nsfw 时，
   sourceUrl?: string,          // 原始附件 URL（可能过期）
   contentHash: string,         // 去重
   phash?: string,
-  summary: string,             // qwen3.7-plus 一句话总结 —— 检索主字段
-  tags: string[],              // 情绪/角色/梗/OCR
+  summary: string,             // qwen3.7-plus 一句话总结 —— 检索主字段（可人工编辑）
+  tags: string[],              // 情绪/角色/梗/OCR（可人工编辑）
   nsfwRisk: 'low' | 'mid' | 'high',
-  status: 'ready' | 'rejected' | 'hidden',   // 无 pending：不设人工审核
+  status: 'pending' | 'ready' | 'rejected' | 'hidden',  // pending=待审；仅 ready 可被选图
   width?: number,
   height?: number,
   byteSize?: number,
@@ -680,7 +683,7 @@ interface BotChatbotConfig {
 - [x] LLM 摘要/标签
 - [x] 语义选图发送
 - [x] 主动附带表情概率
-- [x] 去重 / 上限（**不引入人工审核池**）
+- [x] 去重 / 上限 / **人工审核池（pending）+ 摘要编辑**
 
 ---
 
@@ -690,8 +693,8 @@ interface BotChatbotConfig {
 | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **P0** | Plana + 白名单 `aiAllow`（`group_openid`，删除硬编码与 `^chat`）；Mongo `chatContext`（含 observe / ignored / **bot 出站**，按消息 id（msgId）去重）；Must（`is_you` + `prefix\s+`）；动态概率 0.1 / 0.7；限流 1/s、10/min；Redis 3h 出站缓存；dpsk 猫娘文本；设置页 `systemPrompt` 等字段；**存量仅清理 opts，其余仅加 `@deprecated` 注释暂不改** |
 | **P1** | 双条件压缩（**dpsk 摘要**）+ `chatMemory`；working/1M 预算（API usage / tokenizer）；接话窗口状态                                                                                                                                                                                                                                                                    |
-| **P2** | **`qwen3.7-plus` 看图**（独立密钥、多图批量）；**自动抓取表情 → summary/tags → `chatSticker`（无审核直接 ready）**；动图按图发送；nsfw 性格化拒答；语义选图发送；主动附带表情概率；发送记录强制 Mongo                                                                                                                                                                |
-| **P3** | **MCP 接入（已实现：stdio/http/sse + dpsk function calling，server 清单待配置）**；**H2 风控门控（已实现：自部署 `Qwen3Guard-Stream-0.6B`，默认 Must 不过、applyToMust 可开，noop 记录上下文与用户信息）**；**设置页图库管理（已实现：`/api/settings/stickers` 列表/搜索/隐藏/恢复/拒绝/删除，COS 同步删除）**；选图 Top-K LLM 精排；斗图窗口                                                                                                                                                    |
+| **P2** | **`qwen3.7-plus` 看图**（独立密钥、多图批量）；**自动抓取表情 → summary/tags → `chatSticker`（默认 pending 待审）**；动图按图发送；nsfw 性格化拒答；语义选图发送；主动附带表情概率；发送记录强制 Mongo                                                                                                                                                                |
+| **P3** | **MCP 接入（已实现：stdio/http/sse + dpsk function calling，server 清单待配置）**；**H2 风控门控（已实现：自部署 `Qwen3Guard-Stream-0.6B`，默认 Must 不过、applyToMust 可开，noop 记录上下文与用户信息）**；**设置页图库管理（已实现：列表/搜索/pending 审核/编辑摘要/隐藏/恢复/拒绝/删除，COS 同步删除，手机单行布局）**；选图 Top-K LLM 精排；斗图窗口                                                                                                                                                    |
 
 ---
 
@@ -706,7 +709,7 @@ interface BotChatbotConfig {
 7. 压缩在「条数或 token」触达时由 **dpsk** 生成摘要。
 8. 设置页改 `systemPrompt` 后新对话呈猫娘/新文案。
 9. 有图时 **`qwen3.7-plus`**（独立密钥、多图批量）摘要写入后再由 dpsk 回复（配置齐全时）。
-10. 群图可被自动抓取入库（**无人工审核**）；summary/tags 可用于后续语义发图。
+10. 群图可被自动抓取入库（**默认 pending 人工审核**，可编辑 summary/tags）；通过后 summary/tags 用于语义发图。
 11. 发出的图必须来自 `chatSticker` COS，无任意外链；**动图按图片发送**。
 12. 无本地对话记忆文件。
 13. 限流 **1 条/秒、10 条/分** 生效且可配置。
@@ -739,7 +742,7 @@ interface BotChatbotConfig {
 | 先导词误伤                                     | 强制 `prefix + 空白`                                                                  |
 | MCP 滥用                                       | 白名单 + 默认关危险工具                                                               |
 | **qwen3.7-plus 调用费**（对话+全量偷图双路径） | 入库异步队列限速；重复 hash 跳过；观察图可「只入库不立刻打标」合并批处理              |
-| 垃圾/违规表情入库                              | nsfw 字段、黑名单用户、库上限（**无人工审核**，上线后需监控）                         |
+| 垃圾/违规表情入库                              | nsfw 拒收、黑名单用户、库上限、**pending 人工审核**、可编辑/拒绝/删除                  |
 | 选图不合适                                     | 仅 ready；关键词+可选 LLM 精排；confidence 阈值                                       |
 | 设置页改人设注入                               | system 仍拼接固定安全段                                                               |
 | 发送记录缺失/重复                              | 发送层统一记录；按消息 id（msgId）幂等（验收项 15/16）              |
@@ -750,7 +753,7 @@ interface BotChatbotConfig {
 
 ## 18. 一句话结论
 
-> **PlanaBot 白名单群（`group_openid`，已全量）指令优先；否则观察写入 Mongo 公共历史（含未回与 bot 出站）；超长 ignored 落库；@（`is_you`）或「先导词+空格」必回；普通 0.1 / 回 bot 后 0.7；限流 1/s、10/min；猫娘人设可设置页改；dpsk 主回复与压缩；看图与表情打标统一用阿里云 `qwen3.7-plus`（独立密钥、多图批量）；自动抓取群聊图 → summary/tags 入库（无人工审核）→ 语义发送合适图片；nsfw 性格化拒答；所有发送必入 Mongo；可选 MCP（H2 风控最后配置）；无本地记忆文件。**
+> **PlanaBot 白名单群（`group_openid`，已全量）指令优先；否则观察写入 Mongo 公共历史（含未回与 bot 出站）；超长 ignored 落库；@（`is_you`）或「先导词+空格」必回；普通 0.1 / 回 bot 后 0.7；限流 1/s、10/min；猫娘人设可设置页改；dpsk 主回复与压缩；看图与表情打标统一用阿里云 `qwen3.7-plus`（独立密钥、多图批量）；自动抓取群聊图 → summary/tags 入库（默认 pending 人工审核，可编辑摘要）→ 通过后语义发送合适图片；nsfw 性格化拒答；所有发送必入 Mongo；可选 MCP（H2 风控最后配置）；无本地记忆文件。**
 
 ---
 

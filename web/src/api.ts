@@ -133,6 +133,20 @@ export function setStickerStatus(_id: string, status: string) {
     });
 }
 
+/** 编辑摘要 / 标签 */
+export function updateSticker(
+    _id: string,
+    data: { summary?: string; tags?: string[] | string },
+) {
+    return request<{ ok: boolean; _id: string; summary: string; tags: string[] }>(
+        '/api/settings/stickers/update',
+        {
+            method: 'POST',
+            body: JSON.stringify({ _id, ...data }),
+        },
+    );
+}
+
 export function deleteStickers(ids: string[]) {
     return request<{ ok: boolean; deleted: number; failed: string[] }>(
         '/api/settings/stickers/delete',

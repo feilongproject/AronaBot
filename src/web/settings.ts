@@ -17,7 +17,7 @@ import config, {
 } from '../../config/config';
 import { chatCollection, CHAT_COLLECTION, aiDb } from '../plugins/chatbot/db';
 
-const STICKER_STATUSES = new Set(['ready', 'hidden', 'rejected']);
+const STICKER_STATUSES = new Set(['pending', 'ready', 'hidden', 'rejected']);
 
 /** 删除 COS 对象（回调风格封装为 Promise） */
 function cosDeleteObject(key: string): Promise<unknown> {
@@ -402,6 +402,73 @@ export function registerSettingsRoutes(router: Router): void {
         } catch (err) {
             ctx.status = 500;
             ctx.body = { message: `更新状态失败: ${(err as Error).message}` };
+        }
+    });
+
+    /** 编辑摘要 / 标签（人工校对 vision 打标结果） */
+    router.post('/api/settings/stickers/update', async (ctx) => {
+        if (!requireSettingsAuth(ctx)) return;
+        try {
+            if (!aiDb()) {
+                ctx.status = 503;
+                ctx.body = { message: 'AI MongoDB 未连接' };
+                return;
+            }
+            const body = (ctx.request.body || {}) as {
+                _id?: string;
+                summary?: string;
+                tags?: string[] | string;
+            };
+            if (!body._id) {
+                ctx.status = 400;
+                ctx.body = { message: '_id 不能为空' };
+                return;
+            }
+            const $set: Record<string, unknown> = { summaryUpdatedAt: new Date() };
+            if (typeof body.summary === 'string') {
+                const summary = body.summary.trim();
+                if (!summary) {
+                    ctx.status = 400;
+                    ctx.body = { message: 'summary 不能为空' };
+                    return;
+                }
+                if (summary.length > 500) {
+                    ctx.status = 400;
+                    ctx.body = { message: 'summary 过长（≤500）' };
+                    return;
+                }
+                $set.summary = summary;
+            }
+            if (body.tags !== undefined) {
+                const raw = Array.isArray(body.tags)
+                    ? body.tags
+                    : String(body.tags || '')
+                          .split(/[,，\s]+/)
+                          .filter(Boolean);
+                $set.tags = raw.map((t) => String(t).trim()).filter(Boolean).slice(0, 20);
+            }
+            if (Object.keys($set).length <= 1) {
+                ctx.status = 400;
+                ctx.body = { message: '请提供 summary 或 tags' };
+                return;
+            }
+            const col = chatCollection(CHAT_COLLECTION.sticker);
+            const res = await col.updateOne({ _id: body._id }, { $set });
+            if (!res.matchedCount) {
+                ctx.status = 404;
+                ctx.body = { message: '图库条目不存在' };
+                return;
+            }
+            const doc = await col.findOne({ _id: body._id });
+            ctx.body = {
+                ok: true,
+                _id: body._id,
+                summary: doc?.summary || '',
+                tags: doc?.tags || [],
+            };
+        } catch (err) {
+            ctx.status = 500;
+            ctx.body = { message: `更新图库失败: ${(err as Error).message}` };
         }
     });
 

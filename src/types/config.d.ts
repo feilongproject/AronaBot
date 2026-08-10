@@ -200,15 +200,21 @@ interface BotChatbotConfig {
     visionBaseURL?: string;
     /** 独立看图密钥，不复用 dsKey / aiTranslate.apiKey */
     visionApiKey: string;
-    /** 自动抓取群聊图/表情入库（无人工审核，直接 ready） */
+    /** 自动抓取群聊图/表情入库 */
     stickerCaptureEnabled: boolean;
     /** sticker=动画表情或小尺寸静态表情包；animated_only=只处理动画表情（gif/webp）；emoji_like=只抓小图/表情比例 */
     stickerCaptureMode: 'emoji_like' | 'all_images' | 'animated_only' | 'sticker';
     /** 处理完成后是否存入图库；false=只打标不入库（调试/统计用）；默认 true */
     stickerCaptureStore?: boolean;
+    /**
+     * 是否自动通过审核。
+     * false（默认）= 入库 status=pending，设置页人工通过后才 ready；
+     * true= 抓取后直接 ready（旧行为）。
+     */
+    stickerAutoApprove?: boolean;
     /** 单张抓取上限（字节）；默认 2MB */
     stickerMaxBytes: number;
-    /** 图库固化上限；默认 500 */
+    /** 图库固化上限（ready+pending 合计）；默认 500 */
     stickerLibraryMax: number;
     /** 不抓取的用户 id 列表 */
     stickerBlacklistUserIds?: string[];
