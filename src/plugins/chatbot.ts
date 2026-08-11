@@ -22,6 +22,9 @@ import {
     checkRateLimit,
     checkCooldown,
     bumpChain,
+    matchMuteKeyword,
+    isGroupMuted,
+    applyGroupMute,
 } from './chatbot/trigger';
 import {
     chatCompletion,
@@ -197,7 +200,30 @@ export async function chatbot(msg: IMessageGROUP): Promise<any> {
     // —— [4] H0 规则 ——
     if (tooLong) return; // ignored 已落库；不调模型、不进 history 原文
     const cleaned = cleanContent(msg, true);
-    if (!cleaned && !hasImage) return; // 空/纯噪声 → observe only
+    // 普通空消息跳过；Must（纯 @ / 先导词无正文）仍可继续
+    if (!cleaned && !hasImage && !must.must) return;
+
+    // —— 闭嘴：命中关键词则本群静默 muteDurationSec（默认 5 分钟）；静默期内不发送 ——
+    // 检测正文含 must 剥离后的 payload / 原始清理文案（先导词+@ 场景）
+    const muteProbe = [cleaned, must.payload, cleanContent(msg, false)].filter(Boolean).join('\n');
+    const muteKw = matchMuteKeyword(muteProbe, cfg);
+    if (muteKw) {
+        const { newly, sec } = await applyGroupMute(groupOpenid, cfg);
+        log.info(`chatbot 群闭嘴 group=${groupOpenid} keyword=${muteKw} sec=${sec} newly=${newly}`);
+        if (newly) {
+            const min = Math.max(1, Math.round(sec / 60));
+            const tpl =
+                cfg.muteAckMessage ||
+                '好的喵，星奈闭嘴 {min} 分钟（{sec} 秒）～有事过会儿再叫我喵。';
+            const ack = tpl.replace(/\{sec\}/g, String(sec)).replace(/\{min\}/g, String(min));
+            await msg.sendMarkdown({ content: ack }).catch((err) => log.error(err));
+        }
+        return;
+    }
+    if (await isGroupMuted(groupOpenid)) {
+        log.debug(`chatbot 静默中跳过发送 group=${groupOpenid}`);
+        return;
+    }
 
     // —— 限流 / 冷却（Must 放宽冷却，仍受 1/s、10/min 硬顶）——
     const rateOk = await checkRateLimit(groupOpenid, cfg);

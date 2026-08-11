@@ -299,6 +299,22 @@
                 "cooldownSec": {
                     "type": "integer",
                     "description": "用户/群冷却秒数；Must 可放宽但仍受 1/s、10/min 硬顶"
+                },
+                "muteKeywords": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "闭嘴关键词列表；用户消息命中任一词后本群暂停发送；默认 闭嘴/别说了/安静/不要说了/shut up/shutup"
+                },
+                "muteDurationSec": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "闭嘴静默时长（秒）；默认 300（5 分钟）"
+                },
+                "muteAckMessage": {
+                    "type": "string",
+                    "description": "新开启闭嘴时的确认文案；可用 {sec}/{min} 占位；留空用默认"
                 }
             }
         },
@@ -580,6 +596,22 @@
                         "cooldownSec": {
                             "type": "integer",
                             "description": "用户/群冷却秒数；Must 可放宽但仍受 1/s、10/min 硬顶"
+                        },
+                        "muteKeywords": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "description": "闭嘴关键词列表；用户消息命中任一词后本群暂停发送；默认 闭嘴/别说了/安静/不要说了/shut up/shutup"
+                        },
+                        "muteDurationSec": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "description": "闭嘴静默时长（秒）；默认 300（5 分钟）"
+                        },
+                        "muteAckMessage": {
+                            "type": "string",
+                            "description": "新开启闭嘴时的确认文案；可用 {sec}/{min} 占位；留空用默认"
                         }
                     }
                 },

@@ -241,6 +241,15 @@ interface BotChatbotConfig {
     rateLimitPerMinute: number;
     /** 用户/群冷却（秒）；Must 可放宽但仍受 1/s、10/min 硬顶 */
     cooldownSec: number;
+    /**
+     * 闭嘴关键词列表；用户消息命中任一词后本群暂停发送。
+     * 默认：闭嘴 / 别说了 / 安静 / 不要说了 / shut up / shutup
+     */
+    muteKeywords?: string[];
+    /** 闭嘴静默时长（秒）；默认 300（5 分钟） */
+    muteDurationSec?: number;
+    /** 新开启闭嘴时的确认文案；可含 {sec}/{min} 占位；留空用默认 */
+    muteAckMessage?: string;
 }
 
 /** config/ai.json 磁盘形态：AI 相关配置独立文件（aiTranslate 除外） */

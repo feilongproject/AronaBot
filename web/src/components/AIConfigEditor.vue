@@ -65,6 +65,9 @@ const DEFAULT_CHATBOT: Record<string, any> = {
     rateLimitPerSecond: 1,
     rateLimitPerMinute: 10,
     cooldownSec: 10,
+    muteKeywords: ['闭嘴', '别说了', '安静', '不要说了', 'shut up', 'shutup'],
+    muteDurationSec: 300,
+    muteAckMessage: '',
 };
 
 const ai = ref<AIForm>({
@@ -545,6 +548,53 @@ onMounted(load);
                                 integer
                                 :model-value="ai.chatbot?.cooldownSec ?? 10"
                                 @update:model-value="patchChatbot((c) => (c.cooldownSec = $event))"
+                            />
+                        </Field>
+                        <Field
+                            label="muteDurationSec"
+                            hint="闭嘴静默秒数；默认 300（5 分钟）"
+                        >
+                            <NumberInput
+                                integer
+                                :model-value="ai.chatbot?.muteDurationSec ?? 300"
+                                :min="1"
+                                @update:model-value="
+                                    patchChatbot((c) => (c.muteDurationSec = $event))
+                                "
+                            />
+                        </Field>
+                        <Field
+                            label="muteKeywords"
+                            hint="命中任一词本群暂停发送；默认含闭嘴/别说了等"
+                        >
+                            <StringList
+                                :model-value="
+                                    ai.chatbot?.muteKeywords || [
+                                        '闭嘴',
+                                        '别说了',
+                                        '安静',
+                                        '不要说了',
+                                        'shut up',
+                                        'shutup',
+                                    ]
+                                "
+                                placeholder="闭嘴"
+                                empty-text="使用内置默认关键词"
+                                @update:model-value="
+                                    patchChatbot((c) => (c.muteKeywords = $event))
+                                "
+                            />
+                        </Field>
+                        <Field
+                            label="muteAckMessage"
+                            hint="新开启闭嘴确认文案；{sec}/{min} 可替换；留空默认"
+                        >
+                            <TextInput
+                                :model-value="ai.chatbot?.muteAckMessage || ''"
+                                placeholder="好的喵，星奈闭嘴 {min} 分钟～"
+                                @update:model-value="
+                                    patchChatbot((c) => (c.muteAckMessage = $event))
+                                "
                             />
                         </Field>
                         <Field label="chatModel">

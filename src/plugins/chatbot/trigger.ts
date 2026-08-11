@@ -191,3 +191,47 @@ export async function checkCooldown(
     const ok = await redis.set(key, '1', { EX: cfg.cooldownSec, NX: true }).catch(() => 'ERR');
     return ok !== 'OK';
 }
+
+function groupMuteKey(groupOpenid: string): string {
+    return `chat:mute:${groupOpenid}`;
+}
+
+/** 默认闭嘴关键词（可被配置覆盖） */
+export const DEFAULT_MUTE_KEYWORDS = ['闭嘴', '别说了', '安静', '不要说了', 'shut up', 'shutup'];
+
+/** 正文是否命中闭嘴类关键词（子串匹配，大小写不敏感） */
+export function matchMuteKeyword(text: string, cfg: ChatbotRuntimeConfig): string | null {
+    const raw = (text || '').trim();
+    if (!raw) return null;
+    const lower = raw.toLowerCase();
+    const list =
+        Array.isArray(cfg.muteKeywords) && cfg.muteKeywords.length
+            ? cfg.muteKeywords
+            : DEFAULT_MUTE_KEYWORDS;
+    for (const k of list) {
+        const kw = String(k || '').trim();
+        if (!kw) continue;
+        if (raw.includes(kw) || lower.includes(kw.toLowerCase())) return kw;
+    }
+    return null;
+}
+
+/** 当前群是否处于闭嘴静默期 */
+export async function isGroupMuted(groupOpenid: string): Promise<boolean> {
+    return !!(await redis.exists(groupMuteKey(groupOpenid)).catch(() => 0));
+}
+
+/**
+ * 开启/刷新群闭嘴静默（Redis TTL）。
+ * @returns 是否为新开启（此前未 mute）；刷新已有 mute 时返回 false
+ */
+export async function applyGroupMute(
+    groupOpenid: string,
+    cfg: ChatbotRuntimeConfig,
+): Promise<{ newly: boolean; sec: number }> {
+    const sec = Math.max(1, Math.floor(cfg.muteDurationSec || 300));
+    const key = groupMuteKey(groupOpenid);
+    const existed = await redis.exists(key).catch(() => 0);
+    await redis.setEx(key, sec, String(Date.now())).catch(() => {});
+    return { newly: !existed, sec };
+}

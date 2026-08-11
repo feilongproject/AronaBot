@@ -70,6 +70,12 @@ export interface ChatbotRuntimeConfig {
     rateLimitPerSecond: number;
     rateLimitPerMinute: number;
     cooldownSec: number;
+    /** 闭嘴类关键词；命中后本群暂停主动回复 muteDurationSec */
+    muteKeywords: string[];
+    /** 闭嘴静默时长（秒）；默认 300（5 分钟） */
+    muteDurationSec: number;
+    /** 新开启闭嘴时的确认文案；空则用默认 */
+    muteAckMessage: string;
 }
 
 function num(v: unknown, dft: number): number {
@@ -156,5 +162,14 @@ export function getChatbotConfig(): ChatbotRuntimeConfig | null {
         rateLimitPerSecond: num(c.rateLimitPerSecond, 1),
         rateLimitPerMinute: num(c.rateLimitPerMinute, 10),
         cooldownSec: num(c.cooldownSec, 10),
+        muteKeywords:
+            Array.isArray(c.muteKeywords) && c.muteKeywords.length
+                ? c.muteKeywords.map(String).filter(Boolean)
+                : ['闭嘴', '别说了', '安静', '不要说了', 'shut up', 'shutup'],
+        muteDurationSec: Math.max(1, num(c.muteDurationSec, 300)),
+        muteAckMessage:
+            typeof c.muteAckMessage === 'string' && c.muteAckMessage.trim()
+                ? c.muteAckMessage.trim()
+                : '',
     };
 }
