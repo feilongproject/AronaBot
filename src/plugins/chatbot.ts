@@ -331,7 +331,7 @@ export async function chatbot(msg: IMessageGROUP): Promise<any> {
     }
     if (action.action === 'silent' || !action.parts.length) return;
 
-    // —— [9] 发送（文字 / @ / 图 / 图文）——
+    // —— [9] 发送（文字 / @ / 图；图片单独一条，避免图文组合）——
     const textPart = action.parts
         .filter((p) => p.type === 'text')
         .map((p) => stripSpeakerPrefix((p as { text: string }).text))
@@ -366,21 +366,37 @@ export async function chatbot(msg: IMessageGROUP): Promise<any> {
         sticker = await pickSticker(groupOpenid, imgPart?.query || textPart || cleaned, cfg);
     }
     let mdContent = content;
+    let stickerImageUrl = '';
     if (sticker) {
-        const imgUrl = cosUrl(sticker.cosKey, ''); // 保持原图（动图不被压缩样式改写）
-        const img =
-            sticker.width && sticker.height
-                ? `![img #${sticker.width}px #${sticker.height}px](${imgUrl})`
-                : `![img](${imgUrl})`;
-        mdContent = mdContent ? `${mdContent}\n${img}` : img;
-        log.debug('chatbot 选用图库表情:', sticker.cosKey, '→', imgUrl);
+        stickerImageUrl = cosUrl(sticker.cosKey, ''); // 保持原图（动图不被压缩样式改写）
+        log.debug('chatbot 选用图库表情:', sticker.cosKey, '→', stickerImageUrl);
     }
-    if (!mdContent) return; // 模型空输出且图库无匹配 → 静默
-    log.debug('chatbot 发送 markdown:', mdContent);
-    const ret = await msg.sendMarkdown({ content: mdContent }).catch((err) => {
-        log.error('chatbot send failed', err);
-        return null;
-    });
+    if (!mdContent && !stickerImageUrl) return; // 模型空输出且图库无匹配 → 静默
+
+    let ret: any = null;
+    if (mdContent) {
+        log.debug('chatbot 发送 markdown:', mdContent);
+        ret = await msg.sendMarkdown({ content: mdContent }).catch((err) => {
+            log.error('chatbot send text failed', err);
+            return null;
+        });
+    }
+    if (stickerImageUrl) {
+        log.debug('chatbot 上传图库表情:', stickerImageUrl);
+        const fileRes = await msg
+            .sendFile({ imageUrl: stickerImageUrl, fileType: 1 })
+            .catch((err) => {
+                log.error('chatbot upload sticker image failed', err);
+                return null;
+            });
+        if (fileRes?.result) {
+            const imageRet = await msg.sendMsgEx({ imageUrl: stickerImageUrl }).catch((err) => {
+                log.error('chatbot send sticker image failed', err);
+                return null;
+            });
+            ret = ret || imageRet;
+        }
+    }
     if (ret?.result?.id) {
         await bumpChain(groupOpenid, cfg);
         // 仅 Maybe 抽卡命中发出后重置；先导词/@ 不参与、不重置累计
