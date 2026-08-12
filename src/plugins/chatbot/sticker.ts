@@ -6,7 +6,13 @@ import { Jieba } from '@node-rs/jieba';
 import { pushToDB } from '../../libs/common';
 import { IMessageGROUP } from '../../libs/IMessageEx';
 import { ChatbotRuntimeConfig } from './config';
-import { visionSummarize, VisionInputImage, VisionResult } from './models';
+import {
+    visionSummarize,
+    VisionInputImage,
+    VisionResult,
+    classifyStickerTags,
+    STICKER_STYLE_META_TAGS,
+} from './models';
 import { CHAT_COLLECTION, aiDb, chatCollection } from './db';
 
 const UA =
@@ -188,7 +194,13 @@ async function captureOne(
         contentHash,
         phash: phash || undefined,
         summary: result.summary,
+        // tags=全量；emotionTags 供选图；style/scene/content/subject 仅展示与人工校对
         tags: result.tags,
+        emotionTags: result.emotionTags,
+        styleTags: result.styleTags,
+        sceneTags: result.sceneTags,
+        contentTags: result.contentTags,
+        subjectTags: result.subjectTags,
         nsfwRisk: result.nsfwRisk,
         isMeme: true,
         status,
@@ -203,7 +215,7 @@ async function captureOne(
     await pushToDB(CHAT_COLLECTION.sticker, doc, aiDb());
     if (devEnv)
         log.debug(
-            `chatbot 表情入库 ${doc.status} hash=${contentHash.slice(0, 8)} phash=${phash || '-'} summary=${doc.summary}`,
+            `chatbot 表情入库 ${doc.status} hash=${contentHash.slice(0, 8)} phash=${phash || '-'} emotion=[${(doc.emotionTags || []).join(',')}] style=[${(doc.styleTags || []).join(',')}] scene=[${(doc.sceneTags || []).join(',')}] content=[${(doc.contentTags || []).join(',')}] subject=[${(doc.subjectTags || []).join(',')}] summary=${doc.summary}`,
         );
 }
 
@@ -396,9 +408,31 @@ function tokenize(text: string): string[] {
         );
 }
 
+/** 检索词去掉「表情包/Q版」等形式元词，避免全库虚高命中 */
+function emotionQueryTerms(query: string): string[] {
+    return tokenize(query).filter((t) => !STICKER_STYLE_META_TAGS.has(t.toLowerCase()));
+}
+
 /**
- * 语义选图：status=ready 且 nsfwRisk!=high；tags 命中 2 分、summary 命中 1 分，
- * 同分优先未使用/较新。一期关键词打分，Top-K LLM 精排归 P3。
+ * 取文档的情感标签：优先 emotionTags；旧数据无该字段时用 classify 从 tags 回退。
+ * 选图**只**用情感标签，不用 styleTags（Q版/表情包）与角色外貌 tags。
+ */
+export function emotionTagsOfDoc(d: Record<string, any>): string[] {
+    const emotion = Array.isArray(d.emotionTags) ? d.emotionTags : [];
+    if (emotion.length) return emotion.map(String).filter(Boolean);
+    const classified = classifyStickerTags({
+        tags: Array.isArray(d.tags) ? d.tags : [],
+        styleTags: Array.isArray(d.styleTags) ? d.styleTags : [],
+        emotionTags: [],
+    });
+    return classified.emotionTags;
+}
+
+/**
+ * 语义选图：status=ready 且 nsfwRisk!=high；
+ * **仅 emotionTags 命中计分**（形式词如「表情包/Q版」不参与）；
+ * 无有效情感词时在 ready 库内按 useCount/新鲜度弱随机；
+ * 同分优先未使用/较新。
  */
 export async function pickSticker(
     groupOpenid: string,
@@ -409,6 +443,8 @@ export async function pickSticker(
     cosKey: string;
     summary: string;
     tags: string[];
+    emotionTags: string[];
+    styleTags: string[];
     width?: number;
     height?: number;
 } | null> {
@@ -428,31 +464,61 @@ export async function pickSticker(
         });
     if (!docs.length) return null;
 
-    const terms = tokenize(query);
+    const terms = emotionQueryTerms(query);
     let best: (typeof docs)[number] | null = null;
-    let bestScore = -1;
+    let bestScore = -Infinity;
     for (const d of docs) {
+        const emotionTags = emotionTagsOfDoc(d);
+        const emotionText = emotionTags.join(' ');
         let score = 0;
-        const tagText = (d.tags || []).join(' ');
-        const summary = d.summary || '';
         for (const t of terms) {
-            if (tagText.includes(t)) score += 2;
-            else if (summary.includes(t)) score += 1;
+            // 完整标签相等优先；其次子串命中
+            if (emotionTags.some((e) => e === t || e.toLowerCase() === t.toLowerCase())) {
+                score += 3;
+            } else if (emotionText.includes(t)) {
+                score += 2;
+            }
         }
-        if (d.isMeme) score += 1; // 表情包优先
-        if (score === 0 && terms.length) continue;
+        if (d.isMeme) score += 0.3; // 轻微偏好已确认表情包
+        // 有检索词但情感完全不命中 → 跳过（避免被 style/角色 tags 误选）
+        if (terms.length && score < 2) continue;
         score -= Math.min(d.useCount || 0, 3) * 0.5; // 优先未用过的
+        // 无检索词时用轻微随机打散，避免总是最新一条
+        if (!terms.length) score += Math.random() * 0.4;
         if (!best || score > bestScore) {
             best = d;
             bestScore = score;
         }
     }
+    // 有词但情感无命中：降级为库内弱随机（仍不按 style 词匹配）
+    if (!best && terms.length) {
+        let fallbackBest: (typeof docs)[number] | null = null;
+        let fallbackScore = -Infinity;
+        for (const d of docs) {
+            let score = (d.isMeme ? 0.3 : 0) - Math.min(d.useCount || 0, 3) * 0.5 + Math.random() * 0.4;
+            if (!fallbackBest || score > fallbackScore) {
+                fallbackBest = d;
+                fallbackScore = score;
+            }
+        }
+        best = fallbackBest;
+    }
     if (!best) return null;
+    const emotionTags = emotionTagsOfDoc(best);
+    const styleTags = Array.isArray(best.styleTags)
+        ? best.styleTags.map(String).filter(Boolean)
+        : classifyStickerTags({ tags: best.tags || [], emotionTags }).styleTags;
+    if (devEnv)
+        log.debug(
+            `pickSticker query="${query}" terms=[${terms.join(',')}] emotion=[${emotionTags.join(',')}] cosKey=${best.cosKey}`,
+        );
     return {
         _id: String(best._id),
         cosKey: best.cosKey,
         summary: best.summary,
         tags: best.tags || [],
+        emotionTags,
+        styleTags,
         width: best.width,
         height: best.height,
     };

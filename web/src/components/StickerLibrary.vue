@@ -32,7 +32,141 @@ const busyId = ref('');
 /** 行内编辑 */
 const editingId = ref('');
 const editSummary = ref('');
-const editTags = ref('');
+const editByKind = ref<Record<TagKind, string>>({
+    emotion: '',
+    style: '',
+    scene: '',
+    content: '',
+    subject: '',
+    other: '',
+});
+
+/**
+ * 标签类型配色：暖色 / 冷色 / 中性 错开，避免紫蓝相近。
+ * 情感玫红 · 形式琥珀 · 场景翠绿 · 内容青 · 主体靛蓝 · 其它灰
+ */
+type TagKind = 'emotion' | 'style' | 'scene' | 'content' | 'subject' | 'other';
+
+const TAG_KIND_ORDER: TagKind[] = ['emotion', 'style', 'scene', 'content', 'subject', 'other'];
+
+const TAG_KIND_META: Record<TagKind, { label: string; hint: string; chip: string; input: string }> =
+    {
+        emotion: {
+            label: '情感',
+            hint: '选图用',
+            chip: 'border border-rose-400/50 bg-rose-500/20 text-rose-100',
+            input: 'text-rose-200/90',
+        },
+        style: {
+            label: '形式',
+            hint: 'Q版/表情包',
+            chip: 'border border-amber-400/55 bg-amber-500/20 text-amber-100',
+            input: 'text-amber-200/90',
+        },
+        scene: {
+            label: '场景',
+            hint: '背景/环境',
+            chip: 'border border-emerald-400/50 bg-emerald-500/20 text-emerald-100',
+            input: 'text-emerald-200/90',
+        },
+        content: {
+            label: '内容',
+            hint: '动作/文案',
+            chip: 'border border-cyan-400/50 bg-cyan-500/20 text-cyan-100',
+            input: 'text-cyan-200/90',
+        },
+        subject: {
+            label: '主体',
+            hint: '角色/外貌',
+            chip: 'border border-indigo-400/50 bg-indigo-500/20 text-indigo-100',
+            input: 'text-indigo-200/90',
+        },
+        other: {
+            label: '其它',
+            hint: '未归类',
+            chip: 'border border-slate-500/50 bg-slate-600/30 text-slate-200',
+            input: 'text-slate-300/90',
+        },
+    };
+
+type DisplayTag = { text: string; kind: TagKind };
+
+function normKey(t: string): string {
+    return t.trim().toLowerCase();
+}
+
+/** 形式/场景/内容启发式（旧数据缺字段时前端兜底上色） */
+const STYLE_HINTS = new Set(
+    'q版,表情包,表情,动图,静图,梗图,贴纸,二次元,卡通,插画,三视图,3d,手绘,简笔画,像素,动画截图,实拍,漫画,低画质'.split(
+        ',',
+    ),
+);
+const SCENE_HINTS = new Set(
+    '雪地,床边,床上,长椅,绿幕,室内,室外,教室,海边,沙滩,街道,厨房,办公室,公园,草地,夜空,星空,天台,阳台,窗边,桌前,餐桌,沙发,舞台,直播间,白底,黑底,背景'.split(
+        ',',
+    ),
+);
+const CONTENT_HINTS = new Set(
+    '探头,捂脸,抱着,拥抱,张嘴,闭眼,举手,摊手,指着,比心,挥手,鞠躬,趴着,蹲下,低头,仰头,扶额,翻白眼,吐舌头,流泪,流汗,泪眼,瞪眼,数钱,吃饭,睡觉,走路,奔跑,配文,字幕,文字,说话,喊话,举牌,摸头,托腮,抱胸,起床'.split(
+        ',',
+    ),
+);
+const EMOTION_HINTS = new Set(
+    '委屈,撒娇,可怜,开心,高兴,生气,愤怒,无语,尴尬,害羞,宠溺,得意,震惊,惊讶,哭泣,悲伤,害怕,傲娇,温柔,心动,嫌弃,无奈,郁闷,难过,卖萌,呆萌,呆滞,崩溃,绝望,躺平,摆烂,佛系,淡定,吃瓜,羡慕,嫉妒,高冷,冷漠,期待,兴奋,激动,感动,滑稽,搞怪,嚣张,急切,慌张,着急,困惑,疑惑,无辜,乖巧,自信,平静,超脱,依赖,失落,失望,恶心,认怂,暴躁,狂喜,泪目,破防'.split(
+        ',',
+    ),
+);
+
+function guessKind(text: string): TagKind {
+    const key = normKey(text);
+    if (STYLE_HINTS.has(key) || STYLE_HINTS.has(key.replace(/\s/g, ''))) return 'style';
+    if (EMOTION_HINTS.has(key)) return 'emotion';
+    if (SCENE_HINTS.has(key)) return 'scene';
+    if (CONTENT_HINTS.has(key) || text.length >= 5 || /^ocr[:：]/i.test(text)) return 'content';
+    return 'subject';
+}
+
+/** 按多分类拆分展示；缺后端字段时对剩余 tags 做启发式 */
+function displayTags(item: StickerItem): DisplayTag[] {
+    const out: DisplayTag[] = [];
+    const seen = new Set<string>();
+    const push = (raw: string, kind: TagKind) => {
+        const text = String(raw || '').trim();
+        if (!text) return;
+        const key = normKey(text);
+        if (seen.has(key)) return;
+        seen.add(key);
+        out.push({ text, kind });
+    };
+
+    const buckets: [TagKind, string[] | undefined][] = [
+        ['emotion', item.emotionTags],
+        ['style', item.styleTags],
+        ['scene', item.sceneTags],
+        ['content', item.contentTags],
+        ['subject', item.subjectTags],
+    ];
+    for (const [kind, list] of buckets) {
+        for (const t of list || []) push(t, kind);
+    }
+
+    const hasExtended =
+        (item.sceneTags && item.sceneTags.length) ||
+        (item.contentTags && item.contentTags.length) ||
+        (item.subjectTags && item.subjectTags.length);
+
+    for (const t of item.tags || []) {
+        const key = normKey(t);
+        if (seen.has(key)) continue;
+        // 有扩展字段时剩余归 other；否则启发式猜类型
+        push(t, hasExtended ? 'other' : guessKind(t));
+    }
+    return out;
+}
+
+function tagChipClass(kind: TagKind): string {
+    return TAG_KIND_META[kind].chip;
+}
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)));
 const statText = computed(() =>
@@ -91,16 +225,32 @@ async function act(item: StickerItem, next: string, label: string) {
     }
 }
 
+function emptyEditByKind(): Record<TagKind, string> {
+    return { emotion: '', style: '', scene: '', content: '', subject: '', other: '' };
+}
+
 function startEdit(item: StickerItem) {
     editingId.value = item._id;
     editSummary.value = item.summary || '';
-    editTags.value = (item.tags || []).join(', ');
+    const next = emptyEditByKind();
+    for (const t of displayTags(item)) {
+        const cur = next[t.kind];
+        next[t.kind] = cur ? `${cur}, ${t.text}` : t.text;
+    }
+    editByKind.value = next;
 }
 
 function cancelEdit() {
     editingId.value = '';
     editSummary.value = '';
-    editTags.value = '';
+    editByKind.value = emptyEditByKind();
+}
+
+function parseTagInput(s: string): string[] {
+    return s
+        .split(/[,，\s]+/)
+        .map((t) => t.trim())
+        .filter(Boolean);
 }
 
 async function saveEdit(item: StickerItem) {
@@ -109,14 +259,39 @@ async function saveEdit(item: StickerItem) {
         err.value = '摘要不能为空';
         return;
     }
+    const emotionTags = parseTagInput(editByKind.value.emotion);
+    const styleTags = parseTagInput(editByKind.value.style);
+    const sceneTags = parseTagInput(editByKind.value.scene);
+    const contentTags = parseTagInput(editByKind.value.content);
+    const subjectTags = parseTagInput(editByKind.value.subject);
+    const otherTags = parseTagInput(editByKind.value.other);
+    // 全量 tags：情感 → 主体 → 内容 → 场景 → 其它 → 形式
+    const tags = [
+        ...emotionTags,
+        ...subjectTags,
+        ...contentTags,
+        ...sceneTags,
+        ...otherTags,
+        ...styleTags,
+    ];
     busyId.value = item._id;
     try {
         const res = await updateSticker(item._id, {
             summary,
-            tags: editTags.value,
+            tags,
+            emotionTags,
+            styleTags,
+            sceneTags,
+            contentTags,
+            subjectTags,
         });
         item.summary = res.summary;
         item.tags = res.tags;
+        item.emotionTags = res.emotionTags ?? emotionTags;
+        item.styleTags = res.styleTags ?? styleTags;
+        item.sceneTags = res.sceneTags ?? sceneTags;
+        item.contentTags = res.contentTags ?? contentTags;
+        item.subjectTags = res.subjectTags ?? subjectTags;
         cancelEdit();
     } catch (e) {
         err.value = e instanceof Error ? e.message : String(e);
@@ -214,6 +389,21 @@ onMounted(load);
             </button>
         </div>
 
+        <!-- 标签颜色图例 -->
+        <div class="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
+            <span class="mr-0.5">标签：</span>
+            <span
+                v-for="kind in TAG_KIND_ORDER"
+                :key="kind"
+                class="inline-flex items-center rounded px-1.5 py-0.5 font-medium"
+                :class="TAG_KIND_META[kind].chip"
+                :title="TAG_KIND_META[kind].hint"
+            >
+                {{ TAG_KIND_META[kind].label }}
+            </span>
+            <span class="ml-1 text-slate-600">选图仅用情感</span>
+        </div>
+
         <!-- list -->
         <div v-if="loading && !list.length" class="py-10 text-center text-sm text-slate-400">
             加载中…
@@ -292,17 +482,25 @@ onMounted(load);
                         </span>
                     </div>
 
-                    <!-- 全部标签 -->
-                    <div v-if="item.tags?.length" class="flex flex-wrap gap-1">
-                        <span
-                            v-for="t in item.tags"
-                            :key="t"
-                            class="rounded bg-sky-500/10 px-1.5 py-0.5 text-[10px] text-sky-300"
-                        >
-                            {{ t }}
-                        </span>
+                    <!-- 分类标签：情感 / 形式 / 其它 -->
+                    <div
+                        v-for="chips in [displayTags(item)]"
+                        :key="`tags-${item._id}`"
+                        class="min-h-[1.25rem]"
+                    >
+                        <div v-if="chips.length" class="flex flex-wrap gap-1">
+                            <span
+                                v-for="t in chips"
+                                :key="`${t.kind}:${t.text}`"
+                                class="rounded px-1.5 py-0.5 text-[10px]"
+                                :class="tagChipClass(t.kind)"
+                                :title="TAG_KIND_META[t.kind].label"
+                            >
+                                {{ t.text }}
+                            </span>
+                        </div>
+                        <div v-else class="text-[10px] text-slate-600">（无标签）</div>
                     </div>
-                    <div v-else class="text-[10px] text-slate-600">（无标签）</div>
 
                     <!-- 操作 -->
                     <div class="flex flex-wrap gap-1.5 pt-0.5">
@@ -385,13 +583,45 @@ onMounted(load);
                                 @keyup.enter="saveEdit(item)"
                             />
                         </label>
-                        <label class="block text-[11px] text-slate-400">
-                            标签（逗号分隔）
+                        <label
+                            v-for="kind in TAG_KIND_ORDER.filter((k) => k !== 'other')"
+                            :key="kind"
+                            class="block text-[11px]"
+                            :class="TAG_KIND_META[kind].input"
+                        >
+                            {{ TAG_KIND_META[kind].label }}
+                            <span class="ml-1 text-[10px] text-slate-500">{{
+                                TAG_KIND_META[kind].hint
+                            }}</span>
                             <input
-                                v-model="editTags"
+                                v-model="editByKind[kind]"
                                 class="input mt-1 w-full text-sm"
                                 type="text"
-                                placeholder="开心, 点头, OCR文字…"
+                                :placeholder="
+                                    kind === 'emotion'
+                                        ? '委屈, 撒娇, 可怜…'
+                                        : kind === 'style'
+                                          ? 'Q版, 表情包, 动图…'
+                                          : kind === 'scene'
+                                            ? '雪地, 床边, 绿幕…'
+                                            : kind === 'content'
+                                              ? '探头, 捂脸, 配文…'
+                                              : '白发, 兔耳, 猫…'
+                                "
+                                @keyup.enter="saveEdit(item)"
+                            />
+                        </label>
+                        <label
+                            v-if="editByKind.other.trim()"
+                            class="block text-[11px]"
+                            :class="TAG_KIND_META.other.input"
+                        >
+                            其它
+                            <span class="ml-1 text-[10px] text-slate-500">未归类</span>
+                            <input
+                                v-model="editByKind.other"
+                                class="input mt-1 w-full text-sm"
+                                type="text"
                                 @keyup.enter="saveEdit(item)"
                             />
                         </label>

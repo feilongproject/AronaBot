@@ -19,7 +19,8 @@
         "format": "prettier --write src/",
         "web:dev": "pnpm --dir web dev",
         "web:build": "pnpm --dir web build",
-        "web:preview": "pnpm --dir web preview"
+        "web:preview": "pnpm --dir web preview",
+        "retag:stickers": "tsx -r dotenv/config script/retagChatStickers.ts"
     },
     "keywords": [],
     "author": "feilongproject",

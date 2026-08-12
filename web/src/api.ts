@@ -93,6 +93,11 @@ export type StickerItem = {
     _id: string;
     summary: string;
     tags: string[];
+    emotionTags?: string[];
+    styleTags?: string[];
+    sceneTags?: string[];
+    contentTags?: string[];
+    subjectTags?: string[];
     status: string;
     nsfwRisk: string;
     isMeme: boolean;
@@ -138,15 +143,30 @@ export function setStickerStatus(_id: string, status: string) {
 /** 编辑摘要 / 标签 */
 export function updateSticker(
     _id: string,
-    data: { summary?: string; tags?: string[] | string },
+    data: {
+        summary?: string;
+        tags?: string[] | string;
+        emotionTags?: string[] | string;
+        styleTags?: string[] | string;
+        sceneTags?: string[] | string;
+        contentTags?: string[] | string;
+        subjectTags?: string[] | string;
+    },
 ) {
-    return request<{ ok: boolean; _id: string; summary: string; tags: string[] }>(
-        '/api/settings/stickers/update',
-        {
-            method: 'POST',
-            body: JSON.stringify({ _id, ...data }),
-        },
-    );
+    return request<{
+        ok: boolean;
+        _id: string;
+        summary: string;
+        tags: string[];
+        emotionTags?: string[];
+        styleTags?: string[];
+        sceneTags?: string[];
+        contentTags?: string[];
+        subjectTags?: string[];
+    }>('/api/settings/stickers/update', {
+        method: 'POST',
+        body: JSON.stringify({ _id, ...data }),
+    });
 }
 
 export function deleteStickers(ids: string[]) {

@@ -338,6 +338,11 @@ export function registerSettingsRoutes(router: Router): void {
                 filter.$or = [
                     { summary: { $regex: q, $options: 'i' } },
                     { tags: { $regex: q, $options: 'i' } },
+                    { emotionTags: { $regex: q, $options: 'i' } },
+                    { styleTags: { $regex: q, $options: 'i' } },
+                    { sceneTags: { $regex: q, $options: 'i' } },
+                    { contentTags: { $regex: q, $options: 'i' } },
+                    { subjectTags: { $regex: q, $options: 'i' } },
                     { cosKey: { $regex: q, $options: 'i' } },
                 ];
             const [total, list] = await Promise.all([
@@ -363,6 +368,11 @@ export function registerSettingsRoutes(router: Router): void {
                     _id: String(d._id),
                     summary: d.summary || '',
                     tags: d.tags || [],
+                    emotionTags: d.emotionTags || [],
+                    styleTags: d.styleTags || [],
+                    sceneTags: d.sceneTags || [],
+                    contentTags: d.contentTags || [],
+                    subjectTags: d.subjectTags || [],
                     status: d.status || 'ready',
                     nsfwRisk: d.nsfwRisk || 'low',
                     isMeme: !!d.isMeme,
@@ -426,12 +436,26 @@ export function registerSettingsRoutes(router: Router): void {
                 _id?: string;
                 summary?: string;
                 tags?: string[] | string;
+                emotionTags?: string[] | string;
+                styleTags?: string[] | string;
+                sceneTags?: string[] | string;
+                contentTags?: string[] | string;
+                subjectTags?: string[] | string;
             };
             if (!body._id) {
                 ctx.status = 400;
                 ctx.body = { message: '_id 不能为空' };
                 return;
             }
+            const parseTagField = (v: string[] | string | undefined, max: number) => {
+                if (v === undefined) return undefined;
+                const raw = Array.isArray(v)
+                    ? v
+                    : String(v || '')
+                          .split(/[,，\s]+/)
+                          .filter(Boolean);
+                return raw.map((t) => String(t).trim()).filter(Boolean).slice(0, max);
+            };
             const $set: Record<string, unknown> = { summaryUpdatedAt: new Date() };
             if (typeof body.summary === 'string') {
                 const summary = body.summary.trim();
@@ -447,13 +471,34 @@ export function registerSettingsRoutes(router: Router): void {
                 }
                 $set.summary = summary;
             }
-            if (body.tags !== undefined) {
-                const raw = Array.isArray(body.tags)
-                    ? body.tags
-                    : String(body.tags || '')
-                          .split(/[,，\s]+/)
-                          .filter(Boolean);
-                $set.tags = raw.map((t) => String(t).trim()).filter(Boolean).slice(0, 20);
+            const tags = parseTagField(body.tags, 24);
+            const emotionTags = parseTagField(body.emotionTags, 12);
+            const styleTags = parseTagField(body.styleTags, 8);
+            const sceneTags = parseTagField(body.sceneTags, 6);
+            const contentTags = parseTagField(body.contentTags, 10);
+            const subjectTags = parseTagField(body.subjectTags, 10);
+            if (tags !== undefined) $set.tags = tags;
+            if (emotionTags !== undefined) $set.emotionTags = emotionTags;
+            if (styleTags !== undefined) $set.styleTags = styleTags;
+            if (sceneTags !== undefined) $set.sceneTags = sceneTags;
+            if (contentTags !== undefined) $set.contentTags = contentTags;
+            if (subjectTags !== undefined) $set.subjectTags = subjectTags;
+            // 只改了扁平 tags 时，按分类规则同步各桶
+            const noBuckets =
+                emotionTags === undefined &&
+                styleTags === undefined &&
+                sceneTags === undefined &&
+                contentTags === undefined &&
+                subjectTags === undefined;
+            if (tags !== undefined && noBuckets) {
+                const { classifyStickerTags } = await import('../plugins/chatbot/models');
+                const c = classifyStickerTags({ tags });
+                $set.emotionTags = c.emotionTags;
+                $set.styleTags = c.styleTags;
+                $set.sceneTags = c.sceneTags;
+                $set.contentTags = c.contentTags;
+                $set.subjectTags = c.subjectTags;
+                $set.tags = c.tags;
             }
             if (Object.keys($set).length <= 1) {
                 ctx.status = 400;
@@ -473,6 +518,11 @@ export function registerSettingsRoutes(router: Router): void {
                 _id: body._id,
                 summary: doc?.summary || '',
                 tags: doc?.tags || [],
+                emotionTags: doc?.emotionTags || [],
+                styleTags: doc?.styleTags || [],
+                sceneTags: doc?.sceneTags || [],
+                contentTags: doc?.contentTags || [],
+                subjectTags: doc?.subjectTags || [],
             };
         } catch (err) {
             ctx.status = 500;

@@ -160,7 +160,21 @@ export interface VisionInputImage {
 
 export interface VisionResult {
     summary: string;
+    /**
+     * 全部短标签（兼容旧逻辑 / 设置页展示）。
+     * 由 emotion + style + scene + content + subject 等合并去重。
+     */
     tags: string[];
+    /** 情感/情绪标签（委屈/撒娇/可怜…）；语义选图仅用此类 */
+    emotionTags: string[];
+    /** 形式/画风标签（Q版/表情包/动图…）；入库保留，选图不计分 */
+    styleTags: string[];
+    /** 场景/背景标签（雪地/床边/绿幕…） */
+    sceneTags: string[];
+    /** 内容标签（动作、OCR 文案、梗文本…） */
+    contentTags: string[];
+    /** 主体标签（角色名、外貌特征、物种…） */
+    subjectTags: string[];
     nsfwRisk: 'low' | 'mid' | 'high';
     /** 是否为表情包（视觉模型 is_meme 判定；供图库入库决策与选图偏好） */
     isMeme: boolean;
@@ -193,6 +207,454 @@ const VISION_MEME_RULES = [
 ].join('');
 
 /**
+ * 标签分类准则：情感 / 形式 / 场景 / 内容 / 主体 必须拆开。
+ * 例：["委屈","撒娇","妈妈","白发","Q版","表情包","可怜","探头"]
+ * → emotion=["委屈","撒娇","可怜"]；style=["Q版","表情包"]；subject=["妈妈","白发"]；content=["探头"]
+ */
+const VISION_TAG_RULES = [
+    '标签分类（必须拆开，勿混写；各类勿重复）：',
+    'emotion_tags：仅情感/情绪/态度（委屈、撒娇、可怜、开心、生气、无语、害羞、宠溺、得意、震惊…），2～6 个。',
+    'style_tags：仅画风/形式/媒介（Q版、表情包、动图、静图、梗图、贴纸、二次元、卡通、插画、三视图、3D…），0～4 个。',
+    'scene_tags：仅场景/背景/环境（雪地、床边、长椅、绿幕、室内、教室、海边…），0～3 个；无则 []。',
+    'content_tags：动作/姿态/OCR文案/梗文本（探头、捂脸、抱着、张嘴、配文原句…），0～5 个。',
+    'subject_tags：主体对象（角色名、外貌、物种：白发、粉发、兔耳、猫、熊猫头…），0～5 个。',
+    '「表情包」「Q版」「动图」等一律放 style_tags；禁止把形式词放进 emotion/content/subject。',
+].join('');
+
+/** 已知形式/元标签：vision 漏分时兜底，且选图 query 会过滤这些词 */
+export const STICKER_STYLE_META_TAGS = new Set(
+    [
+        'q版',
+        'q 版',
+        '表情包',
+        '表情',
+        '动图',
+        '静图',
+        '梗图',
+        '反应图',
+        '贴纸',
+        'meme',
+        'sticker',
+        'gif',
+        'webp',
+        '卡通',
+        '动漫',
+        '二次元',
+        '插画',
+        '三视图',
+        '立绘',
+        '头像',
+        '像素',
+        '简笔画',
+        '手绘',
+        '截图',
+        '拼图',
+        '表情贴纸',
+        '动画表情',
+        '3d',
+        '动画截图',
+        '实拍',
+        '低画质',
+        '漫画',
+    ].map((s) => s.toLowerCase()),
+);
+
+/** 场景/背景关键词（旧数据回退分类） */
+export const STICKER_SCENE_HINTS = new Set(
+    [
+        '雪地',
+        '床边',
+        '床上',
+        '长椅',
+        '绿幕',
+        '室内',
+        '室外',
+        '教室',
+        '教室里',
+        '海边',
+        '沙滩',
+        '街道',
+        '马路',
+        '厨房',
+        '浴室',
+        '厕所',
+        '办公室',
+        '工位',
+        '公园',
+        '草地',
+        '森林',
+        '夜空',
+        '星空',
+        '教室外',
+        '天台',
+        '阳台',
+        '窗边',
+        '桌前',
+        '餐桌',
+        '沙发',
+        '地板',
+        '舞台',
+        '直播间',
+        '屏幕前',
+        '黑板',
+        '背景',
+        '纯色背景',
+        '白底',
+        '黑底',
+        '虚化背景',
+    ].map((s) => s.toLowerCase()),
+);
+
+/** 内容/动作/文案关键词（旧数据回退；长文案、OCR 另判） */
+export const STICKER_CONTENT_HINTS = new Set(
+    [
+        '探头',
+        '捂脸',
+        '抱着',
+        '拥抱',
+        '张嘴',
+        '闭眼',
+        '举手',
+        '摊手',
+        '指着',
+        '指人',
+        '比心',
+        '挥手',
+        '鞠躬',
+        '趴着',
+        '躺',
+        '蹲下',
+        '低头',
+        '仰头',
+        '扶额',
+        '翻白眼',
+        '吐舌头',
+        '流泪',
+        '流汗',
+        '泪眼',
+        '瞪眼',
+        '伸爪',
+        '拿刀',
+        '叼刀',
+        '数钱',
+        '吃饭',
+        '睡觉',
+        '走路',
+        '奔跑',
+        '消散',
+        '破碎',
+        '配文',
+        '字幕',
+        '文字',
+        '文字梗',
+        '拟声词',
+        '说话',
+        '喊话',
+        '举牌',
+        '开门',
+        '突击检查',
+        '暗中观察',
+        '摸头',
+        '对戳手指',
+        '托腮',
+        '双手合十',
+        '双手抱头',
+        '双手握拳',
+        '抱胸',
+        '掀被子',
+        '起床',
+    ].map((s) => s.toLowerCase()),
+);
+
+/** 常见情感词：旧数据无 emotionTags 时从 tags 回退抽取（≥2 字，避免单字误伤） */
+export const STICKER_EMOTION_HINTS = new Set(
+    [
+        // 基础情绪
+        '委屈',
+        '撒娇',
+        '可怜',
+        '开心',
+        '高兴',
+        '快乐',
+        '生气',
+        '愤怒',
+        '无语',
+        '尴尬',
+        '害羞',
+        '脸红',
+        '宠溺',
+        '得意',
+        '震惊',
+        '吃惊',
+        '惊讶',
+        '哭泣',
+        '流泪',
+        '大笑',
+        '坏笑',
+        '偷笑',
+        '微笑',
+        '假笑',
+        '冷笑',
+        '苦笑',
+        '傻笑',
+        '奸笑',
+        '冷漠',
+        '嫌弃',
+        '鄙视',
+        '无奈',
+        '郁闷',
+        '难过',
+        '伤心',
+        '悲伤',
+        '恐惧',
+        '害怕',
+        '紧张',
+        '焦虑',
+        '疲惫',
+        '困倦',
+        '傲娇',
+        '温柔',
+        '关心',
+        '安慰',
+        '鼓励',
+        '加油',
+        '爱你',
+        '比心',
+        '心动',
+        '喜欢',
+        '讨厌',
+        '翻白眼',
+        '卖萌',
+        '可爱',
+        '裂开',
+        '破防',
+        '破大防',
+        '社死',
+        '疑惑',
+        '困惑',
+        '沉思',
+        '骄傲',
+        '自信',
+        '慌张',
+        '着急',
+        '期待',
+        '兴奋',
+        '激动',
+        '感动',
+        '抱抱',
+        '呜呜',
+        '嘤嘤',
+        '委屈巴巴',
+        '可怜巴巴',
+        '气鼓鼓',
+        '气呼呼',
+        '石化',
+        '呆滞',
+        '懵逼',
+        '崩溃',
+        '绝望',
+        '认命',
+        '躺平',
+        '摆烂',
+        '佛系',
+        '淡定',
+        '吃瓜',
+        '羡慕',
+        '嫉妒',
+        '高冷',
+        '冷淡',
+        '热情',
+        '抱歉',
+        '求饶',
+        '拜托',
+        '冲鸭',
+        '好耶',
+        '离谱',
+        '破防了',
+        'emo',
+        '麻了',
+        '笑死',
+        '泪目',
+        '阴阳怪气',
+        '嘲讽',
+        '调侃',
+        '心疼',
+        '心酸',
+        '心累',
+        '心塞',
+        '心痛',
+        '空虚',
+        '孤独',
+        '寂寞',
+        '无聊',
+        '烦躁',
+        '暴躁',
+        '暴怒',
+        '狂喜',
+        '害羞脸',
+        '震惊脸',
+        '无语脸',
+        '嫌弃脸',
+        '嘟嘴',
+        '鼓嘴',
+        '冷汗',
+    ].map((s) => s.toLowerCase()),
+);
+
+function normTag(t: string): string {
+    return String(t || '')
+        .trim()
+        .replace(/\s+/g, '');
+}
+
+function asTagList(raw: unknown, max = 8): string[] {
+    if (!Array.isArray(raw)) return [];
+    const out: string[] = [];
+    const seen = new Set<string>();
+    for (const x of raw) {
+        const t = normTag(String(x));
+        if (!t || t.length > 16) continue;
+        const key = t.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(t);
+        if (out.length >= max) break;
+    }
+    return out;
+}
+
+export type ClassifiedStickerTags = {
+    emotionTags: string[];
+    styleTags: string[];
+    sceneTags: string[];
+    contentTags: string[];
+    subjectTags: string[];
+    /** @deprecated 兼容：subject+content+scene 合并 */
+    otherTags: string[];
+    tags: string[];
+};
+
+function looksLikeOcrOrPhrase(t: string): boolean {
+    if (t.length >= 5) return true;
+    if (/^ocr[:：]/i.test(t)) return true;
+    if (/[“”"'「」]/.test(t)) return true;
+    // 含空格/标点的配文
+    if (/[\s…~～!！?？]/.test(t) && t.length >= 3) return true;
+    return false;
+}
+
+/**
+ * 将扁平 tags 拆成 emotion / style / scene / content / subject。
+ * 优先信任模型分桶；扁平 tags 里漏分的词按词表与启发式归类。
+ */
+export function classifyStickerTags(input: {
+    tags?: string[];
+    emotionTags?: string[];
+    styleTags?: string[];
+    sceneTags?: string[];
+    contentTags?: string[];
+    subjectTags?: string[];
+}): ClassifiedStickerTags {
+    const styleFromModel = asTagList(input.styleTags, 6);
+    const emotionFromModel = asTagList(input.emotionTags, 8);
+    const sceneFromModel = asTagList(input.sceneTags, 4);
+    const contentFromModel = asTagList(input.contentTags, 6);
+    const subjectFromModel = asTagList(input.subjectTags, 6);
+    const flat = asTagList(input.tags, 16);
+
+    const styleKeys = new Set(styleFromModel.map((t) => t.toLowerCase()));
+    const emotionKeys = new Set(emotionFromModel.map((t) => t.toLowerCase()));
+    const sceneKeys = new Set(sceneFromModel.map((t) => t.toLowerCase()));
+    const contentKeys = new Set(contentFromModel.map((t) => t.toLowerCase()));
+    const subjectKeys = new Set(subjectFromModel.map((t) => t.toLowerCase()));
+
+    const styleTags = [...styleFromModel];
+    const emotionTags = [...emotionFromModel];
+    const sceneTags = [...sceneFromModel];
+    const contentTags = [...contentFromModel];
+    const subjectTags = [...subjectFromModel];
+
+    const claimed = (key: string) =>
+        styleKeys.has(key) ||
+        emotionKeys.has(key) ||
+        sceneKeys.has(key) ||
+        contentKeys.has(key) ||
+        subjectKeys.has(key);
+
+    for (const t of flat) {
+        const key = t.toLowerCase();
+        if (claimed(key)) continue;
+        if (STICKER_STYLE_META_TAGS.has(key)) {
+            styleTags.push(t);
+            styleKeys.add(key);
+            continue;
+        }
+        if (!emotionFromModel.length && STICKER_EMOTION_HINTS.has(key)) {
+            emotionTags.push(t);
+            emotionKeys.add(key);
+            continue;
+        }
+        if (STICKER_SCENE_HINTS.has(key)) {
+            sceneTags.push(t);
+            sceneKeys.add(key);
+            continue;
+        }
+        if (STICKER_CONTENT_HINTS.has(key) || looksLikeOcrOrPhrase(t)) {
+            contentTags.push(t);
+            contentKeys.add(key);
+            continue;
+        }
+        // 默认归主体（角色/外貌）
+        subjectTags.push(t);
+        subjectKeys.add(key);
+    }
+
+    // 模型误把形式词放进其它桶：纠正到 style
+    const scrubStyleLeak = (list: string[], keys: Set<string>) =>
+        list.filter((t) => {
+            const key = t.toLowerCase();
+            if (!STICKER_STYLE_META_TAGS.has(key)) return true;
+            if (!styleKeys.has(key)) {
+                styleTags.push(t);
+                styleKeys.add(key);
+            }
+            keys.delete(key);
+            return false;
+        });
+
+    const emotionClean = scrubStyleLeak(emotionTags, emotionKeys);
+    const sceneClean = scrubStyleLeak(sceneTags, sceneKeys);
+    const contentClean = scrubStyleLeak(contentTags, contentKeys);
+    const subjectClean = scrubStyleLeak(subjectTags, subjectKeys);
+
+    const otherTags = [...subjectClean, ...contentClean, ...sceneClean];
+    const all: string[] = [];
+    const allKeys = new Set<string>();
+    for (const t of [
+        ...emotionClean,
+        ...subjectClean,
+        ...contentClean,
+        ...sceneClean,
+        ...styleTags,
+    ]) {
+        const key = t.toLowerCase();
+        if (allKeys.has(key)) continue;
+        allKeys.add(key);
+        all.push(t);
+    }
+
+    return {
+        emotionTags: emotionClean.slice(0, 8),
+        styleTags: styleTags.slice(0, 6),
+        sceneTags: sceneClean.slice(0, 4),
+        contentTags: contentClean.slice(0, 6),
+        subjectTags: subjectClean.slice(0, 6),
+        otherTags: otherTags.slice(0, 12),
+        tags: all.slice(0, 16),
+    };
+}
+
+/**
  * 阿里云百炼 qwen3.7-plus 看图（OpenAI 兼容、独立 visionApiKey）。
  * 多图同一请求批量分析，返回与入参顺序一致的结果数组；失败返回 null。
  */
@@ -204,20 +666,21 @@ export async function visionSummarize(
     const openai = new OpenAI({ apiKey: cfg.visionApiKey, baseURL: cfg.visionBaseURL });
     const dataUrls = await Promise.all(images.map(toVisionDataUrl));
     const multi = images.length > 1;
-    const prompt = multi
-        ? [
-              '用简洁中文输出 JSON（不要多余文字）：',
-              '{"images":[{"summary":"一句话内容概要","is_meme":true|false,"tags":["3~8个短标签"],"nsfw_risk":"low|mid|high"},...]}',
-              '每张图对应一个元素，顺序与输入一致。',
-              'summary 供检索与回复；tags 覆盖情绪/角色/梗/OCR 关键词。',
-              VISION_MEME_RULES,
-          ].join('\n')
-        : [
-              '用简洁中文输出 JSON（不要多余文字）：',
-              '{"summary":"一句话内容概要","is_meme":true|false,"tags":["3~8个短标签"],"nsfw_risk":"low|mid|high"}',
-              'summary 供检索与回复；tags 覆盖情绪/角色/梗/OCR 关键词。',
-              VISION_MEME_RULES,
-          ].join('\n');
+    const itemSchema =
+        '{"summary":"一句话内容概要","is_meme":true|false,"emotion_tags":["情感"],"style_tags":["形式"],"scene_tags":["场景"],"content_tags":["内容/动作/文案"],"subject_tags":["主体/外貌"],"nsfw_risk":"low|mid|high"}';
+    const schemaHint = multi
+        ? `{"images":[${itemSchema},...]}`
+        : itemSchema;
+    const prompt = [
+        '用简洁中文输出 JSON（不要多余文字）：',
+        schemaHint,
+        multi ? '每张图对应一个元素，顺序与输入一致。' : '',
+        'summary 供检索与回复。',
+        VISION_TAG_RULES,
+        VISION_MEME_RULES,
+    ]
+        .filter(Boolean)
+        .join('\n');
 
     const completion = await openai.chat.completions.create({
         model: cfg.visionModel,
@@ -233,7 +696,7 @@ export async function visionSummarize(
                 ],
             },
         ],
-        max_tokens: 1000,
+        max_tokens: 1200,
         temperature: 0.2,
     });
     const raw = completion.choices?.[0]?.message?.content || '';
@@ -249,16 +712,29 @@ export async function visionSummarize(
 
 function normalizeVisionResult(v: unknown): VisionResult {
     const o = (v || {}) as Record<string, any>;
-    // 模型常返回 snake_case（nsfw_risk / is_meme）
+    // 模型常返回 snake_case（nsfw_risk / is_meme / emotion_tags）
     const riskRaw = o.nsfw_risk ?? o.nsfwRisk;
     const risk = (['low', 'mid', 'high'].includes(String(riskRaw)) ? String(riskRaw) : 'low') as
         | 'low'
         | 'mid'
         | 'high';
     const rawMeme = o.is_meme ?? o.isMeme;
+    const classified = classifyStickerTags({
+        tags: Array.isArray(o.tags) ? o.tags : [],
+        emotionTags: o.emotion_tags ?? o.emotionTags,
+        styleTags: o.style_tags ?? o.styleTags,
+        sceneTags: o.scene_tags ?? o.sceneTags,
+        contentTags: o.content_tags ?? o.contentTags,
+        subjectTags: o.subject_tags ?? o.subjectTags,
+    });
     return {
         summary: String(o.summary || '').trim(),
-        tags: Array.isArray(o.tags) ? o.tags.map(String).filter(Boolean).slice(0, 8) : [],
+        tags: classified.tags,
+        emotionTags: classified.emotionTags,
+        styleTags: classified.styleTags,
+        sceneTags: classified.sceneTags,
+        contentTags: classified.contentTags,
+        subjectTags: classified.subjectTags,
         nsfwRisk: risk,
         isMeme:
             rawMeme === true ||
