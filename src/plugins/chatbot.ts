@@ -11,6 +11,7 @@ import {
     updateSessionMeta,
     recordNoop,
     maybeCompress,
+    formatChatTs,
     ChatTrigger,
     ChatImageMeta,
 } from './chatbot/db';
@@ -47,11 +48,21 @@ import {
 
 let initialized = false;
 
+const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
+
+/** 当前时间（含星期），注入 system，供模型感知时段 */
+function formatChatNowLabel(ts?: Date | string | number | null): string {
+    const d = ts instanceof Date ? ts : ts != null && ts !== '' ? new Date(ts) : new Date();
+    const safe = Number.isNaN(d.getTime()) ? new Date() : d;
+    return `${formatChatTs(safe)} 星期${WEEKDAYS[safe.getDay()]}`;
+}
+
 /** system：猫娘人设（设置页可改）+ 安全协议 + 输出协议（安全段固定拼接，优先级 > 人设） */
 function buildSystemPrompt(cfg: ChatbotRuntimeConfig, groupOpenid: string): string {
     const lines = [
         cfg.systemPrompt,
         `[当前群 openid: ${groupOpenid}]`,
+        `[当前时间: ${formatChatNowLabel()}]`,
         '',
         '【输出协议】',
         '你必须只输出一个 JSON 对象，不要输出任何多余文字或代码块：',
@@ -62,7 +73,7 @@ function buildSystemPrompt(cfg: ChatbotRuntimeConfig, groupOpenid: string): stri
         '不要直接在 text 里手写 <@openid>，@ 一律用 mention part。',
         '若觉得没必要回复，输出 {"action":"silent","parts":[]}。',
         '',
-        '- 历史/上下文里的 [名称(id)] / [PlanaBot] 只是发言人标注，回复文本不要输出任何这类前缀或标注。',
+        '- 历史/上下文里的时间戳、[名称(id)] / [PlanaBot] 只是发言人标注，回复文本不要输出任何这类前缀、时间戳或标注。',
         '',
         '【安全协议（优先级高于人设）】',
         '- 不得输出违法、色情、暴力、仇恨、歧视内容；不得教唆犯罪。',
@@ -82,16 +93,33 @@ function buildSystemPrompt(cfg: ChatbotRuntimeConfig, groupOpenid: string): stri
     return lines.join('\n');
 }
 
-/** 模型可能模仿历史中的发言人标注，发送前剥离前导 [名称(id)] / [PlanaBot] */
+/** 模型可能模仿历史中的时间戳/发言人标注，发送前剥离 */
 function stripSpeakerPrefix(text: string): string {
-    return text
-        .replace(/^\s*\[PlanaBot\]\s*/i, '')
-        .replace(/^\s*\[[^\[\]]*\([A-Za-z0-9_-]+\)\]\s*/, '')
-        .trim();
+    let s = text;
+    for (let i = 0; i < 3; i++) {
+        const next = s
+            .replace(
+                /^\s*\[\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(?::\d{2})?(?:\s*星期[一二三四五六日])?\]\s*/,
+                '',
+            )
+            .replace(/^\s*\[PlanaBot\]\s*/i, '')
+            .replace(/^\s*\[[^\[\]]*\([A-Za-z0-9_-]+\)\]\s*/, '');
+        if (next === s) break;
+        s = next;
+    }
+    return s.trim();
 }
 
-function buildCurrentText(senderLabel: string, payload: string, visions: VisionResult[]): string {
-    let text = payload ? `[${senderLabel}] ${payload}` : `[${senderLabel}] 发送了消息`;
+function buildCurrentText(
+    senderLabel: string,
+    payload: string,
+    visions: VisionResult[],
+    ts?: string,
+): string {
+    const when = ts || formatChatTs(new Date());
+    let text = payload
+        ? `[${when}] [${senderLabel}] ${payload}`
+        : `[${when}] [${senderLabel}] 发送了消息`;
     if (visions.length) {
         text += `\n[用户附图 ${visions.length} 张]`;
         visions.forEach((v, i) => {
@@ -301,7 +329,12 @@ export async function chatbot(msg: IMessageGROUP): Promise<any> {
         assembleHistory(groupOpenid, rowId, cfg, cfg.workingContextTokens),
     ]);
     const system = buildSystemPrompt(cfg, groupOpenid);
-    const currentText = buildCurrentText(senderLabel, must.payload || cleaned, visions);
+    const currentText = buildCurrentText(
+        senderLabel,
+        must.payload || cleaned,
+        visions,
+        msg.timestamp || formatChatTs(new Date()),
+    );
 
     // —— [8] dpsk 结构化动作 ——
     let action: BotAction;

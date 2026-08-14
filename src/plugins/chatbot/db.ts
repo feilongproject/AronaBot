@@ -1,3 +1,4 @@
+import format from 'date-format';
 import { pushToDB } from '../../libs/common';
 import { IMessageGROUP } from '../../libs/IMessageEx';
 import { ChatbotRuntimeConfig } from './config';
@@ -124,7 +125,7 @@ export async function writeObserveRow(
             ignored: !!extra.ignored,
             ignoreReason: extra.ignoreReason,
             refMsgId: msg.refs?.refMsgIdx,
-            ts: new Date(),
+            ts: toChatDate(msg.timestamp) || new Date(),
         },
         db,
     );
@@ -170,7 +171,19 @@ export interface HistoryMessage {
     content: string;
 }
 
-/** 单条历史格式化为带发言人信息的内容（AstrBot 风格：名称(id) 前缀） */
+function toChatDate(ts?: Date | string | number | null): Date | null {
+    if (ts == null || ts === '') return null;
+    const d = ts instanceof Date ? ts : new Date(ts);
+    return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** 聊天时间戳：本地时区 yyyy-MM-dd hh:mm:ss；无效则空串 */
+export function formatChatTs(ts?: Date | string | number | null): string {
+    const d = toChatDate(ts);
+    return d ? format.asString('yyyy-MM-dd hh:mm:ss', d) : '';
+}
+
+/** 单条历史格式化为带时间戳 + 发言人信息的内容（AstrBot 风格：名称(id) 前缀） */
 function formatHistoryLine(d: Record<string, any>, text: string, adminOpenid?: string): string {
     const who =
         d.role === 'assistant'
@@ -178,7 +191,8 @@ function formatHistoryLine(d: Record<string, any>, text: string, adminOpenid?: s
             : `${d.authorName || d.authorId || '用户'}(${d.authorId || 'unknown'})${
                   d.authorId && d.authorId === adminOpenid ? '[最高管理员]' : ''
               }`;
-    let line = `[${who}] ${text}`;
+    const when = formatChatTs(d.ts);
+    let line = when ? `[${when}] [${who}] ${text}` : `[${who}] ${text}`;
     const summaries = (d.images || [])
         .map((i: Record<string, any>) => i.visionSummary)
         .filter(Boolean);
