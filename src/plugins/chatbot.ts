@@ -307,6 +307,7 @@ export async function chatbot(msg: IMessageGROUP): Promise<any> {
     let action: BotAction;
     try {
         const msgs = buildMessages(system, memory, history, currentText);
+        log.debug('chatbot openai 上下文:', strFormat(msgs));
         let res: Awaited<ReturnType<typeof chatCompletion>>;
         const tools = cfg.mcpEnabled ? await getMcpTools(cfg) : [];
         if (tools.length) {
