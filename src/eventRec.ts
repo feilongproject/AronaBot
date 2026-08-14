@@ -100,10 +100,12 @@ async function executeChat(msg: IMessageGROUP | IMessageC2C) {
             }
         }
 
-        // 生产进程：管理员消息通常交由 --dev 进程处理；但 chatbot 被动 AI 仍在本进程跑，
-        // 否则 dev 未启动 / 未配 AI 时 @ / 先导词会完全无响应。
-        if (adminId.includes(msg.author.id) && !devEnv && (await redis.get('devEnv'))) {
-            if (opts.path !== 'chatbot') {
+        // 生产进程：管理员消息交由 --dev 处理（含 chatbot，避免双边同时回复）。
+        // redis 值是看门狗写入的 botType：仅当 --dev 为本 bot 时让出 chatbot；
+        // 其它 bot 的 --dev 不会跑本宿主 AI，生产照常回。--dev 未启动则本进程照常处理。
+        const runningDevBot = await redis.get('devEnv');
+        if (adminId.includes(msg.author.id) && !devEnv && runningDevBot) {
+            if (opts.path !== 'chatbot' || runningDevBot === botType) {
                 log.debug(
                     `管理员消息交由 dev 进程处理 path=${opts.path} fnc=${opts.fnc} aid=${msg.author.id}`,
                 );
