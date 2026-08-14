@@ -115,6 +115,21 @@ export default {
                 describe: '向指定子频道发送消息并置顶',
             },
         },
+        info: {
+            info: {
+                reg: /^\/?(info|信息)$/,
+                fnc: 'info',
+                type: [
+                    MessageType.GUILD,
+                    MessageType.DIRECT,
+                    MessageType.GROUP,
+                    MessageType.FRIEND,
+                ],
+                channelAllows: ['all'],
+                describe: '输出 settings 与 AI 配置（密钥打码）',
+                export: '/info',
+            },
+        },
         mute: {
             mute: {
                 reg: /(抽卡|晒卡)?禁言(\d+)((分钟?|m)|(小?时|h)|(天|d))/,

@@ -100,7 +100,16 @@ async function executeChat(msg: IMessageGROUP | IMessageC2C) {
             }
         }
 
-        if (adminId.includes(msg.author.id) && !devEnv && (await redis.get('devEnv'))) return;
+        // 生产进程：管理员消息通常交由 --dev 进程处理；但 chatbot 被动 AI 仍在本进程跑，
+        // 否则 dev 未启动 / 未配 AI 时 @ / 先导词会完全无响应。
+        if (adminId.includes(msg.author.id) && !devEnv && (await redis.get('devEnv'))) {
+            if (opts.path !== 'chatbot') {
+                log.debug(
+                    `管理员消息交由 dev 进程处理 path=${opts.path} fnc=${opts.fnc} aid=${msg.author.id}`,
+                );
+                return;
+            }
+        }
         if (await isBan(msg)) return;
         if (global.devEnv) log.debug(`${_path}/src/plugins/${opts.path}:${opts.fnc}`);
 

@@ -112,7 +112,7 @@ export async function receiveFull(msg: IMessageGROUP) {
     // 拼接完整链接
     const applyUrl = `https://club.vip.qq.com/transfer?open_kuikly_info=${encodeURIComponent(kuiklyInfo)}`;
 
-    // TODO: 替换为实际的操作示意图片 URL（上传至 COS 后使用 cosUrl 获取）
+    // 实际的操作示意图片 URL，已设置单例无需cosUrl拼接
     const guideImageUrl = `${config.cosUrl}/receive_full_guide_${botType}.jpg`;
     if (devEnv) log.debug('guideImageUrl', guideImageUrl);
 
