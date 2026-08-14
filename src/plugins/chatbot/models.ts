@@ -57,6 +57,7 @@ function parseUsage(u: unknown): ChatUsage | undefined {
 export async function chatCompletion(
     messages: ChatCompletionMessageParam[],
     cfg: ChatbotRuntimeConfig,
+    jsonMode = false,
 ): Promise<ChatResult> {
     const apiKey = config.ai?.dsKey || config.bots[botType]?.dsKey;
     if (!apiKey) throw new Error('chatbot: dsKey 未配置（ai.json 顶层 dsKey）');
@@ -66,6 +67,7 @@ export async function chatCompletion(
         messages,
         max_tokens: 600,
         temperature: 0.9,
+        ...(jsonMode ? { response_format: { type: 'json_object' as const } } : {}),
     });
     return {
         content: completion.choices?.[0]?.message?.content || '',
@@ -122,6 +124,7 @@ export async function chatCompletionWithTools(
         messages: msgs,
         max_tokens: 600,
         temperature: 0.9,
+        response_format: { type: 'json_object' },
     });
     return {
         content: final.choices?.[0]?.message?.content || '',
