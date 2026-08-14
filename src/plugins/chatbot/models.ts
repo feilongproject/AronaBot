@@ -668,9 +668,7 @@ export async function visionSummarize(
     const multi = images.length > 1;
     const itemSchema =
         '{"summary":"一句话内容概要","is_meme":true|false,"emotion_tags":["情感"],"style_tags":["形式"],"scene_tags":["场景"],"content_tags":["内容/动作/文案"],"subject_tags":["主体/外貌"],"nsfw_risk":"low|mid|high"}';
-    const schemaHint = multi
-        ? `{"images":[${itemSchema},...]}`
-        : itemSchema;
+    const schemaHint = multi ? `{"images":[${itemSchema},...]}` : itemSchema;
     const prompt = [
         '用简洁中文输出 JSON（不要多余文字）：',
         schemaHint,
@@ -682,24 +680,30 @@ export async function visionSummarize(
         .filter(Boolean)
         .join('\n');
 
-    const completion = await openai.chat.completions.create({
-        model: cfg.visionModel,
-        messages: [
-            {
-                role: 'user',
-                content: [
-                    { type: 'text', text: prompt },
-                    ...dataUrls.map((url) => ({
-                        type: 'image_url' as const,
-                        image_url: { url },
-                    })),
-                ],
-            },
-        ],
-        max_tokens: 1200,
-        temperature: 0.2,
-    });
-    const raw = completion.choices?.[0]?.message?.content || '';
+    let raw = '';
+    try {
+        const completion = await openai.chat.completions.create({
+            model: cfg.visionModel,
+            messages: [
+                {
+                    role: 'user',
+                    content: [
+                        { type: 'text', text: prompt },
+                        ...dataUrls.map((url) => ({
+                            type: 'image_url' as const,
+                            image_url: { url },
+                        })),
+                    ],
+                },
+            ],
+            max_tokens: 1200,
+            temperature: 0.2,
+        });
+        raw = completion.choices?.[0]?.message?.content || '';
+    } catch (err) {
+        log.error(`visionSummarize 调用失败 model=${cfg.visionModel} images=${images.length}`, err);
+        return null;
+    }
     log.debug(`visionSummarize raw: ${raw}`);
     const json = extractJson(raw) as { images?: VisionResult[] } | VisionResult | null;
     if (!json || typeof json !== 'object') return null;

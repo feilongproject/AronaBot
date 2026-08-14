@@ -179,12 +179,23 @@ async function load() {
     loading.value = true;
     err.value = '';
     try {
-        const res = await fetchStickers({
+        let res = await fetchStickers({
             q: q.value,
             status: status.value,
             page: page.value,
             pageSize: PAGE_SIZE,
         });
+        // 本页最后一条被通过/拒绝/删除后，当前页可能已超出总页数，回退到最后一页重新拉取
+        const maxPage = Math.max(1, Math.ceil(res.total / res.pageSize));
+        if (page.value > maxPage) {
+            page.value = maxPage;
+            res = await fetchStickers({
+                q: q.value,
+                status: status.value,
+                page: page.value,
+                pageSize: PAGE_SIZE,
+            });
+        }
         list.value = res.list;
         total.value = res.total;
         stats.value = res.stats;

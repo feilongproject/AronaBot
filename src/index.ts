@@ -194,7 +194,9 @@ init().then(() => {
 
     app.use(async (ctx, next) => {
         await next();
-        ctx.status = ctx.body?.status || ctx.status || 200;
+        // 仅当响应体 status 是数字时才作为 HTTP 状态码；字符串是业务字段（如图库通过/拒绝后的新状态）
+        const bodyStatus = ctx.body?.status;
+        ctx.status = typeof bodyStatus === 'number' ? bodyStatus : ctx.status || 200;
     });
     app.use(koaBody({ multipart: true }));
     app.use(router.routes());
