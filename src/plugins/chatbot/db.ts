@@ -72,6 +72,8 @@ export async function ensureChatbotIndexes(): Promise<void> {
             ctxCol.createIndex({ groupOpenid: 1, ts: -1 }),
             // 按消息 id 去重：user/assistant 行均以 msgId 为唯一键
             ctxCol.createIndex({ msgId: 1 }, { unique: true, sparse: true }),
+            // 按平台内部 msg_idx 反查引用原文
+            ctxCol.createIndex({ groupOpenid: 1, msgIdx: 1 }, { sparse: true }),
             db.collection(CHAT_COLLECTION.memory).createIndex({ groupOpenid: 1, seq: -1 }),
             db
                 .collection(CHAT_COLLECTION.sticker)
@@ -116,6 +118,7 @@ export async function writeObserveRow(
             authorId: msg.author.id,
             authorName: msg.author.username || '',
             msgId: msg.id,
+            msgIdx: msg.refs?.msgIdx,
             eventId: msg.event_id,
             content: msg.content || '',
             rawContent: msg.content || '',
@@ -181,6 +184,105 @@ function toChatDate(ts?: Date | string | number | null): Date | null {
 export function formatChatTs(ts?: Date | string | number | null): string {
     const d = toChatDate(ts);
     return d ? format.asString('yyyy-MM-dd hh:mm:ss', d) : '';
+}
+
+export interface RefMessageInfo {
+    content: string;
+    ts: Date | string | null;
+    authorId: string;
+    authorName: string;
+    msgIdx: string;
+    role?: string;
+    images?: ChatImageMeta[];
+}
+
+function rowToRefInfo(row: Record<string, any>, msgIdx: string): RefMessageInfo {
+    return {
+        content: row.content || row.rawContent || '',
+        ts: row.ts || row.timestamp || null,
+        authorId: row.authorId || row.author?.id || '',
+        authorName: row.authorName || row.author?.username || '',
+        msgIdx,
+        role: row.role,
+        images: row.images,
+    };
+}
+
+function groupMsgToRefInfo(row: Record<string, any>, msgIdx: string): RefMessageInfo {
+    return {
+        content: row.content || '',
+        ts: row.timestamp || row.ts || null,
+        authorId: row.author?.id || '',
+        authorName: row.author?.username || '',
+        msgIdx,
+        role: row.author?.bot ? 'assistant' : 'user',
+        images: (row.attachments || []).map(
+            (a: { url?: string; width?: number; height?: number }) => ({
+                url: a.url || '',
+                w: a.width,
+                h: a.height,
+            }),
+        ),
+    };
+}
+
+/** 把引用消息格式化为上下文块（含发送时间 / 发言人 / 原文） */
+export function formatRefBlock(ref: RefMessageInfo, adminOpenid?: string): string {
+    const who =
+        ref.role === 'assistant'
+            ? ref.authorName || botType || 'PlanaBot'
+            : `${ref.authorName || ref.authorId || '用户'}(${ref.authorId || 'unknown'})${
+                  ref.authorId && ref.authorId === adminOpenid ? '[最高管理员]' : ''
+              }`;
+    const when = formatChatTs(ref.ts);
+    const text = (ref.content || '').trim() || '（无文字）';
+    let line = when ? `[引用消息] [${when}] [${who}] ${text}` : `[引用消息] [${who}] ${text}`;
+    const summaries = (ref.images || []).map((i) => i.visionSummary).filter(Boolean);
+    if (summaries.length) line += `\n[附图摘要: ${summaries.join('；')}]`;
+    else if (ref.images?.length) line += `\n[附图 ${ref.images.length} 张]`;
+    return line;
+}
+
+/**
+ * 按平台内部 msg_idx 查单条引用原文。
+ * 先 chatContext（msgIdx / msgId），再主库 groupMessage.message_scene.ext。
+ */
+export async function findRefMessage(
+    groupOpenid: string,
+    refMsgIdx?: string,
+): Promise<RefMessageInfo | null> {
+    const id = String(refMsgIdx || '').trim();
+    if (!id) return null;
+
+    const ai = aiDb();
+    if (ai) {
+        const row = await chatCollection(CHAT_COLLECTION.context)
+            .findOne({
+                groupOpenid,
+                $or: [{ msgIdx: id }, { msgId: id }],
+            })
+            .catch((err) => {
+                log.error('findRefMessage chatContext failed', err);
+                return null;
+            });
+        if (row) return rowToRefInfo(row, id);
+    }
+
+    const main = global.mongoDb;
+    if (main) {
+        const row = await main
+            .collection('groupMessage')
+            .findOne({
+                group_openid: groupOpenid,
+                'message_scene.ext': `msg_idx=${id}`,
+            })
+            .catch((err) => {
+                log.error('findRefMessage groupMessage failed', err);
+                return null;
+            });
+        if (row) return groupMsgToRefInfo(row, id);
+    }
+    return null;
 }
 
 /** 单条历史格式化为带时间戳 + 发言人信息的内容（AstrBot 风格：名称(id) 前缀） */

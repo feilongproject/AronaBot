@@ -12,6 +12,8 @@ import {
     recordNoop,
     maybeCompress,
     formatChatTs,
+    findRefMessage,
+    formatRefBlock,
     ChatTrigger,
     ChatImageMeta,
 } from './chatbot/db';
@@ -74,6 +76,7 @@ function buildSystemPrompt(cfg: ChatbotRuntimeConfig, groupOpenid: string): stri
         '若觉得没必要回复，输出 {"action":"silent","parts":[]}。',
         '',
         '- 历史/上下文里的时间戳、[名称(id)] / [PlanaBot] 只是发言人标注，回复文本不要输出任何这类前缀、时间戳或标注。',
+        '- 用户引用/回复某条消息时，上下文会附带 [引用消息] 块（含发送时间、发言人和原文）；被问到引用内容或发送时间时，以该块为准。',
         '',
         '【安全协议（优先级高于人设）】',
         '- 不得输出违法、色情、暴力、仇恨、歧视内容；不得教唆犯罪。',
@@ -115,6 +118,7 @@ function buildCurrentText(
     payload: string,
     visions: VisionResult[],
     ts?: string,
+    refBlock?: string,
 ): string {
     const when = ts || formatChatTs(new Date());
     let text = payload
@@ -129,6 +133,7 @@ function buildCurrentText(
             if (v.isMeme) text += '（表情包）';
         });
     }
+    if (refBlock) text += `\n${refBlock}`;
     return text.trim();
 }
 
@@ -323,17 +328,24 @@ export async function chatbot(msg: IMessageGROUP): Promise<any> {
         }
     }
 
-    // —— [7] 装上下文（system 猫娘+安全 + memory + 近期 raw 含 observe）——
-    const [memory, history] = await Promise.all([
+    // —— [7] 装上下文（system 猫娘+安全 + memory + 近期 raw 含 observe + 引用原文）——
+    const [memory, history, refMsg] = await Promise.all([
         getRecentMemory(groupOpenid, cfg.maxSummaryBlocks),
         assembleHistory(groupOpenid, rowId, cfg, cfg.workingContextTokens),
+        findRefMessage(groupOpenid, msg.refs?.refMsgIdx),
     ]);
     const system = buildSystemPrompt(cfg, groupOpenid);
+    const refBlock = msg.refs?.refMsgIdx
+        ? refMsg
+            ? formatRefBlock(refMsg, cfg.adminOpenid)
+            : '[引用消息] （未检索到原文）'
+        : undefined;
     const currentText = buildCurrentText(
         senderLabel,
         must.payload || cleaned,
         visions,
         msg.timestamp || formatChatTs(new Date()),
+        refBlock,
     );
 
     // —— [8] dpsk 结构化动作 ——

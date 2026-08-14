@@ -70,6 +70,8 @@ export async function recordGroupBotOutbound(
                 authorId: typeof meId !== 'undefined' ? meId : '',
                 authorName: botType,
                 msgId,
+                // 出站 ext_info.ref_idx 与入站 ref_msg_idx 对应，供引用反查
+                msgIdx: refIdx || undefined,
                 content: text,
                 images: img ? [{ url: img }] : undefined,
                 trigger: 'assistant_send',
