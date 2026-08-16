@@ -683,30 +683,24 @@ export async function visionSummarize(
         .filter(Boolean)
         .join('\n');
 
-    let raw = '';
-    try {
-        const completion = await openai.chat.completions.create({
-            model: cfg.visionModel,
-            messages: [
-                {
-                    role: 'user',
-                    content: [
-                        { type: 'text', text: prompt },
-                        ...dataUrls.map((url) => ({
-                            type: 'image_url' as const,
-                            image_url: { url },
-                        })),
-                    ],
-                },
-            ],
-            max_tokens: 1200,
-            temperature: 0.2,
-        });
-        raw = completion.choices?.[0]?.message?.content || '';
-    } catch (err) {
-        log.error(`visionSummarize 调用失败 model=${cfg.visionModel} images=${images.length}`, err);
-        return null;
-    }
+    const completion = await openai.chat.completions.create({
+        model: cfg.visionModel,
+        messages: [
+            {
+                role: 'user',
+                content: [
+                    { type: 'text', text: prompt },
+                    ...dataUrls.map((url) => ({
+                        type: 'image_url' as const,
+                        image_url: { url },
+                    })),
+                ],
+            },
+        ],
+        max_tokens: 1200,
+        temperature: 0.2,
+    });
+    const raw = completion.choices?.[0]?.message?.content || '';
     log.debug(`visionSummarize raw: ${raw}`);
     const json = extractJson(raw) as { images?: VisionResult[] } | VisionResult | null;
     if (!json || typeof json !== 'object') return null;

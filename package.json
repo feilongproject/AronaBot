@@ -20,7 +20,8 @@
         "web:dev": "pnpm --dir web dev",
         "web:build": "pnpm --dir web build",
         "web:preview": "pnpm --dir web preview",
-        "retag:stickers": "tsx -r dotenv/config script/retagChatStickers.ts"
+        "retag:stickers": "tsx -r dotenv/config script/retagChatStickers.ts",
+        "list:chatbot-models": "tsx -r dotenv/config script/listChatbotModels.ts"
     },
     "keywords": [],
     "author": "feilongproject",
