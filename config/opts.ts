@@ -130,6 +130,15 @@ export default {
                 export: '/info',
             },
         },
+        groupInfo: {
+            groupInfo: {
+                reg: /^\/?(群信息|groupinfo)$/i,
+                fnc: 'groupInfo',
+                type: [MessageType.GROUP],
+                describe: '管理员查询当前群基础信息与机器人状态',
+                export: '/群信息',
+            },
+        },
         mute: {
             mute: {
                 reg: /(抽卡|晒卡)?禁言(\d+)((分钟?|m)|(小?时|h)|(天|d))/,
