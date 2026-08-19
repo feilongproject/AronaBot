@@ -5,7 +5,7 @@ export default {
     command: {
         test: {
             test: {
-                reg: /test/,
+                reg: /^\/?test/,
                 fnc: 'test',
                 type: [
                     MessageType.GUILD,
