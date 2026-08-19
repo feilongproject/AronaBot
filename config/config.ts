@@ -117,17 +117,10 @@ export function makeConfigPath(root: string, child: unknown): ConfigPath {
     return new ConfigPath(root, coerceChildPath(child));
 }
 
-/** 磁盘 chatbot 配置 → 运行时（memoryDir 变为 ConfigPath） */
-function toRuntimeChatbot(
-    chatbot: BotChatbotConfig | undefined,
-    root: string,
-): (Omit<BotChatbotConfig, 'memoryDir'> & { memoryDir?: ConfigPath | string }) | undefined {
+/** 磁盘 chatbot 配置 → 运行时（复制一份，避免外部改动污染配置对象） */
+function toRuntimeChatbot(chatbot: BotChatbotConfig | undefined): BotChatbotConfig | undefined {
     if (!chatbot) return undefined;
-    const out = { ...chatbot } as Omit<BotChatbotConfig, 'memoryDir'> & {
-        memoryDir?: ConfigPath | string;
-    };
-    if (out.memoryDir != null) out.memoryDir = makeConfigPath(root, out.memoryDir as unknown);
-    return out;
+    return { ...chatbot };
 }
 
 // ---------------------------------------------------------------------------
@@ -296,9 +289,8 @@ export function normalizeRawConfigPaths(raw: AppConfigFile): AppConfigFile {
 
     if (data.bots) {
         for (const bot of Object.values(data.bots)) {
-            if (bot?.chatbot?.memoryDir != null) {
-                bot.chatbot.memoryDir = coerceChildPath(bot.chatbot.memoryDir);
-            }
+            // AI 配置已独立到 config/ai.json，保存 settings.json 时剥离存量 chatbot
+            if (bot) delete (bot as unknown as Record<string, unknown>).chatbot;
         }
     }
 
@@ -366,7 +358,6 @@ function buildRuntimeConfig(fileData: AppConfigFile): AppConfig {
             if (!bot) continue;
             // 非法值回落 webhook，保证启动路径可预期
             bot.eventTransport = resolveEventTransport(bot);
-            bot.chatbot = toRuntimeChatbot(bot.chatbot, root);
         }
     }
 
@@ -488,17 +479,17 @@ function seedAIConfigIfMissing(): void {
     throw new Error(`[config] 缺少 ${file}，且无 ai.example.json 可复制，请先创建 AI 配置文件`);
 }
 
-/** 读取 ai.json 并构建运行时形态（memoryDir 等路径字段包装） */
-function loadAIConfigFromDisk(root: string): AIConfig {
+/** 读取 ai.json 并构建运行时形态 */
+function loadAIConfigFromDisk(): AIConfig {
     const raw = readRawAIConfigFile();
     return {
         activeBot: String(raw.activeBot || '').trim(),
-        chatbot: toRuntimeChatbot(raw.chatbot, root),
+        chatbot: toRuntimeChatbot(raw.chatbot),
         mongo: raw.mongo,
     };
 }
 
-/** 把 ai.json 合并进运行时 config：ai.json 优先；chatbot 挂到 activeBot 供兼容读取 */
+/** 把 ai.json 合并进运行时 config：ai.json 优先；chatbot 挂到 activeBot 供运行时读取 */
 function overlayAIConfig(resolved: AppConfig, ai: AIConfig): void {
     (resolved as { ai?: AIConfig }).ai = ai;
     const owner = ai.activeBot;
@@ -527,7 +518,7 @@ export function loadConfigFromDisk(): AppConfig {
     const fileData = readRawConfigFile();
     seedAIConfigIfMissing();
     const resolved = buildRuntimeConfig(fileData);
-    overlayAIConfig(resolved, loadAIConfigFromDisk(resolved.rootPath));
+    overlayAIConfig(resolved, loadAIConfigFromDisk());
     injectSystemPrompt(resolved);
     applyEnvFromConfig(resolved, file);
     return resolved;
@@ -669,7 +660,7 @@ export function writeRawAIConfigFile(data: unknown): ConfigHotReloadResult {
 
 /** 重新读取 ai.json 并覆盖内存中的 AI 配置（chatbot.apiKey / baseURL 立即生效） */
 export function reloadAIConfigFromDisk(): AIConfig {
-    const ai = loadAIConfigFromDisk(config.rootPath);
+    const ai = loadAIConfigFromDisk();
     overlayAIConfig(config, ai);
     return ai;
 }

@@ -175,11 +175,6 @@ interface BotChatbotConfig {
     replyProbability: number;
     /** 每条未命中消息累计增加量（默认 0.0001） */
     replyProbabilityStep?: number;
-    /**
-     * @deprecated 已由抽卡累计模型替代，保留配置兼容。
-     * 回复 bot 后窗口内接话概率（历史默认 0.7）
-     */
-    replyToBotProbability?: number;
     /** 接话窗口（秒）；默认 180 */
     replyChainWindowSec?: number;
     /** 连续接话链上限（仍用于链状态计数）；默认 5 */
@@ -202,8 +197,6 @@ interface BotChatbotConfig {
     maxSummaryBlocks: number;
     /** 历史 TTL（秒） */
     historyTTL: number;
-    /** @deprecated 废弃作为记忆路径；仅保留兼容，新代码不再使用 */
-    memoryDir?: string | ConfigPath;
     /** 看图模型（冻结默认 qwen3.7-plus） */
     visionModel: string;
     /** 阿里云百炼 OpenAI 兼容 baseURL */
@@ -273,7 +266,7 @@ interface AIConfigFile {
 interface AIConfig {
     /** 全局唯一被动 AI 宿主 bot；空=不启用 */
     activeBot: string;
-    chatbot?: Omit<BotChatbotConfig, 'memoryDir'> & { memoryDir?: ConfigPath | string };
+    chatbot?: BotChatbotConfig;
     mongo?: MongoConnectionConfig;
 }
 
@@ -303,14 +296,12 @@ interface BotConfigFile {
     groupMap: Record<string, string>;
     meRealId: string;
     enableFullReceiveGroups: string[];
-    /** @deprecated AI 配置已迁至 config/ai.json（bots.<bot>.chatbot）；存量兼容保留 */
-    chatbot?: BotChatbotConfig;
 }
 
-interface BotConfig extends Omit<BotConfigFile, 'intents' | 'chatbot'> {
+interface BotConfig extends Omit<BotConfigFile, 'intents'> {
     intents: import('qq-bot-sdk').AvailableIntentsEventsEnum[];
-    /** 运行时由 config/ai.json 合并而来（ai.json 优先，settings.json 存量兜底） */
-    chatbot?: Omit<BotChatbotConfig, 'memoryDir'> & { memoryDir?: ConfigPath | string };
+    /** 运行时由 config/ai.json 合并而来 */
+    chatbot?: BotChatbotConfig;
 }
 
 interface HotLoadConfigFile {

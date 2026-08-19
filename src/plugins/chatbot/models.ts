@@ -531,8 +531,6 @@ export type ClassifiedStickerTags = {
     sceneTags: string[];
     contentTags: string[];
     subjectTags: string[];
-    /** @deprecated 兼容：subject+content+scene 合并 */
-    otherTags: string[];
     tags: string[];
 };
 
@@ -629,7 +627,6 @@ export function classifyStickerTags(input: {
     const contentClean = scrubStyleLeak(contentTags, contentKeys);
     const subjectClean = scrubStyleLeak(subjectTags, subjectKeys);
 
-    const otherTags = [...subjectClean, ...contentClean, ...sceneClean];
     const all: string[] = [];
     const allKeys = new Set<string>();
     for (const t of [
@@ -651,7 +648,6 @@ export function classifyStickerTags(input: {
         sceneTags: sceneClean.slice(0, 4),
         contentTags: contentClean.slice(0, 6),
         subjectTags: subjectClean.slice(0, 6),
-        otherTags: otherTags.slice(0, 12),
         tags: all.slice(0, 16),
     };
 }

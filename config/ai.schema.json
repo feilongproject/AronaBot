@@ -88,12 +88,6 @@
                     "maximum": 1,
                     "description": "每条未命中消息累计增加的概率（默认 0.0001），上限 1"
                 },
-                "replyToBotProbability": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1,
-                    "description": "@deprecated 已由抽卡累计模型替代；历史字段：回复 bot 后接话概率"
-                },
                 "replyChainWindowSec": {
                     "type": "integer",
                     "description": "接话窗口秒数（链状态计数仍用）"
@@ -104,9 +98,7 @@
                 },
                 "decideMode": {
                     "type": "string",
-                    "enum": [
-                        "hybrid"
-                    ],
+                    "enum": ["hybrid"],
                     "description": "决策模式；当前仅 hybrid（H2 门控见 gate）"
                 },
                 "gate": {
@@ -172,10 +164,6 @@
                 "maxSummaryBlocks": {
                     "type": "integer"
                 },
-                "memoryDir": {
-                    "type": "string",
-                    "description": "@deprecated 废弃作为记忆路径；仅保留兼容，新代码不再使用"
-                },
                 "visionModel": {
                     "type": "string",
                     "description": "看图模型，默认 qwen3.7-plus"
@@ -194,12 +182,7 @@
                 },
                 "stickerCaptureMode": {
                     "type": "string",
-                    "enum": [
-                        "emoji_like",
-                        "all_images",
-                        "animated_only",
-                        "sticker"
-                    ],
+                    "enum": ["emoji_like", "all_images", "animated_only", "sticker"],
                     "description": "sticker=动画表情或小尺寸静态表情包（jpg/png ≤512px 或 ≤512KB），普通大照片不保存；animated_only=只处理动画表情（gif/webp）；emoji_like=只抓小图/表情比例；all_images=全部图片"
                 },
                 "stickerCaptureStore": {
@@ -255,11 +238,7 @@
                                     },
                                     "transport": {
                                         "type": "string",
-                                        "enum": [
-                                            "stdio",
-                                            "http",
-                                            "sse"
-                                        ]
+                                        "enum": ["stdio", "http", "sse"]
                                     },
                                     "url": {
                                         "type": "string"

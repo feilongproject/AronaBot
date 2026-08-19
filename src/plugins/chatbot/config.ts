@@ -35,8 +35,6 @@ export interface ChatbotRuntimeConfig {
     replyProbability: number;
     /** 每条未命中消息累计增加量（默认 0.0001） */
     replyProbabilityStep: number;
-    /** @deprecated 已由抽卡累计模型替代，保留兼容 */
-    replyToBotProbability: number;
     replyChainWindowSec: number;
     replyChainMax: number;
     decideMode: 'hybrid';
@@ -116,7 +114,6 @@ export function getChatbotConfig(): ChatbotRuntimeConfig | null {
         adminOpenid: c.adminOpenid || '',
         replyProbability: num(c.replyProbability, 0.0005),
         replyProbabilityStep: num(c.replyProbabilityStep, 0.0001),
-        replyToBotProbability: num(c.replyToBotProbability, 0.7),
         replyChainWindowSec: num(c.replyChainWindowSec, 180),
         replyChainMax: num(c.replyChainMax, 5),
         decideMode: 'hybrid',

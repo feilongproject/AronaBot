@@ -30,7 +30,6 @@ const DEFAULT_CHATBOT: Record<string, any> = {
     mustPrefixes: ['星奈', 'plana', 'Plana'],
     replyProbability: 0.0005,
     replyProbabilityStep: 0.0001,
-    replyToBotProbability: 0.7,
     replyChainWindowSec: 180,
     replyChainMax: 5,
     decideMode: 'hybrid',
@@ -48,7 +47,6 @@ const DEFAULT_CHATBOT: Record<string, any> = {
     compressTokenThreshold: 3000,
     historyTTL: 3600,
     maxSummaryBlocks: 10,
-    memoryDir: 'data/chatbot_memory',
     visionModel: 'qwen3.7-plus',
     visionBaseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     visionApiKey: '',
@@ -128,8 +126,10 @@ const mcpServersJson = computed<string>({
 function normalizeLoaded(raw: Record<string, unknown>): AIForm {
     const chatbot =
         raw.chatbot && typeof raw.chatbot === 'object' ? { ...(raw.chatbot as object) } : {};
-    const mongo =
-        raw.mongo && typeof raw.mongo === 'object' ? { ...(raw.mongo as object) } : {};
+    // 清理已删除的存量字段，避免保存时回写
+    delete (chatbot as Record<string, unknown>).replyToBotProbability;
+    delete (chatbot as Record<string, unknown>).memoryDir;
+    const mongo = raw.mongo && typeof raw.mongo === 'object' ? { ...(raw.mongo as object) } : {};
     return {
         activeBot: String(raw.activeBot || '').trim(),
         mongo,
@@ -187,7 +187,6 @@ async function save() {
 onMounted(load);
 </script>
 
-
 <template>
     <div class="space-y-4">
         <div v-if="!ready" class="py-6 text-center text-sm text-slate-500">加载 AI 配置中…</div>
@@ -200,8 +199,8 @@ onMounted(load);
                         独立文件
                         <code class="text-slate-300">config/ai.json</code>
                         （activeBot / chatbot；aiTranslate 除外仍在
-                        settings.json）；保存后热替换立即生效。切换 AI 宿主后建议重启对应
-                        bot 进程以重建 AI Mongo 连接。
+                        settings.json）；保存后热替换立即生效。切换 AI 宿主后建议重启对应 bot
+                        进程以重建 AI Mongo 连接。
                     </p>
                 </div>
                 <button
@@ -227,9 +226,7 @@ onMounted(load);
             </div>
 
             <!-- 全局 AI 宿主：任意时刻仅一个 bot -->
-            <section
-                class="space-y-3 rounded-xl border border-sky-500/30 bg-sky-500/5 px-4 py-3"
-            >
+            <section class="space-y-3 rounded-xl border border-sky-500/30 bg-sky-500/5 px-4 py-3">
                 <h3 class="text-sm font-semibold tracking-wide text-sky-200 uppercase">
                     全局 AI 宿主（activeBot）
                 </h3>
@@ -269,9 +266,10 @@ onMounted(load);
                 <p v-if="ai.activeBot" class="font-mono text-xs text-emerald-300/90">
                     当前宿主：{{ ai.activeBot }}
                 </p>
-                <p v-else class="text-xs text-amber-300/90">未指定宿主，所有 bot 的被动 AI 均不运行</p>
+                <p v-else class="text-xs text-amber-300/90">
+                    未指定宿主，所有 bot 的被动 AI 均不运行
+                </p>
             </section>
-
 
             <template v-if="ready">
                 <section class="space-y-4">
@@ -314,10 +312,7 @@ onMounted(load);
                     <h3 class="text-sm font-semibold tracking-wide text-slate-300 uppercase">
                         chatbot（全局唯一）
                     </h3>
-                    <Field
-                        label="enabled"
-                        hint="总开关；须配合上方 activeBot 宿主进程才实际生效"
-                    >
+                    <Field label="enabled" hint="总开关；须配合上方 activeBot 宿主进程才实际生效">
                         <BoolInput
                             :model-value="Boolean(ai.chatbot?.enabled)"
                             label="启用群聊被动 AI 闲聊"
@@ -442,20 +437,6 @@ onMounted(load);
                                 "
                             />
                         </Field>
-                        <Field
-                            label="replyToBotProbability"
-                            hint="@deprecated 已改抽卡模型，字段仅兼容"
-                        >
-                            <NumberInput
-                                :model-value="ai.chatbot?.replyToBotProbability ?? 0.7"
-                                :min="0"
-                                :max="1"
-                                :step="0.05"
-                                @update:model-value="
-                                    patchChatbot((c) => (c.replyToBotProbability = $event))
-                                "
-                            />
-                        </Field>
                         <Field label="replyChainWindowSec" hint="接话窗口秒数（链状态）">
                             <NumberInput
                                 integer
@@ -570,10 +551,7 @@ onMounted(load);
                                 @update:model-value="patchChatbot((c) => (c.cooldownSec = $event))"
                             />
                         </Field>
-                        <Field
-                            label="muteDurationSec"
-                            hint="闭嘴静默秒数；默认 300（5 分钟）"
-                        >
+                        <Field label="muteDurationSec" hint="闭嘴静默秒数；默认 300（5 分钟）">
                             <NumberInput
                                 integer
                                 :model-value="ai.chatbot?.muteDurationSec ?? 300"
@@ -600,9 +578,7 @@ onMounted(load);
                                 "
                                 placeholder="闭嘴"
                                 empty-text="使用内置默认关键词"
-                                @update:model-value="
-                                    patchChatbot((c) => (c.muteKeywords = $event))
-                                "
+                                @update:model-value="patchChatbot((c) => (c.muteKeywords = $event))"
                             />
                         </Field>
                         <Field
@@ -647,13 +623,6 @@ onMounted(load);
                                 @update:model-value="
                                     patchChatbot((c) => (c.stickerReplyProbability = $event))
                                 "
-                            />
-                        </Field>
-                        <Field label="memoryDir" hint="@deprecated 废弃作为记忆路径，仅保留兼容">
-                            <TextInput
-                                mono
-                                :model-value="ai.chatbot?.memoryDir || ''"
-                                @update:model-value="patchChatbot((c) => (c.memoryDir = $event))"
                             />
                         </Field>
                     </div>
@@ -797,9 +766,7 @@ onMounted(load);
                         >
                             <TextInput
                                 mono
-                                :model-value="
-                                    ai.chatbot?.gate?.baseURL || 'http://127.0.0.1:8000'
-                                "
+                                :model-value="ai.chatbot?.gate?.baseURL || 'http://127.0.0.1:8000'"
                                 @update:model-value="
                                     patchChatbot((c) => {
                                         c.gate = { ...(c.gate || {}), baseURL: $event };
@@ -810,9 +777,7 @@ onMounted(load);
                         <Field label="gate.model">
                             <TextInput
                                 mono
-                                :model-value="
-                                    ai.chatbot?.gate?.model || 'Qwen3Guard-Stream-0.6B'
-                                "
+                                :model-value="ai.chatbot?.gate?.model || 'Qwen3Guard-Stream-0.6B'"
                                 @update:model-value="
                                     patchChatbot((c) => {
                                         c.gate = { ...(c.gate || {}), model: $event };
@@ -869,13 +834,12 @@ onMounted(load);
                         </Field>
                     </div>
                     <p class="text-xs text-slate-500">
-                        说明：默认抓取后进入 pending，在「表情包图库」页人工通过并校对摘要后才可被选图发送；开启
+                        说明：默认抓取后进入
+                        pending，在「表情包图库」页人工通过并校对摘要后才可被选图发送；开启
                         stickerAutoApprove 可恢复旧行为。MCP 服务器连接失败不影响普通闲聊。
                     </p>
                 </section>
             </template>
-
-
         </template>
     </div>
 </template>

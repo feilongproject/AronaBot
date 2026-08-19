@@ -152,18 +152,6 @@ export async function resetReplyPity(
     if (devEnv) log.debug(`chatbot pity reset → ${base}`);
 }
 
-/**
- * @deprecated 已由 rollMaybePity 抽卡模型替代；只读当前累计 p，无副作用。
- */
-export async function effectiveMaybeProbability(
-    msg: IMessageGROUP,
-    cfg: ChatbotRuntimeConfig,
-): Promise<{ p: number; isReplyToBot: boolean }> {
-    const isReplyToBot = await isReplyToBotMsg(msg);
-    const p = await getReplyPity(msg.group_openid, cfg);
-    return { p, isReplyToBot };
-}
-
 /** 群限流：1/s、10/min 硬顶（可配置） */
 export async function checkRateLimit(
     groupOpenid: string,
