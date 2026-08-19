@@ -118,10 +118,31 @@ declare namespace SyncMessageRaw {
     }
 
     interface Element {
-        elementType: 1 | 2 | 17; // 1:textElement  2:picElement 17:inlineKeyboardElement
+        elementType: 1 | 2 | 7 | 17; // 1:textElement  2:picElement 7:replyElement 17:inlineKeyboardElement
+        replyElement: ReplyElement;
         inlineKeyboardElement?: InlineKeyboardElement;
         textElement?: TextElement;
         picElement?: PicElement;
+    }
+
+    interface ReplyElement {
+        replayMsgId: string;
+        replayMsgSeq: string;
+        replayMsgRootSeq: string;
+        replayMsgRootMsgId: string;
+        replayMsgRootCommentCnt: string;
+        sourceMsgIdInRecords: string;
+        sourceMsgText: string;
+        sourceMsgTextElems: [];
+        senderUid: string;
+        senderUidStr: string;
+        replyMsgClientSeq: string;
+        replyMsgTime: string;
+        replyMsgRevokeType: 0;
+        sourceMsgIsIncPic: false;
+        sourceMsgExpired: true;
+        anonymousNickName: null;
+        originalMsgState: null;
     }
 
     interface PicElement {

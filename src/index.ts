@@ -5,7 +5,7 @@ import koaBody from 'koa-body';
 import Router from '@koa/router';
 import { init } from './init';
 import { initRuntime } from './bootloader';
-// import { handlerSync } from './handlerSync';
+import { handlerSync } from './libs/handlerSync';
 import config, { resolveEventTransport } from '../config/config';
 import { EventMap } from './constants/EventMap';
 import { registerSettingsRoutes } from './web/settings';
@@ -171,12 +171,13 @@ init().then(() => {
         .get(`${botType}`, (ctx, next) => {
             ctx.body = { msg: 'hello world' };
         })
-        // .post(`/sync`, async (ctx, next) => {
-        //     // 接收ntqq消息绑定按钮id
-        //     if (!ctx.request.body) return (ctx.status = 400);
-        //     const requestBody = ctx.request.body as any;
-        //     await handlerSync(ctx, requestBody);
-        // })
+        .post(`/sync`, async (ctx, next) => {
+            // 接收ntqq消息绑定按钮id
+            if (!ctx.request.body) return (ctx.status = 400);
+            const requestBody = ctx.request.body as any;
+            if (devEnv) log.debug('sync', requestBody);
+            await handlerSync(ctx, requestBody);
+        })
         .post(`/sendToGroupHandler`, async (ctx, next) => {
             // 接收其他端消息触发事件
             if (!ctx.request.body) return (ctx.status = 400);

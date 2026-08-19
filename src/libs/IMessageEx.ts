@@ -305,7 +305,7 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         this.sendToId =
             this.messageType == MessageType.GROUP
                 ? msg.group_id || msg.group_openid
-                : msg.author?.id || msg.author?.user_openid;
+                : msg.author?.id || msg.author?.member_openid;
         this.opts = null;
         this.isOffical = isOffical;
         // 主动推送等合成消息可能没有 message_scene，给空壳避免后续访问崩溃
@@ -339,7 +339,7 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         const options = typeof _options === 'string' ? { content: _options } : _options;
 
         global.botStatus.msgSendNum++;
-        if (options.ref !== false) options.ref = true;
+        if (options.ref !== true) options.ref = false;
         options.msgId = options.msgId || this.id || undefined;
         options.sendToId = options.sendToId || this.sendToId;
         options.msgType = options.msgType || (options.ark ? 3 : 0);
@@ -373,7 +373,7 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
                 .postMessage(sendToId, {
                     content: content || '',
                     msg_type: msgType || 0,
-                    msg_id: msgId,
+                    msg_id: msgId?.trim(),
                     event_id: eventId,
                     media:
                         msgType == 7 && fileInfo
@@ -608,6 +608,7 @@ namespace SendOption {
         eventId?: string;
         ark?: Ark;
         refMsgIdx?: string;
+        sendToId?: string;
     }
     export interface Channel extends Base {
         ref?: boolean;
@@ -638,7 +639,6 @@ namespace SendOption {
         fileUrl?: string;
         fileData?: string;
         fileType?: 1 | 2 | 3; // 1 图片，2 视频，3 语音，4 文件（暂不开放）
-        sendToId?: string;
     }
 }
 

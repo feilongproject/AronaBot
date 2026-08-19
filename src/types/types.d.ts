@@ -340,10 +340,9 @@ declare global {
             id: string;
             username: string;
             bot: boolean;
-            member_openid?: string;
-            user_openid?: string;
+            member_openid: string;
             union_openid?: string;
-            // member_role: 'owner';
+            member_role: string;
         }
 
         interface MessageScene {

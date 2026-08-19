@@ -1,5 +1,6 @@
 import type { IBotState } from 'qq-bot-sdk';
 import { IMessageGROUP } from '../libs/IMessageEx';
+import config from '../../config/config';
 
 const RECV_MSG_SETTING_LABEL: Record<IBotState['recv_msg_setting'], string> = {
     all: '全部消息',
@@ -14,7 +15,40 @@ const MEMBER_ROLE_LABEL: Record<IBotState['member_role'], string> = {
 };
 
 export async function groupInfo(msg: IMessageGROUP) {
-    if (!adminId.includes(msg.author.id)) return;
+    // if (!adminId.includes(msg.author.id)) return;
+    const callbackGroupId = (await redis.hGet('config', `callbackGroup`)) as string;
+    const sendToId = Object.entries(config.bots[botType].groupMap).find(
+        (v) => v[1] === callbackGroupId,
+    )?.[0];
+    const groupOpenId = msg.group_openid;
+    const userOpenId = msg.author.member_openid;
+
+    if (!groupOpenId || !userOpenId || !sendToId) {
+        return await msg.sendMsgEx({
+            content: `groupOpenId or userOpenId or sendToId, is null`,
+        });
+    }
+    await msg.sendMsgEx(`获取中，等待后端回调`);
+    await msg.sendMsgEx({
+        content: `get groupInfo ${userOpenId} ${groupOpenId}`,
+        sendToId: sendToId,
+        ref: true,
+        msgId: ' ',
+    });
+    await sleep(5_000);
+    const realGroupId = await redis.hGet(`config:groupRealId:${botType}`, groupOpenId);
+    const realUserId = await redis.hGet(`config:userRealId:${botType}`, userOpenId);
+    return await msg.sendMsgEx(
+        [
+            `群ID: ${msg.group_openid || msg.group_id}`,
+            `用户ID: ${msg.author.id}`,
+            `真实群ID: ${realGroupId}`,
+            `真实用户ID: ${realUserId}`,
+            `msgId: ${msg.id}`,
+            `msgIdx: ${msg.refs.msgIdx}`,
+            `refMsgIdx: ${msg.refs.refMsgIdx}`,
+        ].join('\n'),
+    );
 
     try {
         const [groupInfoRes, botStateRes] = await Promise.all([
