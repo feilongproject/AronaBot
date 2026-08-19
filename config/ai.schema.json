@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://aronabot.local/config/ai.schema.json",
     "title": "AronaBot AI 配置（ai.json）",
-    "description": "AI 相关配置独立文件（aiTranslate 除外）。扁平结构：activeBot + dsKey + chatbot + mongo（全局唯一一份 chatbot）。",
+    "description": "AI 相关配置独立文件（aiTranslate 除外）。扁平结构：activeBot + chatbot + mongo（全局唯一一份 chatbot）。对话密钥写在 chatbot.apiKey，配合 chatbot.baseURL。",
     "type": "object",
     "additionalProperties": true,
     "properties": {
@@ -13,10 +13,6 @@
         "activeBot": {
             "type": "string",
             "description": "全局唯一被动 AI 宿主 bot（AronaBot/PlanaBot/TestBot 等）；空=不启用；设置页可切换"
-        },
-        "dsKey": {
-            "type": "string",
-            "description": "DeepSeek 等对话密钥（可空）"
         },
         "mongo": {
             "type": "object",
@@ -45,6 +41,18 @@
                 "enabled": {
                     "type": "boolean",
                     "description": "总开关；须配合 activeBot 宿主进程"
+                },
+                "baseURL": {
+                    "type": "string",
+                    "description": "对话 OpenAI 兼容 baseURL；留空用 https://api.deepseek.com"
+                },
+                "apiKey": {
+                    "type": "string",
+                    "description": "对话 OpenAI 兼容接口密钥；与 visionApiKey / aiTranslate.apiKey 分离"
+                },
+                "chatModel": {
+                    "type": "string",
+                    "description": "对话文本模型名，默认 deepseek-chat"
                 },
                 "groups": {
                     "type": "array",
@@ -168,14 +176,6 @@
                     "type": "string",
                     "description": "@deprecated 废弃作为记忆路径；仅保留兼容，新代码不再使用"
                 },
-                "chatModel": {
-                    "type": "string",
-                    "description": "DeepSeek 文本模型名，默认 deepseek-chat"
-                },
-                "baseURL": {
-                    "type": "string",
-                    "description": "DeepSeek OpenAI 兼容 baseURL；留空用官方 https://api.deepseek.com"
-                },
                 "visionModel": {
                     "type": "string",
                     "description": "看图模型，默认 qwen3.7-plus"
@@ -186,7 +186,7 @@
                 },
                 "visionApiKey": {
                     "type": "string",
-                    "description": "独立看图密钥；与 dsKey / aiTranslate.apiKey 分离"
+                    "description": "独立看图密钥；与 chatbot.apiKey / aiTranslate.apiKey 分离"
                 },
                 "stickerCaptureEnabled": {
                     "type": "boolean",
@@ -315,325 +315,6 @@
                 "muteAckMessage": {
                     "type": "string",
                     "description": "新开启闭嘴时的确认文案；可用 {sec}/{min} 占位；留空用默认"
-                }
-            }
-        },
-        "bots": {
-            "type": "object",
-            "description": "@deprecated 旧 per-bot 形态；加载时合并到顶层，勿再使用",
-            "additionalProperties": {
-                "$ref": "#/$defs/botAi"
-            }
-        }
-    },
-    "$defs": {
-        "botAi": {
-            "type": "object",
-            "description": "单个 bot 的 AI 配置",
-            "properties": {
-                "dsKey": {
-                    "type": "string",
-                    "description": "DeepSeek 等对话密钥（可空）"
-                },
-                "chatbot": {
-                    "type": "object",
-                    "description": "全局唯一群聊被动 AI 闲聊参数；仅 activeBot 进程且 enabled 时生效；群 id 一律 group_openid",
-                    "properties": {
-                        "enabled": {
-                            "type": "boolean",
-                            "description": "总开关；须配合 activeBot 宿主进程"
-                        },
-                        "groups": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            },
-                            "description": "启用 chatbot 的群 openid"
-                        },
-                        "systemPrompt": {
-                            "type": "string",
-                            "description": "猫娘人设 prompt；多行文本，保存后热替换立即生效（安全段由代码固定拼接，不受此字段影响）"
-                        },
-                        "mustPrefixes": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            },
-                            "description": "先导词集合；匹配 ^prefix+空白（如 星奈 今天天气怎么样），prefix 后必须至少一个空白"
-                        },
-                        "adminOpenid": {
-                            "type": "string",
-                            "description": "最高管理员 openid；用于上下文标记（[最高管理员]）与 @ 白名单；留空不启用"
-                        },
-                        "replyProbability": {
-                            "type": "number",
-                            "minimum": 0,
-                            "maximum": 1,
-                            "description": "Maybe 抽卡初始概率（默认 0.0005）；发出回复后重置为此值"
-                        },
-                        "replyProbabilityStep": {
-                            "type": "number",
-                            "minimum": 0,
-                            "maximum": 1,
-                            "description": "每条未命中消息累计增加的概率（默认 0.0001），上限 1"
-                        },
-                        "replyToBotProbability": {
-                            "type": "number",
-                            "minimum": 0,
-                            "maximum": 1,
-                            "description": "@deprecated 已由抽卡累计模型替代；历史字段：回复 bot 后接话概率"
-                        },
-                        "replyChainWindowSec": {
-                            "type": "integer",
-                            "description": "接话窗口秒数（链状态计数仍用）"
-                        },
-                        "replyChainMax": {
-                            "type": "integer",
-                            "description": "连续接话链上限（链状态计数仍用）"
-                        },
-                        "decideMode": {
-                            "type": "string",
-                            "enum": [
-                                "hybrid"
-                            ],
-                            "description": "决策模式；当前仅 hybrid（H2 门控见 gate）"
-                        },
-                        "gate": {
-                            "type": "object",
-                            "description": "H2 风控门控：对接自部署 Qwen3Guard-Stream-0.6B FastAPI /moderate；只判定本次用户消息（不携带历史/元信息）；Safe→回复，Controversial/Unsafe→静默；Must 默认不过，applyToMust=true 必过；门控故障时 Must 放行、非 Must 静默",
-                            "properties": {
-                                "enabled": {
-                                    "type": "boolean",
-                                    "description": "是否启用门控；默认 false"
-                                },
-                                "applyToMust": {
-                                    "type": "boolean",
-                                    "description": "Must（@/先导词）是否也过门控；默认 false；拦截时回复短提示，故障时放行"
-                                },
-                                "refusalMessages": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "string"
-                                    },
-                                    "description": "违禁拦截时 Must 的短提示台词池（随机取一条）；可配炸毛/傲娇等状态语气；空则用默认一句"
-                                },
-                                "model": {
-                                    "type": "string",
-                                    "description": "自部署风控模型标识；默认 Qwen3Guard-Stream-0.6B"
-                                },
-                                "baseURL": {
-                                    "type": "string",
-                                    "description": "自部署 Qwen3Guard FastAPI 地址（含 /moderate 前缀）；默认 http://127.0.0.1:8000"
-                                },
-                                "timeoutMs": {
-                                    "type": "integer",
-                                    "description": "门控请求超时毫秒，默认 10000；门控输入已截断（历史 4 轮×40 字 + 本轮 400 字），CPU 推理通常 3-6s"
-                                }
-                            }
-                        },
-                        "maxUserChars": {
-                            "type": "integer",
-                            "description": "单条用户消息最大字符数；超长 ignored 落库且不进模型"
-                        },
-                        "maxContextTokens": {
-                            "type": "integer",
-                            "description": "上下文硬顶 token（冻结 1000000）"
-                        },
-                        "workingContextTokens": {
-                            "type": "integer",
-                            "description": "日常工作窗口 token；超出的旧历史不装配（压缩后归档）"
-                        },
-                        "maxHistoryRounds": {
-                            "type": "integer"
-                        },
-                        "compressInterval": {
-                            "type": "integer",
-                            "description": "压缩双条件 A：自上次压缩以来新增未归档 raw 条数阈值（任一满足即触发）"
-                        },
-                        "compressTokenThreshold": {
-                            "type": "integer",
-                            "description": "压缩双条件 B：未归档 raw 估算 token 阈值（任一满足即触发；摘要由 dpsk 生成）"
-                        },
-                        "historyTTL": {
-                            "type": "integer",
-                            "description": "历史 TTL（秒）"
-                        },
-                        "maxSummaryBlocks": {
-                            "type": "integer"
-                        },
-                        "memoryDir": {
-                            "type": "string",
-                            "description": "@deprecated 废弃作为记忆路径；仅保留兼容，新代码不再使用"
-                        },
-                        "chatModel": {
-                            "type": "string",
-                            "description": "DeepSeek 文本模型名，默认 deepseek-chat"
-                        },
-                        "baseURL": {
-                            "type": "string",
-                            "description": "DeepSeek OpenAI 兼容 baseURL；留空用官方 https://api.deepseek.com"
-                        },
-                        "visionModel": {
-                            "type": "string",
-                            "description": "看图模型，默认 qwen3.7-plus"
-                        },
-                        "visionBaseURL": {
-                            "type": "string",
-                            "description": "阿里云百炼 OpenAI 兼容 baseURL；留空用 https://dashscope.aliyuncs.com/compatible-mode/v1"
-                        },
-                        "visionApiKey": {
-                            "type": "string",
-                            "description": "独立看图密钥；与 dsKey / aiTranslate.apiKey 分离"
-                        },
-                        "stickerCaptureEnabled": {
-                            "type": "boolean",
-                            "description": "自动抓取群聊图/表情入库；默认需人工审核（pending→ready）"
-                        },
-                        "stickerCaptureMode": {
-                            "type": "string",
-                            "enum": [
-                                "emoji_like",
-                                "all_images",
-                                "animated_only",
-                                "sticker"
-                            ],
-                            "description": "sticker=动画表情或小尺寸静态表情包（jpg/png ≤512px 或 ≤512KB），普通大照片不保存；animated_only=只处理动画表情（gif/webp）；emoji_like=只抓小图/表情比例；all_images=全部图片"
-                        },
-                        "stickerCaptureStore": {
-                            "type": "boolean",
-                            "description": "处理完成后是否存入图库；false=只打标不入库；默认 true"
-                        },
-                        "stickerAutoApprove": {
-                            "type": "boolean",
-                            "description": "true=抓取后直接 ready；false（默认）=pending 待设置页人工审核通过后才可被选图发送"
-                        },
-                        "stickerDedupHamming": {
-                            "type": "integer",
-                            "minimum": 0,
-                            "maximum": 64,
-                            "description": "表情相似去重：dHash 汉明距离阈值（0–64）。≤阈值视为相似跳过入库；默认 8；0=仅 contentHash 精确去重"
-                        },
-                        "stickerMaxBytes": {
-                            "type": "integer",
-                            "description": "单张抓取上限字节，默认 2097152（2MB）"
-                        },
-                        "stickerLibraryMax": {
-                            "type": "integer",
-                            "description": "图库固化上限（ready+pending 合计），默认 500"
-                        },
-                        "stickerBlacklistUserIds": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            },
-                            "description": "不抓取的用户 id 列表"
-                        },
-                        "stickerReplyProbability": {
-                            "type": "number",
-                            "minimum": 0,
-                            "maximum": 1,
-                            "description": "文字回复后附带图库表情的概率，默认 0.15"
-                        },
-                        "mcp": {
-                            "type": "object",
-                            "description": "MCP 工具接入（已实现：dpsk function calling 循环，stdio/http/sse）",
-                            "properties": {
-                                "enabled": {
-                                    "type": "boolean",
-                                    "description": "是否启用 MCP；默认 false"
-                                },
-                                "servers": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "name": {
-                                                "type": "string"
-                                            },
-                                            "transport": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "stdio",
-                                                    "http",
-                                                    "sse"
-                                                ]
-                                            },
-                                            "url": {
-                                                "type": "string"
-                                            },
-                                            "command": {
-                                                "type": "string"
-                                            },
-                                            "args": {
-                                                "type": "array",
-                                                "items": {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "enabledTools": {
-                                                "type": "array",
-                                                "items": {
-                                                    "type": "string"
-                                                }
-                                            }
-                                        }
-                                    }
-                                },
-                                "maxToolRounds": {
-                                    "type": "integer",
-                                    "description": "默认 3 hops"
-                                }
-                            }
-                        },
-                        "rateLimitPerSecond": {
-                            "type": "integer",
-                            "description": "群限流每秒条数（冻结默认 1）"
-                        },
-                        "rateLimitPerMinute": {
-                            "type": "integer",
-                            "description": "群限流每分钟条数（冻结默认 10）"
-                        },
-                        "cooldownSec": {
-                            "type": "integer",
-                            "description": "用户/群冷却秒数；Must 可放宽但仍受 1/s、10/min 硬顶"
-                        },
-                        "muteKeywords": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            },
-                            "description": "闭嘴关键词列表；用户消息命中任一词后本群暂停发送；默认 闭嘴/别说了/安静/不要说了/shut up/shutup"
-                        },
-                        "muteDurationSec": {
-                            "type": "integer",
-                            "minimum": 1,
-                            "description": "闭嘴静默时长（秒）；默认 300（5 分钟）"
-                        },
-                        "muteAckMessage": {
-                            "type": "string",
-                            "description": "新开启闭嘴时的确认文案；可用 {sec}/{min} 占位；留空用默认"
-                        }
-                    }
-                },
-                "mongo": {
-                    "type": "object",
-                    "description": "AI 专用 MongoDB 连接（库/账号建议 PlanaBotChat；chatContext/chatMemory/chatSticker 等 AI 数据写入此库）",
-                    "properties": {
-                        "user": {
-                            "type": "string"
-                        },
-                        "password": {
-                            "type": "string"
-                        },
-                        "database": {
-                            "type": "string",
-                            "description": "库名，如 PlanaBotChat"
-                        },
-                        "authSource": {
-                            "type": "string",
-                            "description": "认证库，默认同 database"
-                        }
-                    }
                 }
             }
         }

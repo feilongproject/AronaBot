@@ -23,6 +23,10 @@ export interface ChatbotGateRuntime {
 
 export interface ChatbotRuntimeConfig {
     enabled: true;
+    baseURL: string;
+    /** 对话 OpenAI 兼容接口密钥 */
+    apiKey: string;
+    chatModel: string;
     groups: string[];
     systemPrompt: string;
     mustPrefixes: string[];
@@ -45,8 +49,6 @@ export interface ChatbotRuntimeConfig {
     compressTokenThreshold: number;
     maxSummaryBlocks: number;
     historyTTL: number;
-    chatModel: string;
-    baseURL: string;
     visionModel: string;
     visionBaseURL: string;
     visionApiKey: string;
@@ -105,6 +107,9 @@ export function getChatbotConfig(): ChatbotRuntimeConfig | null {
 
     return {
         enabled: true,
+        baseURL: c.baseURL || 'https://api.deepseek.com',
+        apiKey: String(c.apiKey || '').trim(),
+        chatModel: c.chatModel || 'deepseek-chat',
         groups: Array.isArray(c.groups) ? c.groups.filter(Boolean) : [],
         systemPrompt: c.systemPrompt?.trim() || DEFAULT_SYSTEM_PROMPT,
         mustPrefixes: Array.isArray(c.mustPrefixes) ? c.mustPrefixes.filter(Boolean) : [],
@@ -134,8 +139,6 @@ export function getChatbotConfig(): ChatbotRuntimeConfig | null {
         compressTokenThreshold: num(c.compressTokenThreshold, 3000),
         maxSummaryBlocks: num(c.maxSummaryBlocks, 10),
         historyTTL: num(c.historyTTL, 7 * 86400),
-        chatModel: c.chatModel || 'deepseek-chat',
-        baseURL: c.baseURL || 'https://api.deepseek.com',
         visionModel: c.visionModel || 'qwen3.7-plus',
         visionBaseURL: c.visionBaseURL || 'https://dashscope.aliyuncs.com/compatible-mode/v1',
         visionApiKey: c.visionApiKey || '',

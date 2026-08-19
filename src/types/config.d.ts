@@ -99,7 +99,7 @@ interface AppConfig {
     debugLog?: boolean;
     /**
      * AI 相关配置（config/ai.json 运行时合并结果）：
-     * dsKey / chatbot 已从 settings.json 迁出；aiTranslate 除外仍留在 settings.json。
+     * chatbot 已从 settings.json 迁出；aiTranslate 除外仍留在 settings.json。
      */
     ai: AIConfig;
     studentNameDict: ConfigPath;
@@ -154,6 +154,12 @@ interface ChatbotMcpConfig {
 interface BotChatbotConfig {
     /** 总开关；仅全局 activeBot 指定的 bot 进程生效 */
     enabled: boolean;
+    /** 对话 OpenAI 兼容 baseURL；缺省官方 DeepSeek */
+    baseURL?: string;
+    /** 对话 OpenAI 兼容接口密钥 */
+    apiKey?: string;
+    /** 对话文本模型名 */
+    chatModel: string;
     /** 白名单群 group_openid 列表 */
     groups: string[];
     /** 猫娘人设 prompt；设置页可改，保存后热替换立即生效 */
@@ -198,15 +204,11 @@ interface BotChatbotConfig {
     historyTTL: number;
     /** @deprecated 废弃作为记忆路径；仅保留兼容，新代码不再使用 */
     memoryDir?: string | ConfigPath;
-    /** DeepSeek 文本模型名 */
-    chatModel: string;
-    /** DeepSeek OpenAI 兼容 baseURL；缺省官方 */
-    baseURL?: string;
     /** 看图模型（冻结默认 qwen3.7-plus） */
     visionModel: string;
     /** 阿里云百炼 OpenAI 兼容 baseURL */
     visionBaseURL?: string;
-    /** 独立看图密钥，不复用 dsKey / aiTranslate.apiKey */
+    /** 独立看图密钥，不复用 chatbot.apiKey / aiTranslate.apiKey */
     visionApiKey: string;
     /** 自动抓取群聊图/表情入库 */
     stickerCaptureEnabled: boolean;
@@ -261,25 +263,9 @@ interface AIConfigFile {
      * 空字符串或不设 = 不启用被动 AI；任意时刻仅一个 bot 可运行 chatbot。
      */
     activeBot?: string;
-    /** DeepSeek 等对话密钥（全局唯一） */
-    dsKey?: string;
     /** 群聊被动 AI 闲聊参数（全局唯一一份） */
     chatbot?: BotChatbotConfig;
     /** AI 专用 MongoDB 连接 */
-    mongo?: MongoConnectionConfig;
-    /**
-     * @deprecated 旧 per-bot 形态（bots.<name>.dsKey/chatbot/mongo）；
-     * 加载时合并到顶层，新配置勿再使用。
-     */
-    bots?: Record<string, AIBotConfigFile>;
-}
-
-/**
- * @deprecated 旧 ai.json bots 条目；仅兼容加载。
- */
-interface AIBotConfigFile {
-    dsKey?: string;
-    chatbot?: BotChatbotConfig;
     mongo?: MongoConnectionConfig;
 }
 
@@ -287,7 +273,6 @@ interface AIBotConfigFile {
 interface AIConfig {
     /** 全局唯一被动 AI 宿主 bot；空=不启用 */
     activeBot: string;
-    dsKey?: string;
     chatbot?: Omit<BotChatbotConfig, 'memoryDir'> & { memoryDir?: ConfigPath | string };
     mongo?: MongoConnectionConfig;
 }
@@ -300,8 +285,6 @@ interface BotConfigFile {
     botUid?: string;
     token: string;
     secret?: string;
-    /** @deprecated AI 配置已迁至 config/ai.json（bots.<bot>.dsKey）；存量兼容保留 */
-    dsKey?: string;
     intents: string[];
     /**
      * 事件接收模式（缺省 `websocket`）：

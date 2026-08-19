@@ -20,7 +20,7 @@ type AnyConfig = Record<string, any>;
 const SECTIONS = [
     { id: 'webSettings', label: 'Web 设置', desc: '设置页开关与访问口令' },
     { id: 'bots', label: 'Bots', desc: '各机器人身份、端口、intent' },
-    { id: 'ai', label: 'AI 配置', desc: '独立 ai.json：dsKey / chatbot' },
+    { id: 'ai', label: 'AI 配置', desc: '独立 ai.json：chatbot / 对话密钥' },
     { id: 'sticker', label: '表情图库', desc: 'chatbot 图库：隐藏/恢复/拒绝/删除' },
     { id: 'redis', label: 'Redis', desc: '缓存与状态存储' },
     { id: 'mariadb', label: 'MariaDB', desc: '业务持久化' },
@@ -474,7 +474,6 @@ async function save() {
         // AI 相关字段已迁至 config/ai.json（aiTranslate 除外）；保存 settings.json 时剥离，避免两处并存
         for (const bot of Object.values(payload.bots || {})) {
             if (bot && typeof bot === 'object') {
-                delete (bot as Record<string, unknown>).dsKey;
                 delete (bot as Record<string, unknown>).chatbot;
             }
         }
@@ -705,7 +704,7 @@ onMounted(() => {
                     <BotEditor :model-value="config.bots" @update:model-value="setBots" />
                 </template>
 
-                <!-- ai（独立 ai.json：dsKey / chatbot；aiTranslate 除外仍留 settings.json） -->
+                <!-- ai（独立 ai.json：chatbot.apiKey / baseURL；aiTranslate 除外仍留 settings.json） -->
                 <template v-else-if="activeSection === 'ai'">
                     <AIConfigEditor />
                 </template>

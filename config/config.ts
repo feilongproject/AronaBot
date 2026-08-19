@@ -474,95 +474,36 @@ export function readRawAIConfigFile(): AIConfigFile {
     }
 }
 
-/**
- * 首次运行：ai.json 不存在时，把 settings.json 中的存量 AI 配置
- * 迁成扁平结构（activeBot + dsKey + chatbot），无存量则复制 ai.example.json。
- */
-function seedAIConfigFromLegacy(fileData: AppConfigFile): void {
+/** 首次运行：ai.json 不存在时从 ai.example.json 复制 */
+function seedAIConfigIfMissing(): void {
     const file = aiConfigFile();
     if (fs.existsSync(file)) return;
-
-    let activeBot = '';
-    let dsKey: string | undefined;
-    let chatbot: BotChatbotConfig | undefined;
-    for (const [name, bot] of Object.entries(fileData.bots || {})) {
-        if (!bot?.dsKey && !bot?.chatbot) continue;
-        // 优先选 chatbot.enabled 的 bot
-        if (bot.chatbot?.enabled || !activeBot) {
-            activeBot = name;
-            dsKey = bot.dsKey;
-            chatbot = bot.chatbot;
-            if (bot.chatbot?.enabled) break;
-        }
-    }
-
-    if (!activeBot && !dsKey && !chatbot) {
-        const ex = aiExampleFile();
-        if (fs.existsSync(ex)) {
-            fs.copyFileSync(ex, file);
-            // eslint-disable-next-line no-console
-            console.warn(`[config] 未找到 ai.json，已从 ai.example.json 复制，请填写 AI 密钥`);
-        } else {
-            throw new Error(
-                `[config] 缺少 ${file}，且无 ai.example.json 可复制，请先创建 AI 配置文件`,
-            );
-        }
+    const ex = aiExampleFile();
+    if (fs.existsSync(ex)) {
+        fs.copyFileSync(ex, file);
+        // eslint-disable-next-line no-console
+        console.warn(`[config] 未找到 ai.json，已从 ai.example.json 复制，请填写 AI 密钥`);
         return;
     }
-
-    const payload: AIConfigFile = {
-        $schema: AI_SCHEMA_REF,
-        activeBot: activeBot || 'PlanaBot',
-        dsKey: dsKey || '',
-        chatbot,
-    };
-    const text = JSON.stringify(payload, null, 4) + '\n';
-    const dir = configDir();
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(file, text, 'utf-8');
-    // eslint-disable-next-line no-console
-    console.warn(`[config] 已从 settings.json 迁移 AI 配置到扁平 ai.json（activeBot/dsKey/chatbot）`);
+    throw new Error(`[config] 缺少 ${file}，且无 ai.example.json 可复制，请先创建 AI 配置文件`);
 }
 
 /** 读取 ai.json 并构建运行时形态（memoryDir 等路径字段包装） */
 function loadAIConfigFromDisk(root: string): AIConfig {
-    const raw = readRawAIConfigFile() as AIConfigFile;
-    let activeBot = String(raw.activeBot || '').trim();
-    let dsKey = raw.dsKey;
-    let chatbot = raw.chatbot;
-    let mongo = raw.mongo;
-
-    // 兼容旧 bots.<name> 形态：合并到顶层
-    if (raw.bots && typeof raw.bots === 'object') {
-        if (!activeBot) {
-            const enabled = Object.entries(raw.bots).find(([, b]) => b?.chatbot?.enabled);
-            activeBot =
-                enabled?.[0] ||
-                (raw.bots.PlanaBot ? 'PlanaBot' : Object.keys(raw.bots)[0] || '');
-        }
-        const from = (activeBot && raw.bots[activeBot]) || Object.values(raw.bots)[0];
-        if (from) {
-            if (dsKey == null) dsKey = from.dsKey;
-            if (chatbot == null) chatbot = from.chatbot;
-            if (mongo == null) mongo = from.mongo;
-        }
-    }
-
+    const raw = readRawAIConfigFile();
     return {
-        activeBot,
-        dsKey,
-        chatbot: toRuntimeChatbot(chatbot, root),
-        mongo,
+        activeBot: String(raw.activeBot || '').trim(),
+        chatbot: toRuntimeChatbot(raw.chatbot, root),
+        mongo: raw.mongo,
     };
 }
 
-/** 把 ai.json 合并进运行时 config：ai.json 优先；chatbot/dsKey 挂到 activeBot 供兼容读取 */
+/** 把 ai.json 合并进运行时 config：ai.json 优先；chatbot 挂到 activeBot 供兼容读取 */
 function overlayAIConfig(resolved: AppConfig, ai: AIConfig): void {
     (resolved as { ai?: AIConfig }).ai = ai;
     const owner = ai.activeBot;
-    if (owner && resolved.bots[owner]) {
-        if (ai.dsKey != null) resolved.bots[owner].dsKey = ai.dsKey;
-        if (ai.chatbot != null) resolved.bots[owner].chatbot = ai.chatbot as BotConfig['chatbot'];
+    if (owner && resolved.bots[owner] && ai.chatbot != null) {
+        resolved.bots[owner].chatbot = ai.chatbot as BotConfig['chatbot'];
     }
 }
 
@@ -584,8 +525,7 @@ export function loadConfigFromDisk(): AppConfig {
     }
 
     const fileData = readRawConfigFile();
-    // AI 配置独立文件：首次运行时把存量迁出（aiTranslate 除外，仍在 settings.json）
-    seedAIConfigFromLegacy(fileData);
+    seedAIConfigIfMissing();
     const resolved = buildRuntimeConfig(fileData);
     overlayAIConfig(resolved, loadAIConfigFromDisk(resolved.rootPath));
     injectSystemPrompt(resolved);
@@ -727,7 +667,7 @@ export function writeRawAIConfigFile(data: unknown): ConfigHotReloadResult {
     return applyConfigRuntimeHooks();
 }
 
-/** 重新读取 ai.json 并覆盖内存中的 AI 配置（chatbot / dsKey 立即生效） */
+/** 重新读取 ai.json 并覆盖内存中的 AI 配置（chatbot.apiKey / baseURL 立即生效） */
 export function reloadAIConfigFromDisk(): AIConfig {
     const ai = loadAIConfigFromDisk(config.rootPath);
     overlayAIConfig(config, ai);

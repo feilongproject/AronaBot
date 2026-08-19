@@ -2,7 +2,6 @@ import OpenAI from 'openai';
 import axios from 'axios';
 import sharp from 'sharp';
 import { ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources/chat/completions';
-import config from '../../../config/config';
 import { ChatbotRuntimeConfig } from './config';
 
 /**
@@ -53,14 +52,14 @@ function parseUsage(u: unknown): ChatUsage | undefined {
     };
 }
 
-/** DeepSeek 文本（OpenAI 兼容）；token 估算优先 API usage */
+/** 对话文本（OpenAI 兼容）；token 估算优先 API usage */
 export async function chatCompletion(
     messages: ChatCompletionMessageParam[],
     cfg: ChatbotRuntimeConfig,
     jsonMode = false,
 ): Promise<ChatResult> {
-    const apiKey = config.ai?.dsKey || config.bots[botType]?.dsKey;
-    if (!apiKey) throw new Error('chatbot: dsKey 未配置（ai.json 顶层 dsKey）');
+    const apiKey = cfg.apiKey;
+    if (!apiKey) throw new Error('chatbot: 对话 apiKey 未配置（ai.json chatbot.apiKey）');
     const openai = new OpenAI({ apiKey, baseURL: cfg.baseURL });
     const completion = await openai.chat.completions.create({
         model: cfg.chatModel,
@@ -76,7 +75,7 @@ export async function chatCompletion(
 }
 
 /**
- * DeepSeek 文本 + MCP 工具调用（原生 function calling）。
+ * 对话文本 + MCP 工具调用（原生 function calling）。
  * 模型请求工具 → 执行（onToolCall）→ 以 role:'tool' 回填 → 循环，最多 maxToolRounds 轮；
  * 轮次耗尽后不带 tools 收尾一次，强制模型给出最终回复。
  */
@@ -86,8 +85,8 @@ export async function chatCompletionWithTools(
     tools: ChatCompletionTool[],
     onToolCall: (fullName: string, argsText: string) => Promise<string>,
 ): Promise<ChatResult> {
-    const apiKey = config.ai?.dsKey || config.bots[botType]?.dsKey;
-    if (!apiKey) throw new Error('chatbot: dsKey 未配置（ai.json 顶层 dsKey）');
+    const apiKey = cfg.apiKey;
+    if (!apiKey) throw new Error('chatbot: 对话 apiKey 未配置（ai.json chatbot.apiKey）');
     const openai = new OpenAI({ apiKey, baseURL: cfg.baseURL });
     const msgs: ChatCompletionMessageParam[] = [...messages];
     for (let round = 0; round <= cfg.maxToolRounds; round++) {

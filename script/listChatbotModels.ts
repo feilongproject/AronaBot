@@ -2,7 +2,7 @@
  * 列出当前 chatbot 配置下可用的模型，并筛选具备图像识别（视觉理解）的模型。
  *
  * 数据源：
- *   - 对话：ai.json chatbot.baseURL + 顶层 dsKey（OpenAI 兼容 GET /models）
+ *   - 对话：ai.json chatbot.baseURL + chatbot.apiKey（OpenAI 兼容 GET /models）
  *   - 看图：ai.json chatbot.visionBaseURL + visionApiKey
  *     · 百炼：GET /api/v1/models（含 capabilities / 输入模态）
  *     · 其余：OpenAI 兼容 GET /models，再按模型名启发式判断
@@ -29,10 +29,10 @@ const DEFAULT_CHAT_BASE = 'https://api.deepseek.com';
 const DEFAULT_VISION_BASE = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
 
 type AiJson = {
-    dsKey?: string;
     chatbot?: {
         chatModel?: string;
         baseURL?: string;
+        apiKey?: string;
         visionModel?: string;
         visionBaseURL?: string;
         visionApiKey?: string;
@@ -121,7 +121,7 @@ function printHelp() {
             '',
             '选项:',
             '  --vision-only   只打印具备图像识别的模型',
-            '  --chat-only     只查对话端（dsKey / baseURL）',
+            '  --chat-only     只查对话端（apiKey / baseURL）',
             '  --json          JSON 输出',
             '  --all           额外打印全部可用模型；并包含目录中未出现在兼容 /models 的条目',
             '',
@@ -297,7 +297,10 @@ async function fetchDashscopeCatalog(catalogUrl: string, apiKey: string): Promis
     return all;
 }
 
-async function fetchDashscopeLimits(limitsUrl: string, apiKey: string): Promise<Map<string, ModelQuota>> {
+async function fetchDashscopeLimits(
+    limitsUrl: string,
+    apiKey: string,
+): Promise<Map<string, ModelQuota>> {
     const map = new Map<string, ModelQuota>();
     let page = 1;
     let total = Infinity;
@@ -434,7 +437,7 @@ async function main() {
         process.exit(1);
     }
     const ai = JSON.parse(fs.readFileSync(aiPath, 'utf-8')) as AiJson;
-    const chatKey = String(ai.dsKey || '').trim();
+    const chatKey = String(ai.chatbot?.apiKey || '').trim();
     const visionKey = String(ai.chatbot?.visionApiKey || '').trim();
     const chatBase = trimSlash(ai.chatbot?.baseURL || '') || DEFAULT_CHAT_BASE;
     const visionBase = trimSlash(ai.chatbot?.visionBaseURL || '') || DEFAULT_VISION_BASE;
@@ -459,7 +462,7 @@ async function main() {
 
     if (wantChat) {
         if (!chatKey) {
-            errors.push('对话端: dsKey 为空，跳过');
+            errors.push('对话端: apiKey 为空，跳过');
         } else {
             try {
                 const ids = await fetchCompatIds(chatBase, chatKey);
@@ -507,9 +510,7 @@ async function main() {
                     );
                     meta.limitsTotal = visionLimits.size;
                 } catch (err) {
-                    errors.push(
-                        `百炼限额 ${toDashscopeLimitsUrl(catalogUrl)}: ${axiosErr(err)}`,
-                    );
+                    errors.push(`百炼限额 ${toDashscopeLimitsUrl(catalogUrl)}: ${axiosErr(err)}`);
                 }
             }
 
@@ -648,7 +649,9 @@ async function main() {
         console.log(`      限额: ${currentVisionRow.quotaText}`);
     }
     if (currentVision && currentVisionRow && !currentVisionRow.imageRecognition) {
-        console.log('      ⚠ 当前 visionModel 不具备图像识别能力，chatbot 看图会失败或只能当文本模型用');
+        console.log(
+            '      ⚠ 当前 visionModel 不具备图像识别能力，chatbot 看图会失败或只能当文本模型用',
+        );
     }
     if (typeof meta.catalogTotal === 'number') {
         console.log(`目录  ${meta.catalogUrl}  共 ${meta.catalogTotal} 条`);

@@ -175,7 +175,7 @@ async function saveAIConfigHandler(ctx: Context) {
             devEnv: typeof devEnv !== 'undefined' ? devEnv : false,
             hotReload: hot,
             hint: [
-                '已写入 ai.json（含 $schema），并热替换当前进程 AI 配置（dsKey/chatbot 立即生效）。',
+                '已写入 ai.json（含 $schema），并热替换当前进程 AI 配置（chatbot.apiKey/baseURL 立即生效）。',
                 '字段说明见 config/ai.schema.json（编辑器可补全/校验）。',
             ].join('\n'),
         };
@@ -253,7 +253,7 @@ export function registerSettingsRoutes(router: Router): void {
         }
     });
 
-    /** AI 独立配置（config/ai.json 扁平：activeBot/dsKey/chatbot/mongo） */
+    /** AI 独立配置（config/ai.json 扁平：activeBot/chatbot/mongo） */
     router.get('/api/settings/ai', async (ctx) => {
         if (!requireSettingsAuth(ctx)) return;
         try {
@@ -454,7 +454,10 @@ export function registerSettingsRoutes(router: Router): void {
                     : String(v || '')
                           .split(/[,，\s]+/)
                           .filter(Boolean);
-                return raw.map((t) => String(t).trim()).filter(Boolean).slice(0, max);
+                return raw
+                    .map((t) => String(t).trim())
+                    .filter(Boolean)
+                    .slice(0, max);
             };
             const $set: Record<string, unknown> = { summaryUpdatedAt: new Date() };
             if (typeof body.summary === 'string') {
