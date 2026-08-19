@@ -344,6 +344,7 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
         options.sendToId = options.sendToId || this.sendToId;
         options.msgType = options.msgType || (options.ark ? 3 : 0);
         options.eventId = this.pushEventId || options.eventId || this.event_id;
+        options.refMsgIdx = options.refMsgIdx || this.refs.msgIdx;
         // option.guildId = option.guildId || this.guild_id;
         // option.channelId = option.channelId || this.channel_id;
         // option.sendType = option.sendType || this.messageType;
@@ -382,9 +383,10 @@ class IMessageChatCommon implements IntentMessage.MessageChatCommon {
                             : undefined,
                     msg_seq: ++this.seq,
                     ark,
-                    message_reference: this.refs.msgIdx
-                        ? { message_id: this.refs.msgIdx }
-                        : undefined,
+                    message_reference:
+                        options.ref && options.refMsgIdx
+                            ? { message_id: options.refMsgIdx }
+                            : undefined,
                 })
                 .then((res) => {
                     (res.data as any)['x-tps-trace-id'] = res.headers['x-tps-trace-id'];
@@ -605,6 +607,7 @@ namespace SendOption {
         msgId?: string;
         eventId?: string;
         ark?: Ark;
+        refMsgIdx?: string;
     }
     export interface Channel extends Base {
         ref?: boolean;

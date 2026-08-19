@@ -317,7 +317,6 @@ interface BotConfigFile {
         prod: number;
         dev: number;
     };
-    /** @deprecated 群 openid → 数字群号 映射；新代码统一使用 group_openid，存量暂不改动 */
     groupMap: Record<string, string>;
     meRealId: string;
     enableFullReceiveGroups: string[];
