@@ -27,6 +27,11 @@ export interface ChatbotRuntimeConfig {
     /** 对话 OpenAI 兼容接口密钥 */
     apiKey: string;
     chatModel: string;
+    /**
+     * 是否强制结构化输出（默认 true）。
+     * Qwen3.7-Plus/Max、Qwen3.8-Max → JSON Schema；其余 → JSON Object。
+     */
+    structuredOutput: boolean;
     groups: string[];
     systemPrompt: string;
     mustPrefixes: string[];
@@ -108,6 +113,7 @@ export function getChatbotConfig(): ChatbotRuntimeConfig | null {
         baseURL: c.baseURL || 'https://api.deepseek.com',
         apiKey: String(c.apiKey || '').trim(),
         chatModel: c.chatModel || 'deepseek-chat',
+        structuredOutput: c.structuredOutput !== false,
         groups: Array.isArray(c.groups) ? c.groups.filter(Boolean) : [],
         systemPrompt: c.systemPrompt?.trim() || DEFAULT_SYSTEM_PROMPT,
         mustPrefixes: Array.isArray(c.mustPrefixes) ? c.mustPrefixes.filter(Boolean) : [],

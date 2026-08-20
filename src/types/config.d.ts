@@ -160,6 +160,11 @@ interface BotChatbotConfig {
     apiKey?: string;
     /** 对话文本模型名 */
     chatModel: string;
+    /**
+     * 是否强制结构化输出（默认 true）。
+     * Qwen3.7-Plus/Max、Qwen3.8-Max 走 JSON Schema；其余走 JSON Object。
+     */
+    structuredOutput?: boolean;
     /** 白名单群 group_openid 列表 */
     groups: string[];
     /** 猫娘人设 prompt；设置页可改，保存后热替换立即生效 */

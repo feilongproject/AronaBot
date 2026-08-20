@@ -46,6 +46,8 @@ export type AIApiTestResult = {
         toppedUp: string;
     };
     warning?: string;
+    /** 上游 chat.completions 原始响应（成功为 completion JSON，失败为错误体） */
+    apiResponse?: unknown;
 };
 
 function trimSlash(s: string): string {
@@ -73,6 +75,35 @@ function formatProviderError(err: unknown): string {
         o?.error?.message || o?.message || (err instanceof Error ? err.message : String(err));
     const code = o?.error?.code ? ` [${o.error.code}]` : '';
     return o?.status ? `HTTP ${o.status} ${msg}${code}` : `${msg}${code}`;
+}
+
+function toJson(v: unknown): unknown {
+    try {
+        return JSON.parse(JSON.stringify(v));
+    } catch {
+        return String(v);
+    }
+}
+
+/** 尽量取出上游 HTTP 错误体，避免只剩 SDK 包装文案 */
+function extractApiErrorBody(err: unknown): unknown {
+    const o = err as {
+        error?: unknown;
+        status?: number;
+        code?: string;
+        message?: string;
+        response?: { data?: unknown; status?: number };
+    };
+    if (o?.response?.data != null) return toJson(o.response.data);
+    if (o?.error != null) {
+        return toJson({
+            status: o.status,
+            code: o.code,
+            error: o.error,
+            message: o.message,
+        });
+    }
+    return { message: o?.message || (err instanceof Error ? err.message : String(err)) };
 }
 
 function visionTextOnlyHint(model: string, errText: string): string | undefined {
@@ -223,6 +254,7 @@ export async function testChatbotApi(input: AIApiTestInput): Promise<AIApiTestRe
                 ok: true,
                 latencyMs: Date.now() - t0,
                 content: content.slice(0, 200),
+                apiResponse: toJson(completion),
             };
         } catch (err) {
             return {
@@ -230,6 +262,7 @@ export async function testChatbotApi(input: AIApiTestInput): Promise<AIApiTestRe
                 latencyMs: Date.now() - t0,
                 content: '',
                 error: formatProviderError(err),
+                apiResponse: extractApiErrorBody(err),
             };
         }
     })();
@@ -272,6 +305,7 @@ export async function testChatbotApi(input: AIApiTestInput): Promise<AIApiTestRe
         models,
         ...(balance ? { balance } : {}),
         ...(warning ? { warning } : {}),
+        ...(ping.apiResponse != null ? { apiResponse: ping.apiResponse } : {}),
     };
     result.message = summarize(result);
     return result;

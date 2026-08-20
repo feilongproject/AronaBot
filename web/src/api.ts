@@ -116,6 +116,8 @@ export type AIApiTestResponse = {
         toppedUp: string;
     };
     warning?: string;
+    /** 上游 chat.completions 原始响应 */
+    apiResponse?: unknown;
 };
 
 /** 用当前表单值测试对话 / 看图 API，无需先保存 */

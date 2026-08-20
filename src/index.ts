@@ -175,7 +175,7 @@ init().then(() => {
             // 接收ntqq消息绑定按钮id
             if (!ctx.request.body) return (ctx.status = 400);
             const requestBody = ctx.request.body as any;
-            if (devEnv) log.debug('sync', requestBody);
+            // if (devEnv) log.debug('sync', requestBody);
             await handlerSync(ctx, requestBody);
         })
         .post(`/sendToGroupHandler`, async (ctx, next) => {

@@ -1,8 +1,14 @@
 import OpenAI from 'openai';
 import axios from 'axios';
 import sharp from 'sharp';
-import { ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources/chat/completions';
+import {
+    ChatCompletionCreateParamsNonStreaming,
+    ChatCompletionMessageParam,
+    ChatCompletionTool,
+} from 'openai/resources/chat/completions';
+import type { ResponseFormatJSONObject, ResponseFormatJSONSchema } from 'openai/resources/shared';
 import { ChatbotRuntimeConfig } from './config';
+import { resolveStructuredOutputMode, StructuredOutputMode } from './providers';
 
 /**
  * 本地 token 估算（API usage 缺失时的 fallback）：
@@ -52,6 +58,180 @@ function parseUsage(u: unknown): ChatUsage | undefined {
     };
 }
 
+const BOT_ACTION_SCHEMA: { [key: string]: unknown } = {
+    type: 'object',
+    properties: {
+        action: {
+            type: 'string',
+            enum: ['reply', 'silent'],
+            description: 'reply=发送回复；silent=不回复',
+        },
+        parts: {
+            type: 'array',
+            description: '回复片段；silent 时为空数组',
+            items: {
+                type: 'object',
+                properties: {
+                    type: {
+                        type: 'string',
+                        enum: ['text', 'library_image', 'mention'],
+                        description: 'text=正文；library_image=从图库选表情；mention=@ 群友',
+                    },
+                    text: { type: 'string', description: 'type=text 时的回复正文' },
+                    query: {
+                        type: 'string',
+                        description: 'type=library_image 时的情感/情境关键词，可多词空格分隔',
+                    },
+                    reason: { type: 'string', description: '选图或 @ 的理由' },
+                    openid: {
+                        type: 'string',
+                        description: 'type=mention 时被 @ 用户的 openid，必须来自本轮消息标注',
+                    },
+                },
+                required: ['type'],
+                additionalProperties: false,
+            },
+        },
+    },
+    required: ['action', 'parts'],
+    additionalProperties: false,
+};
+
+const VISION_ITEM_SCHEMA: { [key: string]: unknown } = {
+    type: 'object',
+    properties: {
+        summary: { type: 'string', description: '一句话内容概要' },
+        is_meme: { type: 'boolean', description: '是否为适合群聊发送的表情包' },
+        emotion_tags: {
+            type: 'array',
+            items: { type: 'string' },
+            description: '情感/情绪标签',
+        },
+        style_tags: {
+            type: 'array',
+            items: { type: 'string' },
+            description: '画风/形式标签',
+        },
+        scene_tags: {
+            type: 'array',
+            items: { type: 'string' },
+            description: '场景/背景标签',
+        },
+        content_tags: {
+            type: 'array',
+            items: { type: 'string' },
+            description: '动作/文案/内容标签',
+        },
+        subject_tags: {
+            type: 'array',
+            items: { type: 'string' },
+            description: '主体/外貌标签',
+        },
+        nsfw_risk: {
+            type: 'string',
+            enum: ['low', 'mid', 'high'],
+            description: '不当内容风险',
+        },
+    },
+    required: [
+        'summary',
+        'is_meme',
+        'emotion_tags',
+        'style_tags',
+        'scene_tags',
+        'content_tags',
+        'subject_tags',
+        'nsfw_risk',
+    ],
+    additionalProperties: false,
+};
+
+function jsonSchemaFormat(
+    name: string,
+    schema: { [key: string]: unknown },
+    description?: string,
+): ResponseFormatJSONSchema {
+    return {
+        type: 'json_schema',
+        json_schema: { name, description, strict: true, schema },
+    };
+}
+
+function botActionResponseFormat(
+    mode: StructuredOutputMode,
+): ResponseFormatJSONSchema | ResponseFormatJSONObject | undefined {
+    if (mode === 'off') return undefined;
+    if (mode === 'json_schema') {
+        return jsonSchemaFormat('bot_action', BOT_ACTION_SCHEMA, '群聊被动 AI 的结构化动作');
+    }
+    return { type: 'json_object' };
+}
+
+function visionResponseFormat(
+    mode: StructuredOutputMode,
+    multi: boolean,
+): ResponseFormatJSONSchema | ResponseFormatJSONObject | undefined {
+    if (mode === 'off') return undefined;
+    if (mode === 'json_schema') {
+        const schema: { [key: string]: unknown } = multi
+            ? {
+                  type: 'object',
+                  properties: { images: { type: 'array', items: VISION_ITEM_SCHEMA } },
+                  required: ['images'],
+                  additionalProperties: false,
+              }
+            : VISION_ITEM_SCHEMA;
+        return jsonSchemaFormat(multi ? 'vision_batch' : 'vision_item', schema, '看图结构化标注');
+    }
+    return { type: 'json_object' };
+}
+
+function isResponseFormatUnsupported(err: unknown): boolean {
+    const msg = err instanceof Error ? err.message : String(err);
+    return /response_format|json_schema|json_object|structured output/i.test(msg);
+}
+
+/**
+ * 带结构化输出的 chat.completions.create。
+ * 百炼文档：开启结构化输出时不要设 max_tokens，以免 JSON 被截断。
+ * json_schema 不被当前模型接受时回落 json_object。
+ */
+async function createChatCompletion(
+    openai: OpenAI,
+    params: Omit<ChatCompletionCreateParamsNonStreaming, 'response_format' | 'max_tokens'> & {
+        response_format?: ResponseFormatJSONSchema | ResponseFormatJSONObject;
+        /** 非结构化时才传；结构化输出禁止 max_tokens */
+        max_tokens?: number;
+    },
+) {
+    const { response_format, max_tokens, ...rest } = params;
+    const body: ChatCompletionCreateParamsNonStreaming = {
+        ...rest,
+        ...(response_format ? { response_format } : { max_tokens: max_tokens ?? 600 }),
+    };
+    try {
+        return await openai.chat.completions.create(body);
+    } catch (err) {
+        if (response_format?.type === 'json_schema' && isResponseFormatUnsupported(err)) {
+            log.warn(
+                `chatbot json_schema 不被接受，回落 json_object: ${err instanceof Error ? err.message : err}`,
+            );
+            return openai.chat.completions.create({
+                ...rest,
+                response_format: { type: 'json_object' },
+            });
+        }
+        throw err;
+    }
+}
+
+function chatStructuredMode(cfg: ChatbotRuntimeConfig): StructuredOutputMode {
+    return resolveStructuredOutputMode({
+        structuredOutput: cfg.structuredOutput,
+        model: cfg.chatModel,
+    });
+}
+
 /** 对话文本（OpenAI 兼容）；token 估算优先 API usage */
 export async function chatCompletion(
     messages: ChatCompletionMessageParam[],
@@ -61,12 +241,13 @@ export async function chatCompletion(
     const apiKey = cfg.apiKey;
     if (!apiKey) throw new Error('chatbot: 对话 apiKey 未配置（ai.json chatbot.apiKey）');
     const openai = new OpenAI({ apiKey, baseURL: cfg.baseURL });
-    const completion = await openai.chat.completions.create({
+    const mode = jsonMode ? chatStructuredMode(cfg) : 'off';
+    const completion = await createChatCompletion(openai, {
         model: cfg.chatModel,
         messages,
-        max_tokens: 600,
         temperature: 0.9,
-        ...(jsonMode ? { response_format: { type: 'json_object' as const } } : {}),
+        max_tokens: 600,
+        response_format: jsonMode ? botActionResponseFormat(mode) : undefined,
     });
     return {
         content: completion.choices?.[0]?.message?.content || '',
@@ -77,7 +258,7 @@ export async function chatCompletion(
 /**
  * 对话文本 + MCP 工具调用（原生 function calling）。
  * 模型请求工具 → 执行（onToolCall）→ 以 role:'tool' 回填 → 循环，最多 maxToolRounds 轮；
- * 轮次耗尽后不带 tools 收尾一次，强制模型给出最终回复。
+ * 轮次耗尽后不带 tools 收尾一次，强制模型给出最终回复（走结构化输出）。
  */
 export async function chatCompletionWithTools(
     messages: ChatCompletionMessageParam[],
@@ -118,12 +299,13 @@ export async function chatCompletionWithTools(
             msgs.push({ role: 'tool', tool_call_id: tc.id, content: result.slice(0, 2000) });
         }
     }
-    const final = await openai.chat.completions.create({
+    const mode = chatStructuredMode(cfg);
+    const final = await createChatCompletion(openai, {
         model: cfg.chatModel,
         messages: msgs,
-        max_tokens: 600,
         temperature: 0.9,
-        response_format: { type: 'json_object' },
+        max_tokens: 600,
+        response_format: botActionResponseFormat(mode),
     });
     return {
         content: final.choices?.[0]?.message?.content || '',
@@ -701,7 +883,11 @@ export async function visionSummarize(
 
     let raw = '';
     try {
-        const completion = await openai.chat.completions.create({
+        const visionMode = resolveStructuredOutputMode({
+            structuredOutput: cfg.structuredOutput,
+            model: cfg.visionModel,
+        });
+        const completion = await createChatCompletion(openai, {
             model: cfg.visionModel,
             messages: [
                 {
@@ -717,6 +903,7 @@ export async function visionSummarize(
             ],
             max_tokens: 1200,
             temperature: 0.2,
+            response_format: visionResponseFormat(visionMode, multi),
         });
         raw = completion.choices?.[0]?.message?.content || '';
     } catch (err) {

@@ -210,7 +210,7 @@ async function shortGateRefusalReply(msg: IMessageGROUP, cfg: ChatbotRuntimeConf
  * 流水线：
  * 观察写库（含 ignored）→ 表情异步抓取 → H0（超长/空噪声）→ 限流/冷却
  * → qwen3.7-plus 看图转述 → Must/动态概率 → H2 门控（默认 Must 不过，applyToMust 可开启）
- * → dpsk 猫娘结构化回复（文字/图库表情）→ 压缩检查
+ * → 猫娘结构化回复（文字/图库表情）→ 压缩检查
  *
  * 发送层统一记录 bot 出站（IMessageEx 内钩子），这里只维护回复链状态。
  */
@@ -369,7 +369,7 @@ export async function chatbot(msg: IMessageGROUP): Promise<any> {
         refBlock,
     );
 
-    // —— [8] dpsk 结构化动作 ——
+    // —— [8] 模型结构化动作（JSON Schema / JSON Object）——
     let action: BotAction;
     try {
         const msgs = buildMessages(system, memory, history, currentText);

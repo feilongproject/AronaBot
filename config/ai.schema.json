@@ -54,6 +54,10 @@
                     "type": "string",
                     "description": "对话文本模型名，默认 deepseek-chat"
                 },
+                "structuredOutput": {
+                    "type": "boolean",
+                    "description": "强制结构化输出（默认 true）。Qwen3.7-Plus/Max、Qwen3.8-Max 使用 JSON Schema 严格结构；其余模型回落 JSON Object。关闭则自由文本"
+                },
                 "groups": {
                     "type": "array",
                     "items": {
