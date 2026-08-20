@@ -209,6 +209,7 @@ async function main() {
             aiConfig.chatbot?.visionBaseURL ||
             'https://dashscope.aliyuncs.com/compatible-mode/v1',
         visionModel: aiConfig.chatbot?.visionModel || 'qwen3.7-plus',
+        visionStructuredOutput: aiConfig.chatbot?.visionStructuredOutput !== false,
     } as ChatbotRuntimeConfig;
 
     const client = new MongoClient(mongoUri(aiMongo), { serverSelectionTimeoutMS: 8000 });

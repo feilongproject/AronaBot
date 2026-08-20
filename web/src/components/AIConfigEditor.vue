@@ -58,6 +58,7 @@ const DEFAULT_CHATBOT: Record<string, any> = {
     visionModel: 'qwen3.7-plus',
     visionBaseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     visionApiKey: '',
+    visionStructuredOutput: true,
     stickerCaptureEnabled: true,
     stickerCaptureMode: 'all_images',
     stickerCaptureStore: true,
@@ -104,6 +105,7 @@ function ensureChatbotShape() {
     if (!Array.isArray(c.mustPrefixes)) c.mustPrefixes = [];
     if (!Array.isArray(c.stickerBlacklistUserIds)) c.stickerBlacklistUserIds = [];
     if (typeof c.structuredOutput !== 'boolean') c.structuredOutput = true;
+    if (typeof c.visionStructuredOutput !== 'boolean') c.visionStructuredOutput = true;
     delete c.chatProvider;
     if (!c.gate || typeof c.gate !== 'object') {
         c.gate = {
@@ -222,12 +224,14 @@ async function runApiTest(kind: AIApiTestKind) {
                       baseURL: c.baseURL,
                       apiKey: c.apiKey,
                       model: c.chatModel,
+                      structuredOutput: c.structuredOutput !== false,
                   }
                 : {
                       kind,
                       baseURL: c.visionBaseURL,
                       apiKey: c.visionApiKey,
                       model: c.visionModel,
+                      structuredOutput: c.visionStructuredOutput !== false,
                   },
         );
     } catch (e) {
@@ -446,10 +450,16 @@ onMounted(load);
                                 <p v-if="apiTests.chat.error" class="font-medium">
                                     {{ apiTests.chat.error }}
                                 </p>
-                                <pre
-                                    v-if="apiTests.chat.result"
-                                    class="max-h-80 overflow-auto whitespace-pre-wrap font-mono text-slate-300"
-                                >{{ JSON.stringify(apiTests.chat.result.apiResponse ?? { message: '上游未返回' }, null, 2) }}</pre>
+                                <template v-if="apiTests.chat.result">
+                                    <p class="font-medium text-slate-200">request</p>
+                                    <pre
+                                        class="max-h-80 overflow-auto whitespace-pre-wrap font-mono text-slate-300"
+                                    >{{ JSON.stringify(apiTests.chat.result.apiRequest ?? null, null, 2) }}</pre>
+                                    <p class="font-medium text-slate-200">response</p>
+                                    <pre
+                                        class="max-h-80 overflow-auto whitespace-pre-wrap font-mono text-slate-300"
+                                    >{{ JSON.stringify(apiTests.chat.result.apiResponse ?? { message: '上游未返回' }, null, 2) }}</pre>
+                                </template>
                             </div>
                         </section>
 
@@ -505,6 +515,18 @@ onMounted(load);
                                     "
                                 />
                             </Field>
+                            <Field
+                                label="visionStructuredOutput"
+                                hint="看图强制 JSON。Qwen3.7/3.8 走 JSON Schema；其余走 JSON Object。关闭则自由文本"
+                            >
+                                <BoolInput
+                                    :model-value="ai.chatbot?.visionStructuredOutput !== false"
+                                    label="启用看图结构化输出"
+                                    @update:model-value="
+                                        patchChatbot((c) => (c.visionStructuredOutput = $event))
+                                    "
+                                />
+                            </Field>
                             <div
                                 v-if="apiTests.vision.error || apiTests.vision.result"
                                 class="space-y-1.5 rounded-lg border px-3 py-2 text-xs leading-relaxed"
@@ -517,10 +539,16 @@ onMounted(load);
                                 <p v-if="apiTests.vision.error" class="font-medium">
                                     {{ apiTests.vision.error }}
                                 </p>
-                                <pre
-                                    v-if="apiTests.vision.result"
-                                    class="max-h-80 overflow-auto whitespace-pre-wrap font-mono text-slate-300"
-                                >{{ JSON.stringify(apiTests.vision.result.apiResponse ?? { message: '上游未返回' }, null, 2) }}</pre>
+                                <template v-if="apiTests.vision.result">
+                                    <p class="font-medium text-slate-200">request</p>
+                                    <pre
+                                        class="max-h-80 overflow-auto whitespace-pre-wrap font-mono text-slate-300"
+                                    >{{ JSON.stringify(apiTests.vision.result.apiRequest ?? null, null, 2) }}</pre>
+                                    <p class="font-medium text-slate-200">response</p>
+                                    <pre
+                                        class="max-h-80 overflow-auto whitespace-pre-wrap font-mono text-slate-300"
+                                    >{{ JSON.stringify(apiTests.vision.result.apiResponse ?? { message: '上游未返回' }, null, 2) }}</pre>
+                                </template>
                             </div>
                         </section>
                     </div>

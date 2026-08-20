@@ -15,6 +15,10 @@ export type StructuredOutputMode = 'off' | 'json_object' | 'json_schema';
  * - 关闭：不传 response_format
  * - 模型支持 Schema：json_schema（严格结构）
  * - 其余：json_object（保证合法 JSON，结构靠 prompt）
+ *
+ * 看图：百炼文档「图片、视频数据处理」明确支持 JSON Object；
+ * Qwen3.7-Plus/Max、Qwen3.8-Max 另支持 JSON Schema（可带图）。
+ * @see https://help.aliyun.com/zh/model-studio/qwen-structured-output
  */
 export function resolveStructuredOutputMode(opts: {
     structuredOutput: boolean;

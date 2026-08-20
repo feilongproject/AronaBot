@@ -329,6 +329,7 @@ export function registerSettingsRoutes(router: Router): void {
             baseURL?: string;
             apiKey?: string;
             model?: string;
+            structuredOutput?: boolean;
         };
         const kind = body.kind as AIApiTestKind;
         if (kind !== 'chat' && kind !== 'vision') {
@@ -342,6 +343,7 @@ export function registerSettingsRoutes(router: Router): void {
                 baseURL: body.baseURL,
                 apiKey: body.apiKey,
                 model: body.model,
+                structuredOutput: body.structuredOutput,
             });
             ctx.body = result;
         } catch (err) {

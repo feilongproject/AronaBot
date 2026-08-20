@@ -208,6 +208,11 @@ interface BotChatbotConfig {
     visionBaseURL?: string;
     /** 独立看图密钥，不复用 chatbot.apiKey / aiTranslate.apiKey */
     visionApiKey: string;
+    /**
+     * 看图是否强制结构化输出（默认 true）。
+     * Qwen3.7-Plus/Max、Qwen3.8-Max 走 JSON Schema；其余走 JSON Object。
+     */
+    visionStructuredOutput?: boolean;
     /** 自动抓取群聊图/表情入库 */
     stickerCaptureEnabled: boolean;
     /** sticker=动画表情或小尺寸静态表情包；animated_only=只处理动画表情（gif/webp）；emoji_like=只抓小图/表情比例 */

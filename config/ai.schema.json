@@ -180,6 +180,10 @@
                     "type": "string",
                     "description": "独立看图密钥；与 chatbot.apiKey / aiTranslate.apiKey 分离"
                 },
+                "visionStructuredOutput": {
+                    "type": "boolean",
+                    "description": "看图强制结构化输出（默认 true）。Qwen3.7-Plus/Max、Qwen3.8-Max 使用 JSON Schema；其余回落 JSON Object。关闭则自由文本"
+                },
                 "stickerCaptureEnabled": {
                     "type": "boolean",
                     "description": "自动抓取群聊图/表情入库；默认需人工审核（pending→ready）"

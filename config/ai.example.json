@@ -38,6 +38,7 @@
         "visionModel": "qwen3.7-plus",
         "visionBaseURL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
         "visionApiKey": "",
+        "visionStructuredOutput": true,
         "stickerCaptureEnabled": true,
         "stickerCaptureMode": "all_images",
         "stickerCaptureStore": true,

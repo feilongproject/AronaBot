@@ -856,8 +856,9 @@ export function classifyStickerTags(input: {
 }
 
 /**
- * 阿里云百炼 qwen3.7-plus 看图（OpenAI 兼容、独立 visionApiKey）。
+ * 阿里云百炼看图（OpenAI 兼容、独立 visionApiKey）。
  * 多图同一请求批量分析，返回与入参顺序一致的结果数组；失败返回 null。
+ * 看图结构化输出由 visionStructuredOutput 控制（默认开）。
  */
 export async function visionSummarize(
     images: VisionInputImage[],
@@ -884,9 +885,10 @@ export async function visionSummarize(
     let raw = '';
     try {
         const visionMode = resolveStructuredOutputMode({
-            structuredOutput: cfg.structuredOutput,
+            structuredOutput: cfg.visionStructuredOutput,
             model: cfg.visionModel,
         });
+        if (devEnv) log.debug(`visionSummarize mode=${visionMode} model=${cfg.visionModel}`);
         const completion = await createChatCompletion(openai, {
             model: cfg.visionModel,
             messages: [

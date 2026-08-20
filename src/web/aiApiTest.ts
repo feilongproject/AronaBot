@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import OpenAI from 'openai';
 import sharp from 'sharp';
+import { resolveStructuredOutputMode } from '../plugins/chatbot/providers';
 
 const DEFAULT_CHAT_BASE = 'https://api.deepseek.com';
 const DEFAULT_VISION_BASE = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
@@ -17,6 +18,7 @@ export type AIApiTestInput = {
     baseURL?: string;
     apiKey?: string;
     model?: string;
+    structuredOutput?: boolean;
 };
 
 export type AIApiTestResult = {
@@ -46,6 +48,8 @@ export type AIApiTestResult = {
         toppedUp: string;
     };
     warning?: string;
+    /** 提交给上游 chat.completions 的请求体 */
+    apiRequest?: unknown;
     /** 上游 chat.completions 原始响应（成功为 completion JSON，失败为错误体） */
     apiResponse?: unknown;
 };
@@ -223,37 +227,66 @@ export async function testChatbotApi(input: AIApiTestInput): Promise<AIApiTestRe
 
     const pingPromise = (async () => {
         const t0 = Date.now();
+        const mode = resolveStructuredOutputMode({
+            structuredOutput: input.structuredOutput !== false,
+            model,
+        });
+        const prompt = mode === 'off' ? PING_PROMPT : 'Reply with JSON: {"pong": true}';
+        const response_format =
+            mode === 'off'
+                ? undefined
+                : mode === 'json_schema'
+                  ? {
+                        type: 'json_schema' as const,
+                        json_schema: {
+                            name: 'ping',
+                            strict: true,
+                            schema: {
+                                type: 'object',
+                                properties: { pong: { type: 'boolean' } },
+                                required: ['pong'],
+                                additionalProperties: false,
+                            },
+                        },
+                    }
+                  : { type: 'json_object' as const };
+        let apiRequest: unknown;
         try {
-            const completion =
+            const payload =
                 kind === 'chat'
-                    ? await openai.chat.completions.create({
+                    ? {
                           model,
-                          messages: [{ role: 'user', content: PING_PROMPT }],
-                          max_tokens: 16,
+                          messages: [{ role: 'user' as const, content: prompt }],
                           temperature: 0,
-                      })
-                    : await openai.chat.completions.create({
+                          ...(mode === 'off' ? { max_tokens: 16 } : {}),
+                          ...(response_format ? { response_format } : {}),
+                      }
+                    : {
                           model,
                           messages: [
                               {
-                                  role: 'user',
+                                  role: 'user' as const,
                                   content: [
-                                      { type: 'text', text: PING_PROMPT },
+                                      { type: 'text' as const, text: prompt },
                                       {
-                                          type: 'image_url',
+                                          type: 'image_url' as const,
                                           image_url: { url: await tinyPngDataUrl() },
                                       },
                                   ],
                               },
                           ],
-                          max_tokens: 32,
                           temperature: 0,
-                      });
+                          ...(mode === 'off' ? { max_tokens: 32 } : {}),
+                          ...(response_format ? { response_format } : {}),
+                      };
+            apiRequest = toJson(payload);
+            const completion = await openai.chat.completions.create(payload);
             const content = String(completion.choices?.[0]?.message?.content || '').trim();
             return {
                 ok: true,
                 latencyMs: Date.now() - t0,
                 content: content.slice(0, 200),
+                apiRequest,
                 apiResponse: toJson(completion),
             };
         } catch (err) {
@@ -262,6 +295,7 @@ export async function testChatbotApi(input: AIApiTestInput): Promise<AIApiTestRe
                 latencyMs: Date.now() - t0,
                 content: '',
                 error: formatProviderError(err),
+                apiRequest,
                 apiResponse: extractApiErrorBody(err),
             };
         }
@@ -305,6 +339,7 @@ export async function testChatbotApi(input: AIApiTestInput): Promise<AIApiTestRe
         models,
         ...(balance ? { balance } : {}),
         ...(warning ? { warning } : {}),
+        ...(ping.apiRequest != null ? { apiRequest: ping.apiRequest } : {}),
         ...(ping.apiResponse != null ? { apiResponse: ping.apiResponse } : {}),
     };
     result.message = summarize(result);

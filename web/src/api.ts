@@ -116,6 +116,8 @@ export type AIApiTestResponse = {
         toppedUp: string;
     };
     warning?: string;
+    /** 提交给上游的请求体 */
+    apiRequest?: unknown;
     /** 上游 chat.completions 原始响应 */
     apiResponse?: unknown;
 };
@@ -126,6 +128,7 @@ export async function testAIApi(body: {
     baseURL?: string;
     apiKey?: string;
     model?: string;
+    structuredOutput?: boolean;
 }) {
     try {
         return await request<AIApiTestResponse>('/api/settings/ai/test', {

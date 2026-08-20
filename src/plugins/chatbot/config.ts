@@ -55,6 +55,8 @@ export interface ChatbotRuntimeConfig {
     visionModel: string;
     visionBaseURL: string;
     visionApiKey: string;
+    /** 看图是否强制结构化输出（默认 true） */
+    visionStructuredOutput: boolean;
     stickerCaptureEnabled: boolean;
     stickerCaptureMode: 'emoji_like' | 'all_images' | 'animated_only' | 'sticker';
     stickerCaptureStore: boolean;
@@ -145,6 +147,7 @@ export function getChatbotConfig(): ChatbotRuntimeConfig | null {
         visionModel: c.visionModel || 'qwen3.7-plus',
         visionBaseURL: c.visionBaseURL || 'https://dashscope.aliyuncs.com/compatible-mode/v1',
         visionApiKey: c.visionApiKey || '',
+        visionStructuredOutput: c.visionStructuredOutput !== false,
         stickerCaptureEnabled: c.stickerCaptureEnabled !== false,
         stickerCaptureMode:
             c.stickerCaptureMode === 'emoji_like' ||
