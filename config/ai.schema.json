@@ -166,7 +166,7 @@
                 },
                 "visionModel": {
                     "type": "string",
-                    "description": "看图模型，默认 qwen3.7-plus"
+                    "description": "看图模型，须具备视觉理解。默认 qwen3.7-plus。注意：qwen3.7-max 别名是纯文本（等于 2026-05-20 快照），带图会 400 Unexpected item type；需要 Max 看图请用 qwen3.7-max-2026-06-08"
                 },
                 "visionBaseURL": {
                     "type": "string",

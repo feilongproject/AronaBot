@@ -16,6 +16,7 @@ import config, {
     writeRawConfigFile,
 } from '../../config/config';
 import { chatCollection, CHAT_COLLECTION, aiDb } from '../plugins/chatbot/db';
+import { testChatbotApi, type AIApiTestKind } from './aiApiTest';
 
 const STICKER_STATUSES = new Set(['pending', 'ready', 'hidden', 'rejected']);
 
@@ -221,6 +222,8 @@ function sendFile(ctx: Context, filePath: string): boolean {
  *       GET  /api/settings/config
  *       PUT  /api/settings/config
  *       POST /api/settings/config
+ *       GET/PUT/POST /api/settings/ai
+ *       POST /api/settings/ai/test   chatbot 对话 / 看图 API 连通测试
  */
 export function registerSettingsRoutes(router: Router): void {
     // API 优先
@@ -317,6 +320,35 @@ export function registerSettingsRoutes(router: Router): void {
     router.post('/api/settings/config', saveConfigHandler);
     router.put('/api/settings/ai', saveAIConfigHandler);
     router.post('/api/settings/ai', saveAIConfigHandler);
+
+    /** chatbot 对话 / 看图 API 连通测试（用请求体当前值，不要求先保存） */
+    router.post('/api/settings/ai/test', async (ctx) => {
+        if (!requireSettingsAuth(ctx)) return;
+        const body = (ctx.request.body || {}) as {
+            kind?: string;
+            baseURL?: string;
+            apiKey?: string;
+            model?: string;
+        };
+        const kind = body.kind as AIApiTestKind;
+        if (kind !== 'chat' && kind !== 'vision') {
+            ctx.status = 400;
+            ctx.body = { message: 'kind 须为 chat 或 vision' };
+            return;
+        }
+        try {
+            const result = await testChatbotApi({
+                kind,
+                baseURL: body.baseURL,
+                apiKey: body.apiKey,
+                model: body.model,
+            });
+            ctx.body = result;
+        } catch (err) {
+            ctx.status = 500;
+            ctx.body = { message: `API 测试失败: ${(err as Error).message}` };
+        }
+    });
 
     // —— 表情包图库管理（chatSticker）——
     router.get('/api/settings/stickers', async (ctx) => {

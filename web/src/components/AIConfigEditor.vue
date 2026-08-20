@@ -1,6 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
-import { fetchAIConfig, saveAIConfig, type AIConfigResponse } from '../api';
+import { computed, onMounted, reactive, ref } from 'vue';
+import {
+    fetchAIConfig,
+    saveAIConfig,
+    testAIApi,
+    type AIApiTestKind,
+    type AIApiTestResponse,
+    type AIConfigResponse,
+} from '../api';
 import Field from './fields/Field.vue';
 import TextInput from './fields/TextInput.vue';
 import NumberInput from './fields/NumberInput.vue';
@@ -79,6 +86,16 @@ const status = ref<{ type: 'ok' | 'err'; text: string } | null>(null);
 const loading = ref(false);
 const saving = ref(false);
 const ready = ref(false);
+
+type ApiTestSlot = {
+    loading: boolean;
+    result: AIApiTestResponse | null;
+    error: string;
+};
+const apiTests = reactive<Record<AIApiTestKind, ApiTestSlot>>({
+    chat: { loading: false, result: null, error: '' },
+    vision: { loading: false, result: null, error: '' },
+});
 
 function ensureChatbotShape() {
     const c = ai.value.chatbot || (ai.value.chatbot = { ...DEFAULT_CHATBOT });
@@ -182,6 +199,41 @@ async function save() {
     } finally {
         saving.value = false;
     }
+}
+
+async function runApiTest(kind: AIApiTestKind) {
+    const slot = apiTests[kind];
+    slot.loading = true;
+    slot.result = null;
+    slot.error = '';
+    try {
+        const c = ai.value.chatbot || {};
+        slot.result = await testAIApi(
+            kind === 'chat'
+                ? {
+                      kind,
+                      baseURL: c.baseURL,
+                      apiKey: c.apiKey,
+                      model: c.chatModel,
+                  }
+                : {
+                      kind,
+                      baseURL: c.visionBaseURL,
+                      apiKey: c.visionApiKey,
+                      model: c.visionModel,
+                  },
+        );
+    } catch (e) {
+        const raw = e instanceof Error ? e.message : String(e);
+        slot.error = /aborted|timeout/i.test(raw) ? '测试超时（约 35s），请检查地址或网络' : raw;
+    } finally {
+        slot.loading = false;
+    }
+}
+
+function formatBalance(b: NonNullable<AIApiTestResponse['balance']>): string {
+    const unit = b.currency === 'CNY' ? '¥' : b.currency === 'USD' ? '$' : `${b.currency} `;
+    return `${unit}${b.total}${b.available ? '' : '（不可用）'}`;
 }
 
 onMounted(load);
@@ -319,57 +371,166 @@ onMounted(load);
                             @update:model-value="patchChatbot((c) => (c.enabled = $event))"
                         />
                     </Field>
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <Field
-                            label="baseURL"
-                            hint="对话 OpenAI 兼容地址；留空用 https://api.deepseek.com"
+                    <div class="grid gap-4 lg:grid-cols-2">
+                        <section
+                            class="space-y-3 rounded-xl border border-slate-700/80 bg-slate-950/40 px-4 py-3"
                         >
-                            <TextInput
-                                mono
-                                :model-value="ai.chatbot?.baseURL || ''"
-                                @update:model-value="patchChatbot((c) => (c.baseURL = $event))"
-                            />
-                        </Field>
-                        <Field
-                            label="apiKey"
-                            hint="对话 OpenAI 兼容接口密钥；与看图 visionApiKey 分离"
-                        >
-                            <TextInput
-                                type="password"
-                                :model-value="ai.chatbot?.apiKey || ''"
-                                @update:model-value="patchChatbot((c) => (c.apiKey = $event))"
-                            />
-                        </Field>
-                        <Field label="chatModel" hint="对话文本模型名">
-                            <TextInput
-                                mono
-                                :model-value="ai.chatbot?.chatModel || 'deepseek-chat'"
-                                @update:model-value="patchChatbot((c) => (c.chatModel = $event))"
-                            />
-                        </Field>
-                        <Field label="visionBaseURL" hint="阿里云百炼 OpenAI 兼容地址">
-                            <TextInput
-                                mono
-                                :model-value="ai.chatbot?.visionBaseURL || ''"
-                                @update:model-value="
-                                    patchChatbot((c) => (c.visionBaseURL = $event))
+                            <div class="flex flex-wrap items-start justify-between gap-2">
+                                <div>
+                                    <h4 class="text-sm font-semibold text-slate-200">对话 API</h4>
+                                    <p class="mt-0.5 text-xs text-slate-500">
+                                        OpenAI 兼容 completions；用当前表单值测试，无需先保存
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="rounded-lg border border-sky-500/70 bg-sky-500/10 px-3 py-1.5 text-sm text-sky-200 hover:bg-sky-500/20 disabled:opacity-50"
+                                    :disabled="apiTests.chat.loading"
+                                    @click="runApiTest('chat')"
+                                >
+                                    {{ apiTests.chat.loading ? '测试中…' : '测试连通' }}
+                                </button>
+                            </div>
+                            <Field
+                                label="baseURL"
+                                hint="对话 OpenAI 兼容地址；留空用 https://api.deepseek.com"
+                            >
+                                <TextInput
+                                    mono
+                                    :model-value="ai.chatbot?.baseURL || ''"
+                                    @update:model-value="patchChatbot((c) => (c.baseURL = $event))"
+                                />
+                            </Field>
+                            <Field
+                                label="apiKey"
+                                hint="对话 OpenAI 兼容接口密钥；与看图 visionApiKey 分离"
+                            >
+                                <TextInput
+                                    type="password"
+                                    :model-value="ai.chatbot?.apiKey || ''"
+                                    @update:model-value="patchChatbot((c) => (c.apiKey = $event))"
+                                />
+                            </Field>
+                            <Field label="chatModel" hint="对话文本模型名">
+                                <TextInput
+                                    mono
+                                    :model-value="ai.chatbot?.chatModel || 'deepseek-chat'"
+                                    @update:model-value="
+                                        patchChatbot((c) => (c.chatModel = $event))
+                                    "
+                                />
+                            </Field>
+                            <div
+                                v-if="apiTests.chat.error || apiTests.chat.result"
+                                class="space-y-1.5 rounded-lg border px-3 py-2 text-xs leading-relaxed"
+                                :class="
+                                    apiTests.chat.result?.ok
+                                        ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100'
+                                        : 'border-rose-500/40 bg-rose-500/10 text-rose-100'
                                 "
-                            />
-                        </Field>
-                        <Field label="visionApiKey" hint="独立看图密钥，不复用对话 apiKey">
-                            <TextInput
-                                type="password"
-                                :model-value="ai.chatbot?.visionApiKey || ''"
-                                @update:model-value="patchChatbot((c) => (c.visionApiKey = $event))"
-                            />
-                        </Field>
-                        <Field label="visionModel" hint="看图模型">
-                            <TextInput
-                                mono
-                                :model-value="ai.chatbot?.visionModel || 'qwen3.7-plus'"
-                                @update:model-value="patchChatbot((c) => (c.visionModel = $event))"
-                            />
-                        </Field>
+                            >
+                                <p class="font-medium">
+                                    {{ apiTests.chat.error || apiTests.chat.result?.message }}
+                                </p>
+                                <p
+                                    v-if="apiTests.chat.result?.ping.content"
+                                    class="font-mono text-slate-300"
+                                >
+                                    回复：{{ apiTests.chat.result.ping.content }}
+                                </p>
+                                <p
+                                    v-if="apiTests.chat.result?.models.sample?.length"
+                                    class="font-mono text-slate-400"
+                                >
+                                    模型样例：{{ apiTests.chat.result.models.sample.join('、') }}
+                                </p>
+                                <p v-if="apiTests.chat.result?.balance" class="text-slate-300">
+                                    余额：{{ formatBalance(apiTests.chat.result.balance) }}
+                                </p>
+                            </div>
+                        </section>
+
+                        <section
+                            class="space-y-3 rounded-xl border border-slate-700/80 bg-slate-950/40 px-4 py-3"
+                        >
+                            <div class="flex flex-wrap items-start justify-between gap-2">
+                                <div>
+                                    <h4 class="text-sm font-semibold text-slate-200">看图 API</h4>
+                                    <p class="mt-0.5 text-xs text-slate-500">
+                                        会发一张 32×32 测试图；可检出纯文本模型拒图
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="rounded-lg border border-sky-500/70 bg-sky-500/10 px-3 py-1.5 text-sm text-sky-200 hover:bg-sky-500/20 disabled:opacity-50"
+                                    :disabled="apiTests.vision.loading"
+                                    @click="runApiTest('vision')"
+                                >
+                                    {{ apiTests.vision.loading ? '测试中…' : '测试连通' }}
+                                </button>
+                            </div>
+                            <Field
+                                label="visionBaseURL"
+                                hint="阿里云百炼 OpenAI 兼容地址；留空用官方 compatible-mode/v1"
+                            >
+                                <TextInput
+                                    mono
+                                    :model-value="ai.chatbot?.visionBaseURL || ''"
+                                    @update:model-value="
+                                        patchChatbot((c) => (c.visionBaseURL = $event))
+                                    "
+                                />
+                            </Field>
+                            <Field label="visionApiKey" hint="独立看图密钥，不复用对话 apiKey">
+                                <TextInput
+                                    type="password"
+                                    :model-value="ai.chatbot?.visionApiKey || ''"
+                                    @update:model-value="
+                                        patchChatbot((c) => (c.visionApiKey = $event))
+                                    "
+                                />
+                            </Field>
+                            <Field
+                                label="visionModel"
+                                hint="须具备视觉理解。qwen3.7-max 别名是纯文本，看图用 qwen3.7-plus 或 qwen3.7-max-2026-06-08"
+                            >
+                                <TextInput
+                                    mono
+                                    :model-value="ai.chatbot?.visionModel || 'qwen3.7-plus'"
+                                    @update:model-value="
+                                        patchChatbot((c) => (c.visionModel = $event))
+                                    "
+                                />
+                            </Field>
+                            <div
+                                v-if="apiTests.vision.error || apiTests.vision.result"
+                                class="space-y-1.5 rounded-lg border px-3 py-2 text-xs leading-relaxed"
+                                :class="
+                                    apiTests.vision.result?.ok
+                                        ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100'
+                                        : 'border-rose-500/40 bg-rose-500/10 text-rose-100'
+                                "
+                            >
+                                <p class="font-medium">
+                                    {{ apiTests.vision.error || apiTests.vision.result?.message }}
+                                </p>
+                                <p
+                                    v-if="apiTests.vision.result?.ping.content"
+                                    class="font-mono text-slate-300"
+                                >
+                                    回复：{{ apiTests.vision.result.ping.content }}
+                                </p>
+                                <p v-if="apiTests.vision.result?.warning" class="text-amber-200">
+                                    {{ apiTests.vision.result.warning }}
+                                </p>
+                                <p
+                                    v-if="apiTests.vision.result?.models.sample?.length"
+                                    class="font-mono text-slate-400"
+                                >
+                                    模型样例：{{ apiTests.vision.result.models.sample.join('、') }}
+                                </p>
+                            </div>
+                        </section>
                     </div>
                     <Field
                         label="systemPrompt"

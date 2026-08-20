@@ -229,10 +229,17 @@ function asStrList(v: unknown): string[] {
 /** 无目录元数据时的模型名启发式（仅作兜底） */
 function heuristicImageReason(id: string): string | null {
     const s = id.toLowerCase();
+    // qwen3.7-max 别名 = 2026-05-20 纯文本快照；带图会 400 Unexpected item type in content
+    if (
+        /embedding|rerank/.test(s) ||
+        /^qwen3\.7-max(?:-preview|-2026-05-1[07]|-2026-05-20)?$/.test(s)
+    ) {
+        return null;
+    }
     if (/(?:^|[/\-_])(?:vl|qvq|omni|ocr|vision|gui)(?:$|[/\-_.])/.test(s)) {
         return 'name-heuristic';
     }
-    if (/qwen3\.(?:[5-9]|\d{2,})/.test(s) && !/embedding|rerank/.test(s)) {
+    if (/qwen3\.(?:[5-9]|\d{2,})/.test(s)) {
         return 'name-heuristic:qwen3.5+';
     }
     return null;

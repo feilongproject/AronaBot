@@ -87,6 +87,59 @@ export function saveAIConfig(config: unknown) {
     });
 }
 
+export type AIApiTestKind = 'chat' | 'vision';
+
+export type AIApiTestResponse = {
+    ok: boolean;
+    kind: AIApiTestKind;
+    baseURL: string;
+    model: string;
+    message: string;
+    ping: {
+        ok: boolean;
+        latencyMs: number;
+        content: string;
+        error?: string;
+    };
+    models: {
+        ok: boolean;
+        count: number;
+        currentListed: boolean | null;
+        sample: string[];
+        error?: string;
+    };
+    balance?: {
+        available: boolean;
+        currency: string;
+        total: string;
+        granted: string;
+        toppedUp: string;
+    };
+    warning?: string;
+};
+
+/** 用当前表单值测试对话 / 看图 API，无需先保存 */
+export async function testAIApi(body: {
+    kind: AIApiTestKind;
+    baseURL?: string;
+    apiKey?: string;
+    model?: string;
+}) {
+    try {
+        return await request<AIApiTestResponse>('/api/settings/ai/test', {
+            method: 'POST',
+            body: JSON.stringify(body),
+            signal: AbortSignal.timeout(35000),
+        });
+    } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (/not found/i.test(msg) || /找不到/i.test(msg)) {
+            throw new Error('后端尚未加载测试接口，请重启 bot 进程后再试');
+        }
+        throw e;
+    }
+}
+
 // —— 表情包图库 ——
 
 export type StickerItem = {

@@ -182,20 +182,41 @@ export interface VisionResult {
     isMeme: boolean;
 }
 
+/** 百炼视觉：边长须 >10；过大则缩边控制 token */
+const VISION_MAX_EDGE = 1024;
+const VISION_MIN_EDGE = 32;
+
 function toVisionDataUrl(img: VisionInputImage): Promise<string> {
-    let buf = img.buffer;
-    let mime = img.mime || 'image/png';
-    const needResize = (img.width || 0) > 1024 || (img.height || 0) > 1024;
-    if (img.ext === 'gif' || mime === 'image/gif' || needResize) {
-        return sharp(img.buffer, { animated: false })
-            .rotate()
-            .resize({ width: 1024, height: 1024, fit: 'inside' })
-            .png()
-            .toBuffer()
-            .then((b) => `data:image/png;base64,${b.toString('base64')}`)
-            .catch(() => `data:${mime};base64,${buf.toString('base64')}`);
+    const buf = img.buffer;
+    const mime = img.mime || 'image/png';
+    const w = img.width || 0;
+    const h = img.height || 0;
+    const isGif = img.ext === 'gif' || mime === 'image/gif';
+    const tooBig = w > VISION_MAX_EDGE || h > VISION_MAX_EDGE;
+    const tooSmall = (w > 0 && w < VISION_MIN_EDGE) || (h > 0 && h < VISION_MIN_EDGE);
+    if (!isGif && !tooBig && !tooSmall) {
+        return Promise.resolve(`data:${mime};base64,${buf.toString('base64')}`);
     }
-    return Promise.resolve(`data:${mime};base64,${buf.toString('base64')}`);
+    let pipeline = sharp(img.buffer, { animated: false }).rotate();
+    if (tooSmall) {
+        pipeline = pipeline.resize({
+            width: Math.max(VISION_MIN_EDGE, w || VISION_MIN_EDGE),
+            height: Math.max(VISION_MIN_EDGE, h || VISION_MIN_EDGE),
+            fit: 'contain',
+            background: { r: 255, g: 255, b: 255, alpha: 1 },
+        });
+    } else if (tooBig) {
+        pipeline = pipeline.resize({
+            width: VISION_MAX_EDGE,
+            height: VISION_MAX_EDGE,
+            fit: 'inside',
+        });
+    }
+    return pipeline
+        .png()
+        .toBuffer()
+        .then((b) => `data:image/png;base64,${b.toString('base64')}`)
+        .catch(() => `data:${mime};base64,${buf.toString('base64')}`);
 }
 
 /** is_meme 判定准则：供图库入库；聊天记录/App 截图等必须 false */
@@ -678,24 +699,34 @@ export async function visionSummarize(
         .filter(Boolean)
         .join('\n');
 
-    const completion = await openai.chat.completions.create({
-        model: cfg.visionModel,
-        messages: [
-            {
-                role: 'user',
-                content: [
-                    { type: 'text', text: prompt },
-                    ...dataUrls.map((url) => ({
-                        type: 'image_url' as const,
-                        image_url: { url },
-                    })),
-                ],
-            },
-        ],
-        max_tokens: 1200,
-        temperature: 0.2,
-    });
-    const raw = completion.choices?.[0]?.message?.content || '';
+    let raw = '';
+    try {
+        const completion = await openai.chat.completions.create({
+            model: cfg.visionModel,
+            messages: [
+                {
+                    role: 'user',
+                    content: [
+                        { type: 'text', text: prompt },
+                        ...dataUrls.map((url) => ({
+                            type: 'image_url' as const,
+                            image_url: { url },
+                        })),
+                    ],
+                },
+            ],
+            max_tokens: 1200,
+            temperature: 0.2,
+        });
+        raw = completion.choices?.[0]?.message?.content || '';
+    } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        const hint = /Unexpected item type in content/i.test(msg)
+            ? `（当前 visionModel=${cfg.visionModel} 不接受图片：qwen3.7-max 别名是纯文本，看图请用 qwen3.7-plus 或 qwen3.7-max-2026-06-08）`
+            : '';
+        log.error(`visionSummarize 失败 model=${cfg.visionModel}: ${msg}${hint}`);
+        return null;
+    }
     log.debug(`visionSummarize raw: ${raw}`);
     const json = extractJson(raw) as { images?: VisionResult[] } | VisionResult | null;
     if (!json || typeof json !== 'object') return null;
