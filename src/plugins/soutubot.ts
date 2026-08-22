@@ -12,9 +12,14 @@ let M = 4556179899441;
 const MinSimilar = 25;
 const MAX_LEN = 3;
 export async function soutubot(msg: IMessageGROUP | IMessageC2C) {
-    if (await notCanUse(msg)) return msg.sendMsgEx({ content: `无权限使用` });
+    if (await notCanUse(msg))
+        return msg.sendMarkdown({
+            content: `无权限使用`,
+        });
     if (msg.attachments?.length !== 1)
-        return msg.sendMsgEx({ content: `图片数量只能为一张，不可少图不可多图` });
+        return msg.sendMarkdown({
+            content: `图片数量只能为一张，不可少图不可多图`,
+        });
 
     const commands = msg.content
         .split(' ')
@@ -44,7 +49,7 @@ export async function soutubot(msg: IMessageGROUP | IMessageC2C) {
     const fileData = await axios({ url: msg.attachments[0].url, responseType: 'arraybuffer' }).then(
         (res) => res.data,
     );
-    await msg.sendMsgEx({ content: `搜索中，请稍后` });
+    await msg.sendMarkdown({ content: `搜索中，请稍后` });
 
     const _ = (Math.pow(Math.floor(Date.now() / 1000), 2) + Math.pow(UA.length, 2) + M).toString();
     const apiKey = btoa(_).split('').reverse().join('').replace(/=/g, '');
@@ -65,15 +70,18 @@ export async function soutubot(msg: IMessageGROUP | IMessageC2C) {
         },
         data: from,
     });
-    if (res.status != 200) return msg.sendMsgEx({ content: `搜索失败，错误码${res.status}` });
+    if (res.status != 200)
+        return msg.sendMarkdown({
+            content: `$\\textcolor{#E74C3C}{\\text{搜索失败，错误码 ${res.status}}}$`,
+        });
 
     const { data: resData, id: resId } = res.data;
-    if (resData.length == 0) return msg.sendMsgEx({ content: `搜索完成，未找到结果` });
+    if (resData.length == 0) return msg.sendMarkdown({ content: `搜索完成，未找到结果` });
     if (!resData.find((v) => v.similarity >= MinSimilar))
-        return msg.sendMsgEx({
+        return msg.sendMarkdown({
             content:
-                `搜索结果中不存在匹配度大于${MinSimilar}%内容` +
-                `详情请看：\nhttps://soutubot\u200b.moe/results/${resId}`,
+                `搜索结果中不存在匹配度大于 ${MinSimilar}% 的内容\n` +
+                `[查看完整结果](https://soutubot.moe/results/${resId})`,
         });
 
     const filterData = await Promise.all(
@@ -101,7 +109,7 @@ export async function soutubot(msg: IMessageGROUP | IMessageC2C) {
                         const r = Math.max(1, (height || 0) / 150);
                         const w = Math.floor((width || 0) / r);
                         const h = Math.floor((height || 0) / r);
-                        v.title = v.title.replaceAll('[', '【').replaceAll(']', '】');
+                        // v.title = v.title.replaceAll('[', '【').replaceAll(']', '】');
                         return { ...v, buff, width: w, height: h };
                     }),
             ),
@@ -126,7 +134,7 @@ export async function soutubot(msg: IMessageGROUP | IMessageC2C) {
                             `${i}-${d.name}-${r()}`,
                         ),
                         genKeyboard(
-                            `${d.name}-P${v.page}`,
+                            `${d.name}-Page${v.page}`,
                             `${d.host}${v.pagePath}`,
                             `${i}-${d.name}-${v.page}-${r()}`,
                         ),
@@ -137,25 +145,24 @@ export async function soutubot(msg: IMessageGROUP | IMessageC2C) {
     });
 
     // debugger;
-    await msg.sendMsgEx({ content: `搜索结果: https://soutubot\u200b.moe/results/${resId}` });
-    // return;
     await msg.sendMarkdown({
-        content:
-            `搜索完成，共 ${filterData.length} 条结果，其中 ${resData.length - filterData.length} 条被过滤\n` +
-            filterData
-                .map((v) => [
-                    `\n![img #${v.width}px #${v.height}px]`,
-                    `(${v.previewImageUrl})`,
-                    `\u200b  \u200b  ${v.similarity} | ${v.language.toUpperCase()} | ${v.page}\n`,
-                    ...'`'.repeat(3),
-                    '\n',
-                    `${v.title}`,
-                    `\n`,
-                    ...'`'.repeat(3),
-                    `\n`,
-                ])
-                .flat()
-                .join('\n'),
+        content: `[搜索结果页面](https://soutubot.moe/results/${resId})`,
+    });
+    // return;
+    const resultCards = filterData.map((v) =>
+        [
+            `![img #${v.width}px #${v.height}px](${v.previewImageUrl})`,
+            `${similarityBadge(v.similarity)} 语言: ${v.language.toUpperCase()} | Page${v.page}`,
+            '```',
+            v.title,
+            '```',
+        ].join('\n'),
+    );
+    await msg.sendMarkdown({
+        content: [
+            `搜索完成，共 ${filterData.length} 条结果，其中 ${resData.length - filterData.length} 条被过滤`,
+            ...resultCards,
+        ].join('\n\n'),
         keyboard: {
             content: {
                 rows: [
@@ -165,6 +172,12 @@ export async function soutubot(msg: IMessageGROUP | IMessageC2C) {
             },
         },
     });
+}
+
+/** 相似度色块：≥阈值绿底、低相似度灰底（-low 时出现）；公式内只放机器生成的数字 */
+function similarityBadge(similarity: number): string {
+    const bg = similarity >= MinSimilar ? '#16A085' : '#95A5A6';
+    return `$\\colorbox{${bg}}{\\color{white}{\\textbf{ ${similarity}\\% }}}$`;
 }
 
 async function notCanUse(msg: IMessageC2C | IMessageGROUP): Promise<boolean> {
