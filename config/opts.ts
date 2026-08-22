@@ -405,7 +405,7 @@ export default {
             todayTarot: {
                 reg: /^\/?塔罗牌$/,
                 fnc: 'todayTarot',
-                type: [MessageType.GUILD, MessageType.GROUP, MessageType.FRIEND],
+                type: [MessageType.GROUP, MessageType.FRIEND],
                 describe: '抽取今日塔罗牌',
                 export: '/塔罗牌',
             },
