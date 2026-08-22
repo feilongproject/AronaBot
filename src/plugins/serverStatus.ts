@@ -25,7 +25,7 @@ export async function baServerStatus(
         .catch((err) => log.error(err));
 
     const cnStatus = await axios<Gamekee.Index>({
-        url: `https://ba.gamekee.com/v1/wiki/index`,
+        url: `https://www.gamekee.com/v1/wiki/indexV2`,
         headers: { 'game-alias': 'ba' },
     })
         .then((res) => res.data)
@@ -58,9 +58,11 @@ export async function baServerStatus(
                   `\n原因: ${globalStatus.result.maintenanceInfo.title}`
                 : '国际服一切正常, 暂无官方维护通知';
 
-            const cnNode = cnStatus.data
-                .find((v) => v.module.name == '活动周历')
-                ?.list.filter((v) => v.pub_area == '国服')
+            const cnNode = Object.values(
+                cnStatus.data.find((v) => v.module.name == '活动周历')?.list || {},
+            )
+                .flat(1)
+                .filter((v) => v.pub_area == '国服')
                 .find((v) => v.title.includes('国服维护'));
             const cnStartTime = new Date((cnNode?.begin_at || 0) * 1000);
             const cnEndTime = new Date((cnNode?.end_at || 0) * 1000);
