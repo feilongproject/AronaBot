@@ -4,7 +4,7 @@ import { IMessageC2C, IMessageGROUP } from '../libs/IMessageEx';
 import config from '../../config/config';
 
 /** 原图 461×817，聊天里缩小显示 */
-const TAROT_IMG = { width: 240, height: 425 };
+const TAROT_IMG = { width: 180, height: 315 };
 
 export async function todayTarot(msg: IMessageGROUP | IMessageC2C) {
     const nowDay = new Date().setHours(0, 0, 0, 0) / 1000;
@@ -49,7 +49,7 @@ function latexFraktur(value: string): string {
 
 function nameRuby(card: Tarot): string {
     const zh = `\\textbf{\\Large{${latexText(card.name)}}}`;
-    const en = `\\scriptsize{${latexFraktur(card.nameEn)}}`;
+    const en = `\\Large{${latexFraktur(card.nameEn)}}`;
     return `$\\overset{${en}}{${zh}}$`;
 }
 
