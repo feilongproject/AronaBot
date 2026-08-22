@@ -149,8 +149,8 @@ class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
                 : undefined;
         options.eventId =
             (await redis.get(`lastestEventId:${meId}:${options.guildId}`)) || undefined;
-        if (botType == 'PlanaBot' || !options.eventId) return this.sendMsgEx(options);
-        if (devEnv) log.debug('options.eventId:', options.eventId);
+        if (1) return this.sendMsgEx(options); // Plana没权限Arona只开了模板回复
+        log.debug('options.eventId:', options.eventId);
 
         const markdownConfig = await getMarkdown(options);
         if (!markdownConfig) return this.sendMsgEx(options);
@@ -162,12 +162,16 @@ class IMessageChannelCommon implements IntentMessage.MessageChannelCommon {
     private _sendMarkdown = async (
         options: Partial<SendOption.Channel> & SendOption.MarkdownOrgin,
     ) => {
+        return client.messageApi.postMessage(options.channelId || this.channel_id, {
+            markdown: options.markdown,
+            keyboard: options.keyboard,
+        });
         return axios({
-            url: `https://api.sgroup.qq.com/channels/${options.channelId || this.channel_id}/messages`,
+            url: `https://api.bot.qq.com/channels/${options.channelId || this.channel_id}/messages`,
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bot ${config.bots[botType].appID}.${config.bots[botType].token}`,
+                Authorization: `QQBot `,
             },
             data: JSON.stringify({
                 event_id: options.eventId,

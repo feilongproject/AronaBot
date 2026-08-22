@@ -287,7 +287,6 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
                     post_id: 'c_392efd65c4d10c001441152193843183750X60',
                     thread_id: 'B_bb26fd65519f03001441152189223925810X60'
                 } */
-
                 /**
                  * FORUM_REPLY_CREATE
                  * ```
@@ -300,20 +299,19 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
                  * }
                  * ```
                  */
-                const threadContent: PostInfo.Root = await axios({
-                    url: `https://api.sgroup.qq.com/channels/${msg.channel_id}/threads/${msg.post_info?.thread_id}`,
-                    headers: {
-                        Authorization: `Bot ${config.bots[botType].appID}.${config.bots[botType].token}`,
-                    },
-                })
-                    .then((res) => res.data)
-                    .then((json) => JSON.parse(json.thread.thread_info.content));
-
-                log.debug(
-                    threadContent.paragraphs.find((v) =>
-                        v.elems.find((v) => v.text?.text.includes('举报晒卡')),
-                    ),
-                );
+                // const threadContent: PostInfo.Root = await axios({
+                //     url: `https://api.sgroup.qq.com/channels/${msg.channel_id}/threads/${msg.post_info?.thread_id}`,
+                //     headers: {
+                //         Authorization: `Bot ${config.bots[botType].appID}.${config.bots[botType].token}`,
+                //     },
+                // })
+                //     .then((res) => res.data)
+                //     .then((json) => JSON.parse(json.thread.thread_info.content));
+                // log.debug(
+                //     threadContent.paragraphs.find((v) =>
+                //         v.elems.find((v) => v.text?.text.includes('举报晒卡')),
+                //     ),
+                // );
             }
 
             return;
