@@ -129,13 +129,14 @@ async function executeChat(msg: IMessageGROUP | IMessageC2C) {
 }
 
 export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
+    // dev 进程走独立键去重：received: 由生产先写，复用会导致镜像事件被误跳过
+    const dedupKey = `${devEnv ? 'devReceived' : 'received'}:${event.eventType}:${event.eventId}`;
     if (
-        (await redis.exists(`received:${event.eventType}:${event.eventId}`)) &&
-        !devEnv &&
+        (await redis.exists(dedupKey)) &&
         (event.msg as any as IntentMessage.GROUP_MESSAGE_body)?.isOffical != false
     )
         return;
-    await redis.setEx(`received:${event.eventType}:${event.eventId}`, 60, '1');
+    await redis.setEx(dedupKey, 60, '1');
 
     switch (event.eventRootType) {
         case AvailableIntentsEventsEnum.GUILD_MESSAGES:
@@ -266,6 +267,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
                     .catch((err) => {
                         log.error(err);
                     });
+            return;
         }
 
         case AvailableIntentsEventsEnum.FORUMS_EVENT: {
@@ -350,7 +352,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
             //     log.error(err);
             // }); //  0成功,1操作失败,2操作频繁,3重复操作,4没有权限,5仅管理员操作
 
-            break;
+            return;
         }
     }
 }

@@ -39,7 +39,7 @@ const scheduleTablesDev: ScheduleTable[] = [
     {
         desc: 'dev环境看门狗',
         rule: '*/10 * * * * ? ',
-        func: () => redis.setEx('devEnv', 10, botType),
+        func: () => redis.setEx('devEnv', 30, botType),
         enable: true,
     },
     // {
