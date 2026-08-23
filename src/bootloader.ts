@@ -26,7 +26,6 @@ export function initRuntime() {
         msgSendNum: 0,
         imageRenderNum: 0,
     };
-    global.mdParamLength = 120;
     global.hotLoadStatus = 0;
 
     global.devEnv = process.argv.includes('--dev');

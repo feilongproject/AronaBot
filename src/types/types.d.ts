@@ -54,7 +54,6 @@ declare global {
     var botType: BotTypes;
     var allowMarkdown: boolean;
     var cos: COS;
-    var mdParamLength: number;
 
     /** 运行中的 bot 名称；排除 number 索引签名副作用 */
     type BotTypes = Extract<keyof typeof config.bots, string>;
