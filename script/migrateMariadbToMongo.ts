@@ -28,7 +28,7 @@ const INDEX_MAP: Record<string, string[][]> = {
     guildMessage: [['author.id'], ['channel_id'], ['timestamp']],
     GUILD_MEMBERS: [['user.id']],
     GUILD_MESSAGE_REACTIONS: [['channel_id'], ['user_id'], ['target.id']],
-    group_named_gallery: [['group_id', 'gallery_name'], ['aid']],
+    group_named_gallery: [['gid', 'gallery_name'], ['aid']],
 };
 
 /** 各表的时间字段；迁移时按该字段升序读取，保证默认展示从旧到新 */
@@ -44,11 +44,10 @@ const TIME_COLUMNS: Record<string, string> = {
     group_named_gallery: 'created_at',
 };
 
-/** 迁移到 Mongo 时的字段改名：MariaDB 列名 → Mongo 字段名 */
+/** 迁移到 Mongo 时的字段改名：MariaDB 列名 → Mongo 字段名（消息表走专用 builder；group_named_gallery 保持原结构不改名） */
 const RENAME_COLUMNS: Record<string, string> = {
     ts: 'timestamp',
     jts: 'join_timestamp',
-    gid: 'group_id',
 };
 
 type MigrateOptions = {
