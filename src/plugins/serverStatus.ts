@@ -99,6 +99,17 @@ export async function baServerStatus(
         });
 }
 
+/** 服务器名称标签：行内公式 + 颜色 + 大号粗体，每个服区独立配色 */
+function serverNameLabel(name: string): string {
+    const colors: Record<string, string> = {
+        日服: '#3498DB',
+        国际服: '#9B59B6',
+        国服: '#E74C3C',
+    };
+    const color = colors[name] || '#3498DB';
+    return `$\\textcolor{${color}}{\\textbf{${name}}}$`;
+}
+
 /** 状态色块：只放机器人自己生成的短标签，外部公告文案一律不进公式 */
 function statusBadge(maintenance: boolean): string {
     const bg = maintenance ? '#E74C3C' : '#16A085';
@@ -115,7 +126,7 @@ function escapeExternal(value: string): string {
 function renderMarkdownStatus(servers: ServerInfo[]): string {
     return servers
         .map((info) => {
-            const lines = [`## ${info.name}`, statusBadge(info.maintenance)];
+            const lines = [`## ${serverNameLabel(info.name)} - ` + statusBadge(info.maintenance)];
             if (info.maintenance) {
                 lines.push(`- 开始维护时间: ${info.startTime}`);
                 lines.push(`- 终止维护时间: ${info.endTime}`);
