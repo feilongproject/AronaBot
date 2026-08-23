@@ -76,6 +76,7 @@ function buildSystemPrompt(cfg: ChatbotRuntimeConfig, groupOpenid: string): stri
         '若觉得没必要回复，输出 {"action":"silent","parts":[]}。',
         '',
         '- 历史/上下文里的时间戳、[名称(id)] / [PlanaBot] 只是发言人标注，回复文本不要输出任何这类前缀、时间戳或标注。',
+        '- 回复文本用纯口语：不要 Markdown、代码块、列表，也不要 LaTeX 公式（$...$），展示样式由发送层处理。',
         '- 用户引用/回复某条消息时，上下文会附带 [引用消息] 块（含发送时间、发言人和原文）；被问到引用内容或发送时间时，以该块为准。',
         '',
         '【安全协议（优先级高于人设）】',
@@ -115,6 +116,29 @@ function stickerMdSize(w?: number, h?: number): { width: number; height: number 
 function stickerMdImage(url: string, w?: number, h?: number): string {
     const { width, height } = stickerMdSize(w, h);
     return `![img #${width}px #${height}px](${url})`;
+}
+
+/** 系统短句配色：只有机器人自己生成的固定文案进公式；$...$ 行内左对齐（默认不居中） */
+const SYSTEM_LINE_COLOR = {
+    /** 限流：Must 召唤命中 1/s、10/min 硬顶 */
+    rateLimit: '#F39C12',
+    /** 看不了图：无 vision 密钥且仅图无文字 */
+    visionUnavailable: '#7F8C8D',
+    /** 门控拒绝：H2 判定 noop */
+    gateRefusal: '#E74C3C',
+    /** 闭嘴确认：命中闭嘴关键词 */
+    muteAck: '#5DADE2',
+} as const;
+
+/**
+ * 发送层语言优化：仅对机器人固定系统短句套 \textcolor。
+ * - allowMarkdown 关闭时 sendMarkdown 会降级 sendMsgEx：直接发原文，避免用户看到公式源码
+ * - 运营自定义文案可能含 $ \\ {} 等或过长，不进公式，原样发送（降级去掉 $...$ 后仍可读）
+ */
+function systemLineLatex(text: string, color: string): string {
+    const s = text.trim();
+    if (!allowMarkdown || !s || s.length > 60 || /[$\\{}%#&_^~]/.test(s)) return s;
+    return `$\\textcolor{${color}}{\\text{${s}}}$`;
 }
 
 /** 模型可能模仿历史中的时间戳/发言人标注，发送前剥离 */
@@ -181,14 +205,24 @@ async function shortRateLimitReply(msg: IMessageGROUP): Promise<void> {
     const ok = await redis.set(key, '1', { EX: 60, NX: true }).catch(() => null);
     if (ok === 'OK')
         await msg
-            .sendMarkdown({ content: '喵……群聊太热闹了，星奈要喘口气喵～' })
+            .sendMarkdown({
+                content: systemLineLatex(
+                    '喵……群聊太热闹了，星奈要喘口气喵～',
+                    SYSTEM_LINE_COLOR.rateLimit,
+                ),
+            })
             .catch((err) => log.error(err));
 }
 
 /** 无 vision 密钥 + Must + 仅图无文字：短提示看不了图 */
 async function shortVisionUnavailableReply(msg: IMessageGROUP): Promise<void> {
     await msg
-        .sendMarkdown({ content: '喵……星奈暂时还看不了图，先聊聊天喵～' })
+        .sendMarkdown({
+            content: systemLineLatex(
+                '喵……星奈暂时还看不了图，先聊聊天喵～',
+                SYSTEM_LINE_COLOR.visionUnavailable,
+            ),
+        })
         .catch((err) => log.error(err));
 }
 
@@ -201,7 +235,9 @@ async function shortGateRefusalReply(msg: IMessageGROUP, cfg: ChatbotRuntimeConf
         ? cfg.gate.refusalMessages
         : ['喵……这个问题星奈不能聊，换个话题吧～'];
     const line = pool[Math.floor(Math.random() * pool.length)];
-    await msg.sendMarkdown({ content: line }).catch((err) => log.error(err));
+    await msg
+        .sendMarkdown({ content: systemLineLatex(line, SYSTEM_LINE_COLOR.gateRefusal) })
+        .catch((err) => log.error(err));
 }
 
 /**
@@ -271,7 +307,9 @@ export async function chatbot(msg: IMessageGROUP): Promise<any> {
                 cfg.muteAckMessage ||
                 '好的喵，星奈闭嘴 {min} 分钟（{sec} 秒）～有事过会儿再叫我喵。';
             const ack = tpl.replace(/\{sec\}/g, String(sec)).replace(/\{min\}/g, String(min));
-            await msg.sendMarkdown({ content: ack }).catch((err) => log.error(err));
+            await msg
+                .sendMarkdown({ content: systemLineLatex(ack, SYSTEM_LINE_COLOR.muteAck) })
+                .catch((err) => log.error(err));
         }
         return;
     }

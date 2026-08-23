@@ -235,7 +235,9 @@ export function formatRefBlock(ref: RefMessageInfo, adminOpenid?: string): strin
                   ref.authorId && ref.authorId === adminOpenid ? '[最高管理员]' : ''
               }`;
     const when = formatChatTs(ref.ts);
-    const text = (ref.content || '').trim() || '（无文字）';
+    const rawText =
+        ref.role === 'assistant' ? stripAssistantLatex(ref.content || '') : ref.content || '';
+    const text = rawText.trim() || '（无文字）';
     let line = when ? `[引用消息] [${when}] [${who}] ${text}` : `[引用消息] [${who}] ${text}`;
     const summaries = (ref.images || []).map((i) => i.visionSummary).filter(Boolean);
     if (summaries.length) line += `\n[附图摘要: ${summaries.join('；')}]`;
@@ -285,8 +287,19 @@ export async function findRefMessage(
     return null;
 }
 
+/**
+ * 剥离发送层给固定系统短句套的公式包装（$\\textcolor{...}{\\text{正文}}$ → 正文），
+ * 避免模型在上下文里看到/模仿 LaTeX。只处理机器人出站行；用户消息里的 $ 是原话，保持不动。
+ */
+function stripAssistantLatex(text: string): string {
+    if (!text.includes('$')) return text;
+    const s = text.replace(/\$[^$]*\\text\{([^{}]*)\}[^$]*\$/g, '$1');
+    return s.replace(/\$/g, '');
+}
+
 /** 单条历史格式化为带时间戳 + 发言人信息的内容（AstrBot 风格：名称(id) 前缀） */
 function formatHistoryLine(d: Record<string, any>, text: string, adminOpenid?: string): string {
+    const safeText = d.role === 'assistant' ? stripAssistantLatex(text) : text;
     const who =
         d.role === 'assistant'
             ? d.authorName || botType || 'PlanaBot'
@@ -294,7 +307,7 @@ function formatHistoryLine(d: Record<string, any>, text: string, adminOpenid?: s
                   d.authorId && d.authorId === adminOpenid ? '[最高管理员]' : ''
               }`;
     const when = formatChatTs(d.ts);
-    let line = when ? `[${when}] [${who}] ${text}` : `[${who}] ${text}`;
+    let line = when ? `[${when}] [${who}] ${safeText}` : `[${who}] ${safeText}`;
     const summaries = (d.images || [])
         .map((i: Record<string, any>) => i.visionSummary)
         .filter(Boolean);
@@ -435,9 +448,9 @@ export async function maybeCompress(groupOpenid: string, cfg: ChatbotRuntimeConf
                     r.role === 'assistant'
                         ? r.authorName || botType || 'bot'
                         : `${r.authorName || r.authorId || 'user'}(${r.authorId || ''})`;
-                return `[${r.ts instanceof Date ? r.ts.toISOString() : r.ts || ''}] ${speaker}: ${
-                    r.content || ''
-                }`;
+                const lineContent =
+                    r.role === 'assistant' ? stripAssistantLatex(r.content || '') : r.content || '';
+                return `[${r.ts instanceof Date ? r.ts.toISOString() : r.ts || ''}] ${speaker}: ${lineContent}`;
             })
             .join('\n');
         const summary = await summarizeTranscript(groupOpenid, transcript, cfg);
