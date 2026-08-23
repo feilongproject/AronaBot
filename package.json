@@ -27,8 +27,12 @@
     "author": "feilongproject",
     "license": "ISC",
     "devDependencies": {
+        "@babel/core": "^7.29.7",
+        "@babel/plugin-transform-modules-commonjs": "^7.29.7",
+        "@babel/preset-typescript": "^7.29.7",
         "@types/adm-zip": "^0.5.7",
         "@types/amqplib": "^0.10.8",
+        "@types/babel__core": "^7.20.5",
         "@types/json-bigint": "^1.0.4",
         "@types/koa": "^3.0.1",
         "@types/koa__router": "^12.0.5",

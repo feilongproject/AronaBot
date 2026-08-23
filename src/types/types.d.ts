@@ -39,6 +39,8 @@ declare global {
         imageRenderNum: number;
     };
     var hotLoadStatus: number;
+    /** ESM resolve hook 通信端口：用于通知版本更新以绕过 ESM 模块缓存 */
+    var hotReloadPort: import('node:worker_threads').MessagePort;
     /**
      * 频道，你好；频道，再见；拜拜了您嘞
      */

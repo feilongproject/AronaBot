@@ -1,3 +1,4 @@
+import './libs/hotLoader'; // 首行注册 babel 编译与动态 import 状态控制（必须在其它模块加载前）
 import 'dotenv/config';
 import Koa from 'koa';
 import axios from 'axios';
