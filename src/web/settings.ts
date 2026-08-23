@@ -30,6 +30,25 @@ function cosDeleteObject(key: string): Promise<unknown> {
     });
 }
 
+const GALLERY_TABLE = 'group_named_gallery';
+
+/** 与 plugins/annal.ts 的 NamedGalleryDoc 保持一致（id/gid/gallery_name/cos_key/aid/created_at） */
+interface NamedGalleryDoc {
+    _id: string;
+    id: number;
+    gid: string;
+    gallery_name: string;
+    cos_key: string;
+    aid: string;
+    created_at: Date;
+}
+
+/** 群图库集合（bot 主库）；MongoDB 未连接时返回 null */
+function galleryCollection() {
+    if (!global.mongoDb) return null;
+    return global.mongoDb.collection<NamedGalleryDoc>(GALLERY_TABLE);
+}
+
 /** Vue3 构建产物目录（pnpm --dir web build → public/settings） */
 const SETTINGS_DIST = path.join(process.cwd(), 'public', 'settings');
 const SETTINGS_INDEX = path.join(SETTINGS_DIST, 'index.html');
@@ -224,6 +243,8 @@ function sendFile(ctx: Context, filePath: string): boolean {
  *       POST /api/settings/config
  *       GET/PUT/POST /api/settings/ai
  *       POST /api/settings/ai/test   chatbot 对话 / 看图 API 连通测试
+ *       GET  /api/settings/galleries          群命名图库概览（按群聚合）
+ *       GET  /api/settings/galleries/images   群命名图库分页图片列表
  */
 export function registerSettingsRoutes(router: Router): void {
     // API 优先
@@ -603,6 +624,127 @@ export function registerSettingsRoutes(router: Router): void {
         } catch (err) {
             ctx.status = 500;
             ctx.body = { message: `删除失败: ${(err as Error).message}` };
+        }
+    });
+
+    // —— 群命名图库浏览（group_named_gallery，对应 plugins/annal.ts 的 添加/来点图库）——
+    /** 概览：按群聚合图库名与数量 */
+    router.get('/api/settings/galleries', async (ctx) => {
+        if (!requireSettingsAuth(ctx)) return;
+        try {
+            const col = galleryCollection();
+            if (!col) {
+                ctx.status = 503;
+                ctx.body = { message: 'MongoDB 未连接（群图库不可用）' };
+                return;
+            }
+            const rows = await col
+                .aggregate<{
+                    _id: string;
+                    imageCount: number;
+                    galleryCount: number;
+                    galleries: { gallery_name: string; count: number; latestTs: Date | null }[];
+                }>([
+                    {
+                        $group: {
+                            _id: { gid: '$gid', gallery_name: '$gallery_name' },
+                            count: { $sum: 1 },
+                            latestTs: { $max: '$created_at' },
+                        },
+                    },
+                    {
+                        $group: {
+                            _id: '$_id.gid',
+                            imageCount: { $sum: '$count' },
+                            galleryCount: { $sum: 1 },
+                            galleries: {
+                                $push: {
+                                    gallery_name: '$_id.gallery_name',
+                                    count: '$count',
+                                    latestTs: '$latestTs',
+                                },
+                            },
+                        },
+                    },
+                    { $sort: { imageCount: -1, _id: 1 } },
+                ])
+                .toArray();
+            const groups = rows.map((r) => ({
+                gid: r._id,
+                imageCount: r.imageCount,
+                galleryCount: r.galleryCount,
+                galleries: r.galleries
+                    .sort(
+                        (a, b) =>
+                            b.count - a.count || a.gallery_name.localeCompare(b.gallery_name, 'zh'),
+                    )
+                    .map((g) => ({
+                        gallery_name: g.gallery_name,
+                        count: g.count,
+                        latestTs: g.latestTs ? new Date(g.latestTs).toISOString() : null,
+                    })),
+            }));
+            ctx.body = {
+                total: groups.reduce((s, g) => s + g.imageCount, 0),
+                groups,
+            };
+        } catch (err) {
+            ctx.status = 500;
+            ctx.body = { message: `群图库查询失败: ${(err as Error).message}` };
+        }
+    });
+
+    /** 分页图片列表：必选群（真实群号），可选图库名 */
+    router.get('/api/settings/galleries/images', async (ctx) => {
+        if (!requireSettingsAuth(ctx)) return;
+        try {
+            const col = galleryCollection();
+            if (!col) {
+                ctx.status = 503;
+                ctx.body = { message: 'MongoDB 未连接（群图库不可用）' };
+                return;
+            }
+            const gid = String(ctx.query.gid || '').trim();
+            if (!gid) {
+                ctx.status = 400;
+                ctx.body = { message: '缺少 gid 参数' };
+                return;
+            }
+            const gallery = String(ctx.query.gallery || '').trim();
+            const page = Math.max(1, Number(ctx.query.page) || 1);
+            const pageSize = Math.min(100, Math.max(1, Number(ctx.query.pageSize) || 24));
+            const filter: Record<string, unknown> = { gid };
+            if (gallery) filter.gallery_name = gallery;
+            const [total, list] = await Promise.all([
+                col.countDocuments(filter),
+                col
+                    .find(filter)
+                    .sort({ created_at: -1, id: -1 })
+                    .skip((page - 1) * pageSize)
+                    .limit(pageSize)
+                    .toArray(),
+            ]);
+            ctx.body = {
+                total,
+                page,
+                pageSize,
+                gid,
+                gallery,
+                list: list.map((d) => ({
+                    _id: String(d._id),
+                    id: d.id,
+                    gid: d.gid,
+                    gallery_name: d.gallery_name,
+                    cosKey: d.cos_key,
+                    aid: d.aid,
+                    createdAt: d.created_at ? new Date(d.created_at).toISOString() : null,
+                    imageUrl: d.cos_key ? cosUrl(d.cos_key) : '',
+                    imageUrlRaw: d.cos_key ? cosUrl(d.cos_key, '') : '',
+                })),
+            };
+        } catch (err) {
+            ctx.status = 500;
+            ctx.body = { message: `群图库查询失败: ${(err as Error).message}` };
         }
     });
 

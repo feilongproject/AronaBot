@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-08-23
+
+### Web 设置页：群图库浏览
+
+- 设置页新增「群图库」分区（`/settings` 侧栏），展示 `annal.ts` 群命名图库
+  （群内「添加xxx」收录 /「来点xxx」抽取，存 MongoDB `group_named_gallery`，图存 COS）：
+  - 按群（真实群号）聚合图库名 / 数量 / 最后收录时间，支持按图库筛选、分页浏览；
+  - 图片卡片显示图库名、自增 id、上传者与收录时间；点击进入灯箱查看原图
+    （左右切换 / Esc 关闭 / 新标签打开原图）。
+- 新增只读 API（需 `webSettings.token`）：
+  - `GET /api/settings/galleries`：概览，按群聚合图库与数量；
+  - `GET /api/settings/galleries/images?gid=&gallery=&page=&pageSize=`：分页图片列表
+    （`imageUrl` 为压缩预览，`imageUrlRaw` 为原图，均为 5 分钟有效 COS 签名 URL）。
+- 前端：`web/src/components/GroupGallery.vue` + `api.ts` 对应封装；
+  后端：`src/web/settings.ts` 注册路由。仅浏览，不提供增删（收录仍走群内指令）。
+
+
 ## 2026-08-08
 
 ### 事件传输：Webhook / WebSocket 可切换

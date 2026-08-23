@@ -234,6 +234,69 @@ export function deleteStickers(ids: string[]) {
     );
 }
 
+// —— 群命名图库（annal 添加xxx / 来点xxx）——
+
+export type GallerySummaryItem = {
+    gallery_name: string;
+    count: number;
+    latestTs: string | null;
+};
+
+export type GalleryGroupSummary = {
+    /** 真实群号（groupMap 映射后） */
+    gid: string;
+    imageCount: number;
+    galleryCount: number;
+    galleries: GallerySummaryItem[];
+};
+
+export type GalleryListResponse = {
+    total: number;
+    groups: GalleryGroupSummary[];
+};
+
+export type GalleryImageItem = {
+    _id: string;
+    id: number;
+    gid: string;
+    gallery_name: string;
+    cosKey: string;
+    /** 上传者 openid */
+    aid: string;
+    createdAt: string | null;
+    /** 压缩预览图（!Image3500K） */
+    imageUrl: string;
+    /** 原图 */
+    imageUrlRaw: string;
+};
+
+export type GalleryImagesResponse = {
+    total: number;
+    page: number;
+    pageSize: number;
+    gid: string;
+    gallery: string;
+    list: GalleryImageItem[];
+};
+
+export function fetchGalleries(): Promise<GalleryListResponse> {
+    return request<GalleryListResponse>('/api/settings/galleries');
+}
+
+export function fetchGalleryImages(params: {
+    gid: string;
+    gallery?: string;
+    page?: number;
+    pageSize?: number;
+}): Promise<GalleryImagesResponse> {
+    const sp = new URLSearchParams();
+    sp.set('gid', params.gid);
+    if (params.gallery) sp.set('gallery', params.gallery);
+    sp.set('page', String(params.page || 1));
+    sp.set('pageSize', String(params.pageSize || 24));
+    return request<GalleryImagesResponse>(`/api/settings/galleries/images?${sp.toString()}`);
+}
+
 export function fetchSchema() {
     return request<Record<string, unknown>>('/api/settings/schema');
 }

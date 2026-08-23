@@ -4,6 +4,7 @@ import { fetchConfig, saveConfig, schemaDescription, type SettingsMeta } from '.
 import BotEditor, { type BotConfigModel } from './BotEditor.vue';
 import AIConfigEditor from './AIConfigEditor.vue';
 import StickerLibrary from './StickerLibrary.vue';
+import GroupGallery from './GroupGallery.vue';
 import Field from './fields/Field.vue';
 import TextInput from './fields/TextInput.vue';
 import NumberInput from './fields/NumberInput.vue';
@@ -22,6 +23,7 @@ const SECTIONS = [
     { id: 'bots', label: 'Bots', desc: '各机器人身份、端口、intent' },
     { id: 'ai', label: 'AI 配置', desc: '独立 ai.json：chatbot / 对话密钥' },
     { id: 'sticker', label: '表情图库', desc: 'chatbot 图库：隐藏/恢复/拒绝/删除' },
+    { id: 'groupGallery', label: '群图库', desc: '群命名图库：按群 / 图库名浏览' },
     { id: 'redis', label: 'Redis', desc: '缓存与状态存储' },
     { id: 'mariadb', label: 'MariaDB', desc: '业务持久化' },
     { id: 'mongo', label: 'MongoDB', desc: '双写持久化' },
@@ -710,6 +712,9 @@ onMounted(() => {
                 </template>
                 <template v-else-if="activeSection === 'sticker'">
                     <StickerLibrary />
+                </template>
+                <template v-else-if="activeSection === 'groupGallery'">
+                    <GroupGallery />
                 </template>
 
                 <!-- redis -->
