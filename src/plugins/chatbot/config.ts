@@ -21,6 +21,30 @@ export interface ChatbotGateRuntime {
     refusalMessages: string[];
 }
 
+/** 群独立配置可覆盖字段（概率 + 限流冷却）；所有字段可选，缺失回落全局值 */
+export interface GroupOverrideConfig {
+    replyProbability?: number;
+    replyProbabilityStep?: number;
+    replyChainWindowSec?: number;
+    replyChainMax?: number;
+    stickerReplyProbability?: number;
+    rateLimitPerSecond?: number;
+    rateLimitPerMinute?: number;
+    cooldownSec?: number;
+}
+
+/** 群独立配置可覆盖的字段名列表（供 WebUI / 合并逻辑共用） */
+export const GROUP_OVERRIDE_FIELDS: readonly (keyof GroupOverrideConfig)[] = [
+    'replyProbability',
+    'replyProbabilityStep',
+    'replyChainWindowSec',
+    'replyChainMax',
+    'stickerReplyProbability',
+    'rateLimitPerSecond',
+    'rateLimitPerMinute',
+    'cooldownSec',
+] as const;
+
 export interface ChatbotRuntimeConfig {
     enabled: true;
     baseURL: string;
@@ -83,6 +107,8 @@ export interface ChatbotRuntimeConfig {
     muteDurationSec: number;
     /** 新开启闭嘴时的确认文案；空则用默认 */
     muteAckMessage: string;
+    /** 群独立配置（key=group_openid）；未覆盖字段回落上方全局值 */
+    groupConfigs: Record<string, GroupOverrideConfig>;
 }
 
 function num(v: unknown, dft: number): number {
@@ -180,5 +206,55 @@ export function getChatbotConfig(): ChatbotRuntimeConfig | null {
             typeof c.muteAckMessage === 'string' && c.muteAckMessage.trim()
                 ? c.muteAckMessage.trim()
                 : '',
+        groupConfigs: parseGroupConfigs(c.groupConfigs),
     };
+}
+
+/** 解析 groupConfigs 原始对象，过滤非法值 */
+function parseGroupConfigs(raw: unknown): Record<string, GroupOverrideConfig> {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+    const result: Record<string, GroupOverrideConfig> = {};
+    for (const [gid, val] of Object.entries(raw as Record<string, unknown>)) {
+        if (!gid || !val || typeof val !== 'object' || Array.isArray(val)) continue;
+        const o = val as Record<string, unknown>;
+        const cfg: GroupOverrideConfig = {};
+        if (Number.isFinite(Number(o.replyProbability)))
+            cfg.replyProbability = Number(o.replyProbability);
+        if (Number.isFinite(Number(o.replyProbabilityStep)))
+            cfg.replyProbabilityStep = Number(o.replyProbabilityStep);
+        if (Number.isFinite(Number(o.replyChainWindowSec)))
+            cfg.replyChainWindowSec = Number(o.replyChainWindowSec);
+        if (Number.isFinite(Number(o.replyChainMax)))
+            cfg.replyChainMax = Number(o.replyChainMax);
+        if (Number.isFinite(Number(o.stickerReplyProbability)))
+            cfg.stickerReplyProbability = Number(o.stickerReplyProbability);
+        if (Number.isFinite(Number(o.rateLimitPerSecond)))
+            cfg.rateLimitPerSecond = Number(o.rateLimitPerSecond);
+        if (Number.isFinite(Number(o.rateLimitPerMinute)))
+            cfg.rateLimitPerMinute = Number(o.rateLimitPerMinute);
+        if (Number.isFinite(Number(o.cooldownSec))) cfg.cooldownSec = Number(o.cooldownSec);
+        result[gid] = cfg;
+    }
+    return result;
+}
+
+/**
+ * 读取指定群的 chatbot 运行时配置。
+ * 优先取 groupConfigs[groupOpenid] 中的覆盖值，缺失字段回落全局值。
+ * 仅当本进程为 ai.activeBot 且 chatbot.enabled 时返回，否则 null。
+ */
+export function getGroupChatbotConfig(groupOpenid: string): ChatbotRuntimeConfig | null {
+    const global = getChatbotConfig();
+    if (!global) return null;
+    const override = global.groupConfigs[groupOpenid];
+    if (!override) return global;
+    // 浅合并：仅覆盖 override 中有值的字段
+    const merged: ChatbotRuntimeConfig = { ...global };
+    for (const key of GROUP_OVERRIDE_FIELDS) {
+        const v = override[key];
+        if (v !== undefined && Number.isFinite(v)) {
+            (merged as any)[key] = v;
+        }
+    }
+    return merged;
 }

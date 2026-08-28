@@ -302,6 +302,54 @@
                 "muteAckMessage": {
                     "type": "string",
                     "description": "新开启闭嘴时的确认文案；可用 {sec}/{min} 占位；留空用默认"
+                },
+                "groupConfigs": {
+                    "type": "object",
+                    "description": "群独立配置（key=group_openid）；未设置的字段回落上方全局值；仅概率与限流冷却字段可覆盖",
+                    "additionalProperties": {
+                        "type": "object",
+                        "description": "单群覆盖配置；留空或缺失字段均回落全局值",
+                        "properties": {
+                            "replyProbability": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1,
+                                "description": "Maybe 抽卡初始概率（覆盖全局 replyProbability）"
+                            },
+                            "replyProbabilityStep": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1,
+                                "description": "每条未命中消息累计增加的概率（覆盖全局 replyProbabilityStep）"
+                            },
+                            "replyChainWindowSec": {
+                                "type": "integer",
+                                "description": "接话窗口秒数（覆盖全局 replyChainWindowSec）"
+                            },
+                            "replyChainMax": {
+                                "type": "integer",
+                                "description": "连续接话链上限（覆盖全局 replyChainMax）"
+                            },
+                            "stickerReplyProbability": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1,
+                                "description": "文字回复后附带图库表情的概率（覆盖全局 stickerReplyProbability）"
+                            },
+                            "rateLimitPerSecond": {
+                                "type": "integer",
+                                "description": "群限流每秒条数（覆盖全局 rateLimitPerSecond）"
+                            },
+                            "rateLimitPerMinute": {
+                                "type": "integer",
+                                "description": "群限流每分钟条数（覆盖全局 rateLimitPerMinute）"
+                            },
+                            "cooldownSec": {
+                                "type": "integer",
+                                "description": "用户/群冷却秒数（覆盖全局 cooldownSec）"
+                            }
+                        }
+                    }
                 }
             }
         }

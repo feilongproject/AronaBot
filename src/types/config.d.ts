@@ -255,6 +255,23 @@ interface BotChatbotConfig {
     muteDurationSec?: number;
     /** 新开启闭嘴时的确认文案；可含 {sec}/{min} 占位；留空用默认 */
     muteAckMessage?: string;
+    /**
+     * 群独立配置（key=group_openid）；未设置的字段回落上方全局值。
+     * 仅概率与限流冷却字段可覆盖。
+     */
+    groupConfigs?: Record<string, ChatbotGroupOverrideConfig>;
+}
+
+/** 群独立配置可覆盖字段（概率 + 限流冷却）；所有字段可选 */
+interface ChatbotGroupOverrideConfig {
+    replyProbability?: number;
+    replyProbabilityStep?: number;
+    replyChainWindowSec?: number;
+    replyChainMax?: number;
+    stickerReplyProbability?: number;
+    rateLimitPerSecond?: number;
+    rateLimitPerMinute?: number;
+    cooldownSec?: number;
 }
 
 /** config/ai.json 磁盘形态：AI 相关配置独立文件（aiTranslate 除外） */

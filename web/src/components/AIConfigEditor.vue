@@ -118,6 +118,9 @@ function ensureChatbotShape() {
     if (!c.mcp || typeof c.mcp !== 'object') {
         c.mcp = { enabled: false, servers: [], maxToolRounds: 3 };
     }
+    if (!c.groupConfigs || typeof c.groupConfigs !== 'object') {
+        c.groupConfigs = {};
+    }
 }
 
 function patchChatbot(mutator: (c: Record<string, any>) => void) {
@@ -143,6 +146,151 @@ const mcpServersJson = computed<string>({
             c.mcp = { ...(c.mcp || {}), servers: parsed };
         });
     },
+});
+
+// —— 群独立配置 ——
+
+const GROUP_OVERRIDE_FIELDS: {
+    key: string;
+    label: string;
+    hint: string;
+    globalDefault: number;
+    min?: number;
+    max?: number;
+    step?: number;
+    integer?: boolean;
+}[] = [
+    {
+        key: 'replyProbability',
+        label: 'replyProbability',
+        hint: 'Maybe 抽卡初始概率',
+        globalDefault: 0.0005,
+        min: 0,
+        max: 1,
+        step: 0.0001,
+    },
+    {
+        key: 'replyProbabilityStep',
+        label: 'replyProbabilityStep',
+        hint: '每条未命中消息累计概率',
+        globalDefault: 0.0001,
+        min: 0,
+        max: 1,
+        step: 0.0001,
+    },
+    {
+        key: 'replyChainWindowSec',
+        label: 'replyChainWindowSec',
+        hint: '接话窗口秒数',
+        globalDefault: 180,
+        integer: true,
+    },
+    {
+        key: 'replyChainMax',
+        label: 'replyChainMax',
+        hint: '连续接话链上限',
+        globalDefault: 5,
+        integer: true,
+    },
+    {
+        key: 'stickerReplyProbability',
+        label: 'stickerReplyProbability',
+        hint: '文字回复后附带图库表情概率',
+        globalDefault: 0.15,
+        min: 0,
+        max: 1,
+        step: 0.05,
+    },
+    {
+        key: 'rateLimitPerSecond',
+        label: 'rateLimitPerSecond',
+        hint: '群限流每秒条数',
+        globalDefault: 1,
+        integer: true,
+    },
+    {
+        key: 'rateLimitPerMinute',
+        label: 'rateLimitPerMinute',
+        hint: '群限流每分钟条数',
+        globalDefault: 10,
+        integer: true,
+    },
+    {
+        key: 'cooldownSec',
+        label: 'cooldownSec',
+        hint: '用户/群冷却秒数',
+        globalDefault: 10,
+        integer: true,
+    },
+];
+
+const selectedGroupForOverride = ref('');
+
+function ensureGroupConfigs() {
+    patchChatbot((c) => {
+        if (!c.groupConfigs || typeof c.groupConfigs !== 'object') c.groupConfigs = {};
+    });
+}
+
+function getGroupOverride(gid: string): Record<string, any> {
+    ensureGroupConfigs();
+    const gc = ai.value.chatbot.groupConfigs;
+    if (!gc[gid] || typeof gc[gid] !== 'object') gc[gid] = {};
+    return gc[gid];
+}
+
+function getGlobalValue(key: string): number {
+    return ai.value.chatbot?.[key] ?? GROUP_OVERRIDE_FIELDS.find((f) => f.key === key)?.globalDefault ?? 0;
+}
+
+function setGroupOverrideField(gid: string, key: string, value: number | null) {
+    ensureGroupConfigs();
+    const override = getGroupOverride(gid);
+    if (value === null || value === undefined || Number.isNaN(value)) {
+        delete override[key];
+    } else {
+        override[key] = value;
+    }
+}
+
+function getGroupOverrideValue(gid: string, key: string): number | null {
+    const gc = ai.value.chatbot?.groupConfigs;
+    if (!gc || !gc[gid]) return null;
+    const v = gc[gid][key];
+    return v !== undefined && v !== null && v !== '' ? Number(v) : null;
+}
+
+function removeGroupOverride(gid: string) {
+    ensureGroupConfigs();
+    delete ai.value.chatbot.groupConfigs[gid];
+    if (selectedGroupForOverride.value === gid) selectedGroupForOverride.value = '';
+}
+
+function addGroupOverride(gid: string) {
+    if (!gid) return;
+    ensureGroupConfigs();
+    if (!ai.value.chatbot.groupConfigs[gid]) {
+        ai.value.chatbot.groupConfigs[gid] = {};
+    }
+    selectedGroupForOverride.value = gid;
+}
+
+function clearGroupOverrideFields(gid: string) {
+    ensureGroupConfigs();
+    if (ai.value.chatbot.groupConfigs[gid]) {
+        ai.value.chatbot.groupConfigs[gid] = {};
+    }
+}
+
+const groupConfigKeys = computed<string[]>(() => {
+    const gc = ai.value.chatbot?.groupConfigs;
+    return gc ? Object.keys(gc).filter(Boolean) : [];
+});
+
+const availableGroupsForOverride = computed<string[]>(() => {
+    const groups: string[] = Array.isArray(ai.value.chatbot?.groups) ? ai.value.chatbot.groups : [];
+    const existing = new Set(groupConfigKeys.value);
+    return groups.filter((g) => !existing.has(g));
 });
 
 function normalizeLoaded(raw: Record<string, unknown>): AIForm {
@@ -1019,6 +1167,126 @@ onMounted(load);
                         pending，在「表情包图库」页人工通过并校对摘要后才可被选图发送；开启
                         stickerAutoApprove 可恢复旧行为。MCP 服务器连接失败不影响普通闲聊。
                     </p>
+                </section>
+
+                <!-- 群独立设置（概率 + 限流冷却） -->
+                <section class="space-y-4">
+                    <h3 class="text-sm font-semibold tracking-wide text-slate-300 uppercase">
+                        群独立设置
+                    </h3>
+                    <p class="text-xs text-slate-500">
+                        为指定群覆盖概率与限流冷却参数；留空或缺失字段回落上方全局值。仅已加入
+                        groups 白名单的群可配置。
+                    </p>
+
+                    <!-- 已有群配置列表 -->
+                    <div v-if="groupConfigKeys.length" class="flex flex-wrap gap-2">
+                        <button
+                            v-for="gid in groupConfigKeys"
+                            :key="'gc-' + gid"
+                            type="button"
+                            class="rounded-full border px-3 py-1 text-sm transition"
+                            :class="
+                                selectedGroupForOverride === gid
+                                    ? 'border-violet-500 bg-violet-500/15 text-violet-200'
+                                    : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+                            "
+                            @click="selectedGroupForOverride = gid"
+                        >
+                            {{ gid.slice(0, 8) }}…
+                            <span class="ml-1 text-[10px] opacity-60">{{ gid }}</span>
+                        </button>
+                    </div>
+                    <p v-else class="text-xs text-slate-600">暂无群独立配置</p>
+
+                    <!-- 新增群配置 -->
+                    <div
+                        v-if="availableGroupsForOverride.length"
+                        class="flex flex-wrap items-center gap-2"
+                    >
+                        <select
+                            class="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 outline-none focus:border-sky-500"
+                            value=""
+                            @change="
+                                addGroupOverride(($event.target as HTMLSelectElement).value);
+                                ($event.target as HTMLSelectElement).value = '';
+                            "
+                        >
+                            <option value="" disabled>选择群添加独立配置…</option>
+                            <option
+                                v-for="g in availableGroupsForOverride"
+                                :key="'avail-' + g"
+                                :value="g"
+                            >
+                                {{ g }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- 选中群的编辑表单 -->
+                    <div
+                        v-if="selectedGroupForOverride && ai.chatbot?.groupConfigs?.[selectedGroupForOverride] !== undefined"
+                        class="space-y-3 rounded-xl border border-violet-500/30 bg-violet-500/5 px-4 py-3"
+                    >
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                                <h4 class="text-sm font-semibold text-violet-200">
+                                    群配置：{{ selectedGroupForOverride }}
+                                </h4>
+                                <p class="mt-0.5 text-xs text-slate-500">
+                                    留空使用全局值；清空所有字段后等同于全局配置
+                                </p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button
+                                    type="button"
+                                    class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-700"
+                                    @click="clearGroupOverrideFields(selectedGroupForOverride)"
+                                >
+                                    恢复全局默认
+                                </button>
+                                <button
+                                    type="button"
+                                    class="rounded-lg border border-rose-500/50 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-300 hover:bg-rose-500/20"
+                                    @click="removeGroupOverride(selectedGroupForOverride)"
+                                >
+                                    删除此群配置
+                                </button>
+                            </div>
+                        </div>
+                        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                            <div
+                                v-for="f in GROUP_OVERRIDE_FIELDS"
+                                :key="'gof-' + f.key"
+                                class="space-y-1"
+                            >
+                                <label class="block text-xs font-medium text-slate-300">
+                                    {{ f.label }}
+                                </label>
+                                <input
+                                    type="number"
+                                    class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 outline-none placeholder:text-slate-600 focus:border-violet-500"
+                                    :placeholder="`全局: ${getGlobalValue(f.key)}`"
+                                    :min="f.min"
+                                    :max="f.max"
+                                    :step="f.step || (f.integer ? 1 : undefined)"
+                                    :value="getGroupOverrideValue(selectedGroupForOverride, f.key)"
+                                    @input="
+                                        setGroupOverrideField(
+                                            selectedGroupForOverride,
+                                            f.key,
+                                            ($event.target as HTMLInputElement).value === ''
+                                                ? null
+                                                : Number(($event.target as HTMLInputElement).value),
+                                        )
+                                    "
+                                />
+                                <p class="text-[11px] leading-snug text-slate-600">
+                                    {{ f.hint }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </section>
             </template>
         </template>

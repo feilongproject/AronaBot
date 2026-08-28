@@ -1,6 +1,6 @@
 import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { IMessageGROUP } from '../libs/IMessageEx';
-import { getChatbotConfig, ChatbotRuntimeConfig } from './chatbot/config';
+import { getGroupChatbotConfig, ChatbotRuntimeConfig } from './chatbot/config';
 import {
     ensureChatbotIndexes,
     writeObserveRow,
@@ -251,14 +251,13 @@ async function shortGateRefusalReply(msg: IMessageGROUP, cfg: ChatbotRuntimeConf
  * 发送层统一记录 bot 出站（IMessageEx 内钩子），这里只维护回复链状态。
  */
 export async function chatbot(msg: IMessageGROUP): Promise<any> {
-    const cfg = getChatbotConfig();
+    const groupOpenid = msg.group_openid;
+    const cfg = getGroupChatbotConfig(groupOpenid);
     if (!cfg) return;
     if (!initialized) {
         initialized = true;
         void ensureChatbotIndexes();
     }
-
-    const groupOpenid = msg.group_openid;
     const rowId = msg.event_id || msg.id;
     const rawContent = msg.content || '';
     const senderLabel = `${msg.author.username || msg.author.id}(${msg.author.id})${
