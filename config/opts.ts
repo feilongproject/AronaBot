@@ -493,7 +493,7 @@ export default {
         },
         soutubot: {
             soutubot: {
-                reg: /搜(图|本子)/,
+                reg: /^搜本子/,
                 fnc: 'soutubot',
                 type: [MessageType.GROUP, MessageType.FRIEND],
                 describe: 'soutubot',
