@@ -1,7 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import OpenAI from 'openai';
 import sharp from 'sharp';
-import { resolveStructuredOutputMode } from '../plugins/chatbot/providers';
+import { chatOpenAIHeaders, resolveStructuredOutputMode } from '../plugins/chatbot/providers';
 
 const DEFAULT_CHAT_BASE = 'https://api.deepseek.com';
 const DEFAULT_VISION_BASE = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
@@ -121,7 +121,10 @@ function visionTextOnlyHint(model: string, errText: string): string | undefined 
 async function listCompatModels(baseURL: string, apiKey: string): Promise<string[]> {
     const url = `${trimSlash(baseURL)}/models`;
     const { data } = await axios.get(url, {
-        headers: { Authorization: `Bearer ${apiKey}` },
+        headers: {
+            Authorization: `Bearer ${apiKey}`,
+            ...chatOpenAIHeaders(baseURL, 'planabot-settings-test'),
+        },
         timeout: PING_TIMEOUT_MS,
         proxy: false,
     });
@@ -223,6 +226,7 @@ export async function testChatbotApi(input: AIApiTestInput): Promise<AIApiTestRe
         baseURL,
         timeout: PING_TIMEOUT_MS,
         maxRetries: 0,
+        defaultHeaders: chatOpenAIHeaders(baseURL, 'planabot-settings-test'),
     });
 
     const pingPromise = (async () => {

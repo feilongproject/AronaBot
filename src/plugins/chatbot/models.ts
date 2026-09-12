@@ -8,7 +8,15 @@ import {
 } from 'openai/resources/chat/completions';
 import type { ResponseFormatJSONObject, ResponseFormatJSONSchema } from 'openai/resources/shared';
 import { ChatbotRuntimeConfig } from './config';
-import { resolveStructuredOutputMode, StructuredOutputMode } from './providers';
+import { chatOpenAIHeaders, resolveStructuredOutputMode, StructuredOutputMode } from './providers';
+
+function createOpenAI(apiKey: string, baseURL: string, sessionId: string) {
+    return new OpenAI({
+        apiKey,
+        baseURL,
+        defaultHeaders: chatOpenAIHeaders(baseURL, sessionId),
+    });
+}
 
 /**
  * 本地 token 估算（API usage 缺失时的 fallback）：
@@ -237,10 +245,11 @@ export async function chatCompletion(
     messages: ChatCompletionMessageParam[],
     cfg: ChatbotRuntimeConfig,
     jsonMode = false,
+    sessionId = '',
 ): Promise<ChatResult> {
     const apiKey = cfg.apiKey;
     if (!apiKey) throw new Error('chatbot: 对话 apiKey 未配置（ai.json chatbot.apiKey）');
-    const openai = new OpenAI({ apiKey, baseURL: cfg.baseURL });
+    const openai = createOpenAI(apiKey, cfg.baseURL, sessionId);
     const mode = jsonMode ? chatStructuredMode(cfg) : 'off';
     const completion = await createChatCompletion(openai, {
         model: cfg.chatModel,
@@ -265,10 +274,11 @@ export async function chatCompletionWithTools(
     cfg: ChatbotRuntimeConfig,
     tools: ChatCompletionTool[],
     onToolCall: (fullName: string, argsText: string) => Promise<string>,
+    sessionId = '',
 ): Promise<ChatResult> {
     const apiKey = cfg.apiKey;
     if (!apiKey) throw new Error('chatbot: 对话 apiKey 未配置（ai.json chatbot.apiKey）');
-    const openai = new OpenAI({ apiKey, baseURL: cfg.baseURL });
+    const openai = createOpenAI(apiKey, cfg.baseURL, sessionId);
     const msgs: ChatCompletionMessageParam[] = [...messages];
     for (let round = 0; round <= cfg.maxToolRounds; round++) {
         const completion = await openai.chat.completions.create({
@@ -330,7 +340,7 @@ export async function summarizeTranscript(
             content: `群 openid: ${groupOpenid}\n\n聊天记录：\n${transcript.slice(0, 30000)}`,
         },
     ];
-    const res = await chatCompletion(messages, cfg);
+    const res = await chatCompletion(messages, cfg, false, groupOpenid);
     return res.content.trim();
 }
 
@@ -865,7 +875,7 @@ export async function visionSummarize(
     cfg: ChatbotRuntimeConfig,
 ): Promise<VisionResult[] | null> {
     if (!images.length || !cfg.visionApiKey) return null;
-    const openai = new OpenAI({ apiKey: cfg.visionApiKey, baseURL: cfg.visionBaseURL });
+    const openai = createOpenAI(cfg.visionApiKey, cfg.visionBaseURL, 'planabot-vision');
     const dataUrls = await Promise.all(images.map(toVisionDataUrl));
     const multi = images.length > 1;
     const itemSchema =

@@ -414,13 +414,19 @@ export async function chatbot(msg: IMessageGROUP): Promise<any> {
         let res: Awaited<ReturnType<typeof chatCompletion>>;
         const tools = cfg.mcpEnabled ? await getMcpTools(cfg) : [];
         if (tools.length) {
-            res = await chatCompletionWithTools(msgs, cfg, tools, async (name, argsText) => {
-                const out = await callMcpTool(cfg, name, argsText);
-                log.debug(`chatbot MCP 调用: ${name} → ${out.slice(0, 200)}`);
-                return out;
-            });
+            res = await chatCompletionWithTools(
+                msgs,
+                cfg,
+                tools,
+                async (name, argsText) => {
+                    const out = await callMcpTool(cfg, name, argsText);
+                    log.debug(`chatbot MCP 调用: ${name} → ${out.slice(0, 200)}`);
+                    return out;
+                },
+                groupOpenid,
+            );
         } else {
-            res = await chatCompletion(msgs, cfg, true);
+            res = await chatCompletion(msgs, cfg, true, groupOpenid);
         }
         if (!res.content) return; // 空输出 → 静默
         log.debug('chatbot 回复原始正文:', res.content);

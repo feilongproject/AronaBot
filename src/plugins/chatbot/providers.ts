@@ -10,6 +10,28 @@ export function chatModelSupportsJsonSchema(model: string): boolean {
 
 export type StructuredOutputMode = 'off' | 'json_object' | 'json_schema';
 
+export const CHATBOT_USER_AGENT = 'PlanaBot-chatbot/1.0';
+
+export function isOpenCodeZenEndpoint(baseURL: string): boolean {
+    try {
+        return /(^|\.)opencode\.ai$/i.test(new URL(baseURL).hostname);
+    } catch {
+        return /opencode\.ai/i.test(baseURL || '');
+    }
+}
+
+/** OpenCode Go 要求每轮对话带稳定 session，并避免通用 SDK User-Agent */
+export function chatOpenAIHeaders(
+    baseURL: string,
+    sessionId: string,
+): Record<string, string> | undefined {
+    if (!isOpenCodeZenEndpoint(baseURL)) return undefined;
+    return {
+        'User-Agent': CHATBOT_USER_AGENT,
+        'x-opencode-session': String(sessionId || '').trim() || 'planabot',
+    };
+}
+
 /**
  * 结构化输出策略：
  * - 关闭：不传 response_format
