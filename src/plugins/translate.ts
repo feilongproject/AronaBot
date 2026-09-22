@@ -12,6 +12,7 @@ const openai = new OpenAI({
 export async function translate(msg: IMessageGROUP) {
     if (
         ![
+            '4EED09912319896C18B10D226E572BB5',
             '065510E7B82601CE7A1F76C021743D25',
             '57A9BFF9A91410926173B10A33E18E3D',
             'BDDD328FA39B05B30C88D111CB5F162B',
@@ -24,8 +25,11 @@ export async function translate(msg: IMessageGROUP) {
         JSON.stringify(config.aiTranslate.createParams),
     );
 
-    const translateContent = msg.content.replace(/\/?.?翻译/, '');
-    if (devEnv) log.debug(translateContent);
+    const translateContent = msg.content
+        .replace(/\/?.?翻译/, '')
+        .trim()
+        .replace(`^<@[0-9A-F]+>`, '');
+    log.debug('translateContent:', translateContent);
     if (!translateContent) return msg.sendMsgEx({ content: `请输入需要翻译的内容` });
     await msg
         .sendMsgEx({ content: `正在翻译中，请稍后\n(使用模型: ${postData.model})` })
@@ -34,6 +38,7 @@ export async function translate(msg: IMessageGROUP) {
     postData.messages.push({ role: 'user', content: translateContent });
 
     const translated = await getTranslated(postData);
+    log.debug('translated:', JSON.stringify(translated, null, 4));
     if (typeof translated == 'string') return msg.sendMsgEx({ content: translated });
 
     const text: string = formalizeQuotation(translated.choices[0].message.content || '')
@@ -41,11 +46,11 @@ export async function translate(msg: IMessageGROUP) {
         .replaceAll('.', '。')
         .replaceAll(',', '，');
     return msg
-        .sendMsgEx({
-            content: `返回结果:\n` + text, //JSON.stringify(text).slice(1, -1),
+        .sendMarkdown({
+            content: '返回结果:\n' + `\`\`\`text\n${text}\n\`\`\``,
         })
         .catch((err) => {
-            log.error(err);
+            log.error('Error sending message:', err);
             return msg.sendMsgEx({
                 content: `发送失败\n` + JSON.stringify(err).replaceAll('.', ','),
             });
@@ -57,11 +62,12 @@ async function getTranslated(
 ): Promise<APIPromise<ChatCompletion> | string> {
     for (let i = 0; i < 5; i++) {
         let text;
+        log.debug(`第 ${i + 1} 次尝试获取翻译结果`);
         try {
             const completion = await openai.chat.completions.create(postData);
-            return completion;
+            if (completion.choices[0].message.content) return completion;
         } catch (err) {
-            mailerError({ postData, text }, new Error(err as any));
+            await mailerError({ postData, text }, new Error(err as any));
         }
     }
 
