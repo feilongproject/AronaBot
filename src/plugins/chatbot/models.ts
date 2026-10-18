@@ -1054,3 +1054,76 @@ export async function gateCheck(
         return 'error';
     }
 }
+
+const MUTE_INTENT_SCHEMA: { [key: string]: unknown } = {
+    type: 'object',
+    properties: {
+        mute: {
+            type: 'boolean',
+            description: 'true=用户确实要求 bot 停止发言；false=误触发',
+        },
+        reason: { type: 'string', description: '一句话判断依据' },
+    },
+    required: ['mute', 'reason'],
+    additionalProperties: false,
+};
+
+const MUTE_REVIEW_PROMPT = [
+    '你是意图审核助手。QQ 群用户发来一条命中「闭嘴」类关键词的消息，判断用户是否真的在要求群聊机器人停止发言/安静/闭嘴。',
+    '只输出一个 JSON 对象：{"mute":true|false,"reason":"简短理由"}',
+    'mute=true：明确命令、要求或催促机器人闭嘴/安静/别说话/别吵/别刷屏；语气可以随意或玩笑，只要意图清晰。',
+    'mute=false：关键词只是撞词（如「安静的环境」「他让我闭嘴」）、引用或转述他人发言、说第三方或游戏/故事角色、反问句、与机器人无关的闲聊，或语义含糊。',
+    '拿不准时一律输出 mute=false。',
+].join('\n');
+
+export interface MuteIntentResult {
+    /** 是否确认用户要求 bot 闭嘴 */
+    mute: boolean;
+    /** 模型给出的判断依据 */
+    reason: string;
+}
+
+/**
+ * 闭嘴 AI 二次审核：只判定「本条消息」意图，防关键词撞词/引用/说他人导致误触发。
+ * 复用对话模型（低温度 + 结构化输出），不携带群聊历史。
+ * 调用/解析失败返回 null，由调用方回退 @+关键词 判定。
+ */
+export async function muteIntentCheck(
+    input: { current: string; keyword: string },
+    cfg: ChatbotRuntimeConfig,
+    sessionId = '',
+): Promise<MuteIntentResult | null> {
+    if (!cfg.apiKey) return null;
+    const current = String(input.current || '').trim();
+    if (!current) return null;
+    const clip = current.length > 300 ? `${current.slice(0, 300)}…` : current;
+    try {
+        const openai = createOpenAI(cfg.apiKey, cfg.baseURL, sessionId || 'planabot-mute-review');
+        const mode = chatStructuredMode(cfg);
+        const completion = await createChatCompletion(openai, {
+            model: cfg.chatModel,
+            messages: [
+                { role: 'system', content: MUTE_REVIEW_PROMPT },
+                { role: 'user', content: `命中关键词：${input.keyword}\n用户消息：${clip}` },
+            ],
+            temperature: 0.1,
+            max_tokens: 100,
+            response_format:
+                mode === 'json_schema'
+                    ? jsonSchemaFormat('mute_intent', MUTE_INTENT_SCHEMA, '闭嘴意图二次审核')
+                    : mode === 'json_object'
+                      ? { type: 'json_object' }
+                      : undefined,
+        });
+        const raw = completion.choices?.[0]?.message?.content || '';
+        const json = extractJson(raw) as Partial<MuteIntentResult> | null;
+        if (!json || typeof json !== 'object' || typeof json.mute !== 'boolean') {
+            log.warn(`chatbot 闭嘴 AI 审核返回无法解析: ${raw.slice(0, 120)}`);
+            return null;
+        }
+        return { mute: json.mute, reason: String(json.reason || '').trim() };
+    } catch (err) {
+        log.error('chatbot 闭嘴 AI 审核调用失败', err);
+        return null;
+    }
+}

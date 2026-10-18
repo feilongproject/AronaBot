@@ -84,6 +84,8 @@ const DEFAULT_CHATBOT: Record<string, any> = {
     muteKeywords: ['闭嘴', '别说了', '安静', '不要说了', 'shut up', 'shutup'],
     muteDurationSec: 300,
     muteAckMessage: '',
+    muteRequireAt: true,
+    muteAiConfirm: true,
 };
 
 const ai = ref<AIForm>({
@@ -1151,6 +1153,30 @@ onMounted(load);
                                 placeholder="好的喵，星奈闭嘴 {min} 分钟～"
                                 @update:model-value="
                                     patchChatbot((c) => (c.muteAckMessage = $event))
+                                "
+                            />
+                        </Field>
+                        <Field
+                            label="muteRequireAt"
+                            hint="闭嘴必须 @ 本 bot 才启用；默认开；关闭后正文命中关键词即静默"
+                        >
+                            <BoolInput
+                                :model-value="ai.chatbot?.muteRequireAt !== false"
+                                label="必须 @ 才触发闭嘴"
+                                @update:model-value="
+                                    patchChatbot((c) => (c.muteRequireAt = $event))
+                                "
+                            />
+                        </Field>
+                        <Field
+                            label="muteAiConfirm"
+                            hint="闭嘴前 AI 二次审核意图，防引用/撞词误触发；默认开；审核失败回退 @+关键词"
+                        >
+                            <BoolInput
+                                :model-value="ai.chatbot?.muteAiConfirm !== false"
+                                label="AI 二次审核闭嘴意图"
+                                @update:model-value="
+                                    patchChatbot((c) => (c.muteAiConfirm = $event))
                                 "
                             />
                         </Field>

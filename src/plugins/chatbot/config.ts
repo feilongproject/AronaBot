@@ -120,12 +120,16 @@ export interface ChatbotRuntimeConfig {
     rateLimitPerSecond: number;
     rateLimitPerMinute: number;
     cooldownSec: number;
-    /** 闭嘴类关键词；命中后本群暂停主动回复 muteDurationSec */
+    /** 闭嘴类关键词；@ bot 且命中、经 AI 审核确认后本群暂停主动回复 muteDurationSec */
     muteKeywords: string[];
     /** 闭嘴静默时长（秒）；默认 300（5 分钟） */
     muteDurationSec: number;
     /** 新开启闭嘴时的确认文案；空则用默认 */
     muteAckMessage: string;
+    /** 闭嘴必须 @ 本 bot 才启用（防普通群聊撞关键词误触发）；默认 true */
+    muteRequireAt: boolean;
+    /** 闭嘴前经 AI 二次意图审核（防误触发）；默认 true；审核失败回退 @+关键词判定 */
+    muteAiConfirm: boolean;
     /** 群独立配置（key=group_openid）；未覆盖字段回落上方全局值 */
     groupConfigs: Record<string, GroupOverrideConfig>;
 }
@@ -238,6 +242,9 @@ export function getChatbotConfig(): ChatbotRuntimeConfig | null {
             typeof c.muteAckMessage === 'string' && c.muteAckMessage.trim()
                 ? c.muteAckMessage.trim()
                 : '',
+        // 默认均需开启：闭嘴必须 @ bot + AI 二次审核，防误触发
+        muteRequireAt: c.muteRequireAt !== false,
+        muteAiConfirm: c.muteAiConfirm !== false,
         groupConfigs: parseGroupConfigs(c.groupConfigs),
     };
 }

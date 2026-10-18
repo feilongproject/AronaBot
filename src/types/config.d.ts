@@ -271,7 +271,8 @@ interface BotChatbotConfig {
     /** 用户/群冷却（秒）；Must 可放宽但仍受 1/s、10/min 硬顶 */
     cooldownSec: number;
     /**
-     * 闭嘴关键词列表；用户消息命中任一词后本群暂停发送。
+     * 闭嘴关键词列表；消息 @ 本 bot（muteRequireAt）且命中任一词、
+     * 经 AI 二次审核确认（muteAiConfirm）后本群暂停发送。
      * 默认：闭嘴 / 别说了 / 安静 / 不要说了 / shut up / shutup
      */
     muteKeywords?: string[];
@@ -279,6 +280,16 @@ interface BotChatbotConfig {
     muteDurationSec?: number;
     /** 新开启闭嘴时的确认文案；可含 {sec}/{min} 占位；留空用默认 */
     muteAckMessage?: string;
+    /**
+     * 闭嘴是否必须 @ 本 bot 才启用；默认 true。
+     * false=旧行为：正文命中关键词即静默（不要求 @）。
+     */
+    muteRequireAt?: boolean;
+    /**
+     * 闭嘴是否需 AI 二次意图审核；默认 true。
+     * 审核判定非闭嘴请求（引用/撞词/说他人）时不静默；审核服务失败回退 @+关键词判定。
+     */
+    muteAiConfirm?: boolean;
     /**
      * 群独立配置（key=group_openid）；未设置的字段回落上方全局值。
      * 仅概率与限流冷却字段可覆盖。

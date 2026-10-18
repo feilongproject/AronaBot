@@ -34,6 +34,7 @@ import {
     chatCompletionWithTools,
     parseBotAction,
     gateCheck,
+    muteIntentCheck,
     visionSummarize,
     BotAction,
     BotActionPartMention,
@@ -299,24 +300,51 @@ export async function chatbot(msg: IMessageGROUP): Promise<any> {
     // 普通空消息跳过；Must（纯 @ / 先导词无正文）仍可继续
     if (!cleaned && !hasImage && !must.must) return;
 
-    // —— 闭嘴：命中关键词则本群静默 muteDurationSec（默认 5 分钟）；静默期内不发送 ——
+    // —— 闭嘴：需 @ 本 bot（muteRequireAt）+ AI 二次审核（muteAiConfirm）才启用，防误触发 ——
+    // 命中后本群静默 muteDurationSec（默认 5 分钟）；静默期内不发送
     // 检测正文含 must 剥离后的 payload / 原始清理文案（先导词+@ 场景）
     const muteProbe = [cleaned, must.payload, cleanContent(msg, false)].filter(Boolean).join('\n');
     const muteKw = matchMuteKeyword(muteProbe, cfg);
-    if (muteKw) {
-        const { newly, sec } = await applyGroupMute(groupOpenid, cfg);
-        log.info(`chatbot 群闭嘴 group=${groupOpenid} keyword=${muteKw} sec=${sec} newly=${newly}`);
-        if (newly) {
-            const min = Math.max(1, Math.round(sec / 60));
-            const tpl =
-                cfg.muteAckMessage ||
-                '好的喵，星奈闭嘴 {min} 分钟（{sec} 秒）～有事过会儿再叫我喵。';
-            const ack = tpl.replace(/\{sec\}/g, String(sec)).replace(/\{min\}/g, String(min));
-            await msg
-                .sendMarkdown({ content: systemLineLatex(ack, SYSTEM_LINE_COLOR.muteAck) })
-                .catch((err) => log.error(err));
+    const atYou = !!msg.mentions?.some((m) => m.is_you);
+    if (muteKw && (!cfg.muteRequireAt || atYou)) {
+        // AI 二次审核：只判定本条消息是否真的要求 bot 闭嘴（引用/撞词/说他人 → 拒绝）；
+        // 审核服务失败（null）回退 @+关键词判定，显式闭嘴要求仍生效
+        let confirmed = true;
+        if (cfg.muteAiConfirm) {
+            const verdict = await muteIntentCheck(
+                { current: (must.payload || cleaned || muteProbe).trim(), keyword: muteKw },
+                cfg,
+                groupOpenid,
+            );
+            if (verdict) {
+                confirmed = verdict.mute;
+                log.debug(
+                    `chatbot 闭嘴 AI 审核 group=${groupOpenid} keyword=${muteKw} mute=${verdict.mute} reason=${verdict.reason}`,
+                );
+            } else {
+                log.warn(
+                    `chatbot 闭嘴 AI 审核失败，按 @+关键词执行 group=${groupOpenid} keyword=${muteKw}`,
+                );
+            }
         }
-        return;
+        if (confirmed) {
+            const { newly, sec } = await applyGroupMute(groupOpenid, cfg);
+            log.info(
+                `chatbot 群闭嘴 group=${groupOpenid} keyword=${muteKw} at=${atYou} sec=${sec} newly=${newly}`,
+            );
+            if (newly) {
+                const min = Math.max(1, Math.round(sec / 60));
+                const tpl =
+                    cfg.muteAckMessage ||
+                    '好的喵，星奈闭嘴 {min} 分钟（{sec} 秒）～有事过会儿再叫我喵。';
+                const ack = tpl.replace(/\{sec\}/g, String(sec)).replace(/\{min\}/g, String(min));
+                await msg
+                    .sendMarkdown({ content: systemLineLatex(ack, SYSTEM_LINE_COLOR.muteAck) })
+                    .catch((err) => log.error(err));
+            }
+            return;
+        }
+        // AI 判定为误触发：不静默，消息按正常对话流程继续（Must/@ 会照常回复）
     }
     if (await isGroupMuted(groupOpenid)) {
         log.debug(`chatbot 静默中跳过发送 group=${groupOpenid}`);

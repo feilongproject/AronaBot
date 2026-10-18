@@ -67,6 +67,8 @@
         "cooldownSec": 10,
         "muteKeywords": ["闭嘴", "别说了", "安静", "不要说了", "shut up", "shutup"],
         "muteDurationSec": 300,
-        "muteAckMessage": ""
+        "muteAckMessage": "",
+        "muteRequireAt": true,
+        "muteAiConfirm": true
     }
 }
