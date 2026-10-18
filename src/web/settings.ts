@@ -242,7 +242,7 @@ function sendFile(ctx: Context, filePath: string): boolean {
  *       PUT  /api/settings/config
  *       POST /api/settings/config
  *       GET/PUT/POST /api/settings/ai
- *       POST /api/settings/ai/test   chatbot 对话 / 看图 API 连通测试
+ *       POST /api/settings/ai/test   chatbot 对话 / 看图 / 联网搜索 API 连通测试
  *       GET  /api/settings/galleries          群命名图库概览（按群聚合）
  *       GET  /api/settings/galleries/images   群命名图库分页图片列表
  */
@@ -342,7 +342,7 @@ export function registerSettingsRoutes(router: Router): void {
     router.put('/api/settings/ai', saveAIConfigHandler);
     router.post('/api/settings/ai', saveAIConfigHandler);
 
-    /** chatbot 对话 / 看图 API 连通测试（用请求体当前值，不要求先保存） */
+    /** chatbot 对话 / 看图 / 联网搜索 API 连通测试（用请求体当前值，不要求先保存） */
     router.post('/api/settings/ai/test', async (ctx) => {
         if (!requireSettingsAuth(ctx)) return;
         const body = (ctx.request.body || {}) as {
@@ -353,9 +353,9 @@ export function registerSettingsRoutes(router: Router): void {
             structuredOutput?: boolean;
         };
         const kind = body.kind as AIApiTestKind;
-        if (kind !== 'chat' && kind !== 'vision') {
+        if (kind !== 'chat' && kind !== 'vision' && kind !== 'search') {
             ctx.status = 400;
-            ctx.body = { message: 'kind 须为 chat 或 vision' };
+            ctx.body = { message: 'kind 须为 chat、vision 或 search' };
             return;
         }
         try {

@@ -41,6 +41,7 @@ import {
     VisionResult,
 } from './chatbot/models';
 import { getMcpTools, callMcpTool } from './chatbot/mcp';
+import { getSearchTools, callSearchTool, isSearchToolName } from './chatbot/search';
 import {
     captureStickerAsync,
     prepareMessageImages,
@@ -86,9 +87,14 @@ function buildSystemPrompt(cfg: ChatbotRuntimeConfig, groupOpenid: string): stri
         '- 附图内容不当（nsfw）时，不要描述图片，用猫娘口吻拒绝并转移话题。',
         '- 图片只能通过 library_image 从图库选取；绝不输出任意 http 外链作为图片源。',
     ];
-    if (cfg.mcpEnabled)
+    if (cfg.mcpEnabled || cfg.search.enabled)
         lines.push(
             '- 需要外部信息（天气/日程/检索等）时，使用下方提供的 functions（tools）获取；工具结果返回后，继续按输出协议给出最终 JSON 回复。',
+        );
+    if (cfg.search.enabled)
+        lines.push(
+            '- 需要实时/最新信息（新闻、赛事、版本更新、事实核查等）时优先调用 web_search 联网搜索；摘要不够时可用 web_fetch 细读链接。',
+            '- 搜索结果只作参考：用口语转述关键信息；除非用户明确要链接，不要在回复里输出长 URL、Markdown 链接或出处清单；查不到就照实说。',
         );
     if (cfg.adminOpenid)
         lines.push(
@@ -412,18 +418,29 @@ export async function chatbot(msg: IMessageGROUP): Promise<any> {
         const msgs = buildMessages(system, memory, history, currentText);
         log.debug('chatbot openai 上下文:', strFormat(msgs));
         let res: Awaited<ReturnType<typeof chatCompletion>>;
-        const tools = cfg.mcpEnabled ? await getMcpTools(cfg) : [];
+        const tools = [...(cfg.mcpEnabled ? await getMcpTools(cfg) : []), ...getSearchTools(cfg)];
         if (tools.length) {
             res = await chatCompletionWithTools(
                 msgs,
                 cfg,
                 tools,
                 async (name, argsText) => {
+                    if (isSearchToolName(name)) {
+                        const out = await callSearchTool(
+                            cfg,
+                            name,
+                            argsText,
+                            must.payload || cleaned,
+                        );
+                        log.debug(`chatbot 搜索调用: ${name} → ${out.slice(0, 200)}`);
+                        return out;
+                    }
                     const out = await callMcpTool(cfg, name, argsText);
                     log.debug(`chatbot MCP 调用: ${name} → ${out.slice(0, 200)}`);
                     return out;
                 },
                 groupOpenid,
+                cfg.search.enabled ? cfg.search.resultMaxChars : undefined,
             );
         } else {
             res = await chatCompletion(msgs, cfg, true, groupOpenid);

@@ -21,6 +21,23 @@ export interface ChatbotGateRuntime {
     refusalMessages: string[];
 }
 
+/** 联网搜索（DeepSeek Search/Fetch 工具）运行时配置 */
+export interface ChatbotSearchRuntimeConfig {
+    enabled: boolean;
+    /** Search/Fetch API baseURL；缺省回落对话 baseURL，再缺省官方 DeepSeek */
+    baseURL: string;
+    /** 搜索密钥；缺省回落对话 apiKey */
+    apiKey: string;
+    /** web_search 返回结果条数 1–50；默认 5 */
+    count: number;
+    /** web_search 是否返回网页正文 content；默认 false（summary 摘要足够，正文用 web_fetch 按需抓取） */
+    needContent: boolean;
+    /** 是否提供 web_fetch 工具（抓取指定网页 Markdown 正文）；默认 true */
+    allowFetch: boolean;
+    /** 工具结果返回给模型的字符上限（500–20000）；默认 4000 */
+    resultMaxChars: number;
+}
+
 /** 群独立配置可覆盖字段（概率 + 限流冷却）；所有字段可选，缺失回落全局值 */
 export interface GroupOverrideConfig {
     replyProbability?: number;
@@ -98,6 +115,8 @@ export interface ChatbotRuntimeConfig {
     mcpEnabled: boolean;
     mcpServers: ChatbotMcpServerConfig[];
     maxToolRounds: number;
+    /** 联网搜索（DeepSeek Search/Fetch 工具） */
+    search: ChatbotSearchRuntimeConfig;
     rateLimitPerSecond: number;
     rateLimitPerMinute: number;
     cooldownSec: number;
@@ -194,6 +213,19 @@ export function getChatbotConfig(): ChatbotRuntimeConfig | null {
         mcpEnabled: !!c.mcp?.enabled,
         mcpServers: Array.isArray(c.mcp?.servers) ? c.mcp!.servers! : [],
         maxToolRounds: num(c.mcp?.maxToolRounds, 3),
+        search: {
+            enabled: !!c.search?.enabled,
+            baseURL:
+                String(c.search?.baseURL || '').trim() || c.baseURL || 'https://api.deepseek.com',
+            apiKey: String(c.search?.apiKey || '').trim() || String(c.apiKey || '').trim(),
+            count: Math.max(1, Math.min(50, Math.round(num(c.search?.count, 5)))),
+            needContent: c.search?.needContent === true,
+            allowFetch: c.search?.allowFetch !== false,
+            resultMaxChars: Math.max(
+                500,
+                Math.min(20000, Math.round(num(c.search?.resultMaxChars, 4000))),
+            ),
+        },
         rateLimitPerSecond: num(c.rateLimitPerSecond, 1),
         rateLimitPerMinute: num(c.rateLimitPerMinute, 10),
         cooldownSec: num(c.cooldownSec, 10),
@@ -224,8 +256,7 @@ function parseGroupConfigs(raw: unknown): Record<string, GroupOverrideConfig> {
             cfg.replyProbabilityStep = Number(o.replyProbabilityStep);
         if (Number.isFinite(Number(o.replyChainWindowSec)))
             cfg.replyChainWindowSec = Number(o.replyChainWindowSec);
-        if (Number.isFinite(Number(o.replyChainMax)))
-            cfg.replyChainMax = Number(o.replyChainMax);
+        if (Number.isFinite(Number(o.replyChainMax))) cfg.replyChainMax = Number(o.replyChainMax);
         if (Number.isFinite(Number(o.stickerReplyProbability)))
             cfg.stickerReplyProbability = Number(o.stickerReplyProbability);
         if (Number.isFinite(Number(o.rateLimitPerSecond)))

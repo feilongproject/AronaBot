@@ -268,6 +268,7 @@ export async function chatCompletion(
  * 对话文本 + MCP 工具调用（原生 function calling）。
  * 模型请求工具 → 执行（onToolCall）→ 以 role:'tool' 回填 → 循环，最多 maxToolRounds 轮；
  * 轮次耗尽后不带 tools 收尾一次，强制模型给出最终回复（走结构化输出）。
+ * toolResultMaxChars 控制回填给模型的单个工具结果长度（搜索类结果可放宽）。
  */
 export async function chatCompletionWithTools(
     messages: ChatCompletionMessageParam[],
@@ -275,6 +276,7 @@ export async function chatCompletionWithTools(
     tools: ChatCompletionTool[],
     onToolCall: (fullName: string, argsText: string) => Promise<string>,
     sessionId = '',
+    toolResultMaxChars = 2000,
 ): Promise<ChatResult> {
     const apiKey = cfg.apiKey;
     if (!apiKey) throw new Error('chatbot: 对话 apiKey 未配置（ai.json chatbot.apiKey）');
@@ -306,7 +308,11 @@ export async function chatCompletionWithTools(
             } catch (err) {
                 result = `工具调用异常: ${err instanceof Error ? err.message : String(err)}`;
             }
-            msgs.push({ role: 'tool', tool_call_id: tc.id, content: result.slice(0, 2000) });
+            msgs.push({
+                role: 'tool',
+                tool_call_id: tc.id,
+                content: result.slice(0, toolResultMaxChars),
+            });
         }
     }
     const mode = chatStructuredMode(cfg);

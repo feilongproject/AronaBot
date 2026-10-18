@@ -151,6 +151,28 @@ interface ChatbotMcpConfig {
     maxToolRounds?: number; // 默认 3
 }
 
+/**
+ * 联网搜索（DeepSeek Search/Fetch 工具）配置。
+ * 模型在需要实时信息时调用 web_search / web_fetch；按成功请求计费（5 元/1000 次）。
+ * @see https://api-docs.deepseek.com/zh-cn/guides/search
+ */
+interface ChatbotSearchConfig {
+    /** 是否启用；默认 false */
+    enabled?: boolean;
+    /** Search/Fetch baseURL；留空复用 chatbot.baseURL，再缺省 https://api.deepseek.com */
+    baseURL?: string;
+    /** 搜索密钥；留空复用 chatbot.apiKey */
+    apiKey?: string;
+    /** web_search 返回结果条数 1–50；默认 5 */
+    count?: number;
+    /** web_search 是否返回网页正文 content；默认 false（summary 摘要足够，正文用 web_fetch 按需抓取） */
+    needContent?: boolean;
+    /** 是否提供 web_fetch 工具；默认 true */
+    allowFetch?: boolean;
+    /** 工具结果返回给模型的字符上限（500–20000）；默认 4000 */
+    resultMaxChars?: number;
+}
+
 interface BotChatbotConfig {
     /** 总开关；仅全局 activeBot 指定的 bot 进程生效 */
     enabled: boolean;
@@ -240,6 +262,8 @@ interface BotChatbotConfig {
     stickerReplyProbability?: number;
     /** MCP 配置空间（P3 接入；一期默认关） */
     mcp?: ChatbotMcpConfig;
+    /** 联网搜索（DeepSeek Search/Fetch 工具）配置 */
+    search?: ChatbotSearchConfig;
     /** 群限流：每秒 */
     rateLimitPerSecond: number;
     /** 群限流：每分钟 */

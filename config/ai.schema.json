@@ -275,6 +275,44 @@
                         }
                     }
                 },
+                "search": {
+                    "type": "object",
+                    "description": "联网搜索（DeepSeek Search/Fetch 工具）：模型需要实时信息时调用 web_search / web_fetch；按成功请求计费（5 元/1000 次）",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "是否启用；默认 false（启用后模型可按需联网搜索）"
+                        },
+                        "baseURL": {
+                            "type": "string",
+                            "description": "Search/Fetch API 地址；留空复用 chatbot.baseURL，再缺省 https://api.deepseek.com"
+                        },
+                        "apiKey": {
+                            "type": "string",
+                            "description": "搜索密钥（Bearer）；留空复用 chatbot.apiKey"
+                        },
+                        "count": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 50,
+                            "description": "web_search 每次返回条数，默认 5（只影响条数不影响计费）"
+                        },
+                        "needContent": {
+                            "type": "boolean",
+                            "description": "web_search 是否返回网页正文 content；默认 false（summary/snippet 摘要足够，正文用 web_fetch 按需抓取）"
+                        },
+                        "allowFetch": {
+                            "type": "boolean",
+                            "description": "是否提供 web_fetch 工具（抓取指定网页并返回 Markdown 正文）；默认 true"
+                        },
+                        "resultMaxChars": {
+                            "type": "integer",
+                            "minimum": 500,
+                            "maximum": 20000,
+                            "description": "工具结果返回给模型的字符上限，默认 4000（影响模型能读到的结果量）"
+                        }
+                    }
+                },
                 "rateLimitPerSecond": {
                     "type": "integer",
                     "description": "群限流每秒条数（冻结默认 1）"

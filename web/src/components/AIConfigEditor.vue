@@ -69,6 +69,15 @@ const DEFAULT_CHATBOT: Record<string, any> = {
     stickerBlacklistUserIds: [],
     stickerReplyProbability: 0.15,
     mcp: { enabled: false, servers: [], maxToolRounds: 3 },
+    search: {
+        enabled: false,
+        baseURL: '',
+        apiKey: '',
+        count: 5,
+        needContent: false,
+        allowFetch: true,
+        resultMaxChars: 4000,
+    },
     rateLimitPerSecond: 1,
     rateLimitPerMinute: 10,
     cooldownSec: 10,
@@ -97,6 +106,7 @@ type ApiTestSlot = {
 const apiTests = reactive<Record<AIApiTestKind, ApiTestSlot>>({
     chat: { loading: false, result: null, error: '' },
     vision: { loading: false, result: null, error: '' },
+    search: { loading: false, result: null, error: '' },
 });
 
 function ensureChatbotShape() {
@@ -117,6 +127,12 @@ function ensureChatbotShape() {
     }
     if (!c.mcp || typeof c.mcp !== 'object') {
         c.mcp = { enabled: false, servers: [], maxToolRounds: 3 };
+    }
+    if (!c.search || typeof c.search !== 'object') {
+        c.search = { ...DEFAULT_CHATBOT.search };
+    } else {
+        // 旧配置可能只有部分 search 字段：缺失子字段补默认，避免保存时丢字段
+        c.search = { ...DEFAULT_CHATBOT.search, ...c.search };
     }
     if (!c.groupConfigs || typeof c.groupConfigs !== 'object') {
         c.groupConfigs = {};
@@ -240,7 +256,11 @@ function getGroupOverride(gid: string): Record<string, any> {
 }
 
 function getGlobalValue(key: string): number {
-    return ai.value.chatbot?.[key] ?? GROUP_OVERRIDE_FIELDS.find((f) => f.key === key)?.globalDefault ?? 0;
+    return (
+        ai.value.chatbot?.[key] ??
+        GROUP_OVERRIDE_FIELDS.find((f) => f.key === key)?.globalDefault ??
+        0
+    );
 }
 
 function setGroupOverrideField(gid: string, key: string, value: number | null) {
@@ -365,23 +385,30 @@ async function runApiTest(kind: AIApiTestKind) {
     slot.error = '';
     try {
         const c = ai.value.chatbot || {};
-        slot.result = await testAIApi(
-            kind === 'chat'
-                ? {
-                      kind,
-                      baseURL: c.baseURL,
-                      apiKey: c.apiKey,
-                      model: c.chatModel,
-                      structuredOutput: c.structuredOutput !== false,
-                  }
-                : {
-                      kind,
-                      baseURL: c.visionBaseURL,
-                      apiKey: c.visionApiKey,
-                      model: c.visionModel,
-                      structuredOutput: c.visionStructuredOutput !== false,
-                  },
-        );
+        if (kind === 'chat') {
+            slot.result = await testAIApi({
+                kind,
+                baseURL: c.baseURL,
+                apiKey: c.apiKey,
+                model: c.chatModel,
+                structuredOutput: c.structuredOutput !== false,
+            });
+        } else if (kind === 'vision') {
+            slot.result = await testAIApi({
+                kind,
+                baseURL: c.visionBaseURL,
+                apiKey: c.visionApiKey,
+                model: c.visionModel,
+                structuredOutput: c.visionStructuredOutput !== false,
+            });
+        } else {
+            // search：baseURL/apiKey 留空时后端会复用对话 API 的默认值
+            slot.result = await testAIApi({
+                kind,
+                baseURL: c.search?.baseURL || c.baseURL,
+                apiKey: c.search?.apiKey || c.apiKey,
+            });
+        }
     } catch (e) {
         const raw = e instanceof Error ? e.message : String(e);
         slot.error = /aborted|timeout/i.test(raw) ? '测试超时（约 35s），请检查地址或网络' : raw;
@@ -602,11 +629,27 @@ onMounted(load);
                                     <p class="font-medium text-slate-200">request</p>
                                     <pre
                                         class="max-h-80 overflow-auto whitespace-pre-wrap font-mono text-slate-300"
-                                    >{{ JSON.stringify(apiTests.chat.result.apiRequest ?? null, null, 2) }}</pre>
+                                        >{{
+                                            JSON.stringify(
+                                                apiTests.chat.result.apiRequest ?? null,
+                                                null,
+                                                2,
+                                            )
+                                        }}</pre
+                                    >
                                     <p class="font-medium text-slate-200">response</p>
                                     <pre
                                         class="max-h-80 overflow-auto whitespace-pre-wrap font-mono text-slate-300"
-                                    >{{ JSON.stringify(apiTests.chat.result.apiResponse ?? { message: '上游未返回' }, null, 2) }}</pre>
+                                        >{{
+                                            JSON.stringify(
+                                                apiTests.chat.result.apiResponse ?? {
+                                                    message: '上游未返回',
+                                                },
+                                                null,
+                                                2,
+                                            )
+                                        }}</pre
+                                    >
                                 </template>
                             </div>
                         </section>
@@ -691,15 +734,204 @@ onMounted(load);
                                     <p class="font-medium text-slate-200">request</p>
                                     <pre
                                         class="max-h-80 overflow-auto whitespace-pre-wrap font-mono text-slate-300"
-                                    >{{ JSON.stringify(apiTests.vision.result.apiRequest ?? null, null, 2) }}</pre>
+                                        >{{
+                                            JSON.stringify(
+                                                apiTests.vision.result.apiRequest ?? null,
+                                                null,
+                                                2,
+                                            )
+                                        }}</pre
+                                    >
                                     <p class="font-medium text-slate-200">response</p>
                                     <pre
                                         class="max-h-80 overflow-auto whitespace-pre-wrap font-mono text-slate-300"
-                                    >{{ JSON.stringify(apiTests.vision.result.apiResponse ?? { message: '上游未返回' }, null, 2) }}</pre>
+                                        >{{
+                                            JSON.stringify(
+                                                apiTests.vision.result.apiResponse ?? {
+                                                    message: '上游未返回',
+                                                },
+                                                null,
+                                                2,
+                                            )
+                                        }}</pre
+                                    >
                                 </template>
                             </div>
                         </section>
                     </div>
+
+                    <!-- 联网搜索（DeepSeek Search / Fetch） -->
+                    <section
+                        class="space-y-3 rounded-xl border border-slate-700/80 bg-slate-950/40 px-4 py-3"
+                    >
+                        <div class="flex flex-wrap items-start justify-between gap-2">
+                            <div>
+                                <h4 class="text-sm font-semibold text-slate-200">
+                                    联网搜索（DeepSeek Search / Fetch）
+                                </h4>
+                                <p class="mt-0.5 text-xs text-slate-500">
+                                    开启后模型按需调用 web_search / web_fetch
+                                    工具获取实时信息；按成功请求计费（5 元 / 1000
+                                    次）。测试用当前表单值，无需先保存。
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                class="rounded-lg border border-sky-500/70 bg-sky-500/10 px-3 py-1.5 text-sm text-sky-200 hover:bg-sky-500/20 disabled:opacity-50"
+                                :disabled="apiTests.search.loading"
+                                @click="runApiTest('search')"
+                            >
+                                {{ apiTests.search.loading ? '测试中…' : '测试连通' }}
+                            </button>
+                        </div>
+                        <Field
+                            label="search.enabled"
+                            hint="启用联网搜索工具；与 MCP 共用 function calling 通道"
+                        >
+                            <BoolInput
+                                :model-value="Boolean(ai.chatbot?.search?.enabled)"
+                                label="启用联网搜索"
+                                @update:model-value="
+                                    patchChatbot((c) => {
+                                        c.search = { ...(c.search || {}), enabled: $event };
+                                    })
+                                "
+                            />
+                        </Field>
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <Field
+                                label="search.baseURL"
+                                hint="Search/Fetch API 地址；留空复用对话 baseURL（默认 https://api.deepseek.com）"
+                            >
+                                <TextInput
+                                    mono
+                                    :model-value="ai.chatbot?.search?.baseURL || ''"
+                                    @update:model-value="
+                                        patchChatbot((c) => {
+                                            c.search = { ...(c.search || {}), baseURL: $event };
+                                        })
+                                    "
+                                />
+                            </Field>
+                            <Field
+                                label="search.apiKey"
+                                hint="搜索密钥（Bearer）；留空复用对话 apiKey"
+                            >
+                                <TextInput
+                                    type="password"
+                                    :model-value="ai.chatbot?.search?.apiKey || ''"
+                                    @update:model-value="
+                                        patchChatbot((c) => {
+                                            c.search = { ...(c.search || {}), apiKey: $event };
+                                        })
+                                    "
+                                />
+                            </Field>
+                            <Field
+                                label="search.count"
+                                hint="web_search 每次返回条数 1–50；默认 5（只影响条数不影响计费）"
+                            >
+                                <NumberInput
+                                    integer
+                                    :model-value="ai.chatbot?.search?.count ?? 5"
+                                    :min="1"
+                                    :max="50"
+                                    @update:model-value="
+                                        patchChatbot((c) => {
+                                            c.search = { ...(c.search || {}), count: $event };
+                                        })
+                                    "
+                                />
+                            </Field>
+                            <Field
+                                label="search.resultMaxChars"
+                                hint="工具结果返回给模型的字符上限 500–20000；默认 4000"
+                            >
+                                <NumberInput
+                                    integer
+                                    :model-value="ai.chatbot?.search?.resultMaxChars ?? 4000"
+                                    :min="500"
+                                    :max="20000"
+                                    @update:model-value="
+                                        patchChatbot((c) => {
+                                            c.search = {
+                                                ...(c.search || {}),
+                                                resultMaxChars: $event,
+                                            };
+                                        })
+                                    "
+                                />
+                            </Field>
+                            <Field
+                                label="search.needContent"
+                                hint="web_search 是否附带网页正文 content；默认关（summary 摘要够用，正文用 web_fetch 按需抓）"
+                            >
+                                <BoolInput
+                                    :model-value="Boolean(ai.chatbot?.search?.needContent)"
+                                    label="搜索结果附带网页正文"
+                                    @update:model-value="
+                                        patchChatbot((c) => {
+                                            c.search = { ...(c.search || {}), needContent: $event };
+                                        })
+                                    "
+                                />
+                            </Field>
+                            <Field
+                                label="search.allowFetch"
+                                hint="是否暴露 web_fetch 工具（抓取指定链接返回 Markdown 正文）；默认开"
+                            >
+                                <BoolInput
+                                    :model-value="ai.chatbot?.search?.allowFetch !== false"
+                                    label="允许 web_fetch 细读网页"
+                                    @update:model-value="
+                                        patchChatbot((c) => {
+                                            c.search = { ...(c.search || {}), allowFetch: $event };
+                                        })
+                                    "
+                                />
+                            </Field>
+                        </div>
+                        <div
+                            v-if="apiTests.search.error || apiTests.search.result"
+                            class="space-y-1.5 rounded-lg border px-3 py-2 text-xs leading-relaxed"
+                            :class="
+                                apiTests.search.result?.ok
+                                    ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100'
+                                    : 'border-rose-500/40 bg-rose-500/10 text-rose-100'
+                            "
+                        >
+                            <p v-if="apiTests.search.error" class="font-medium">
+                                {{ apiTests.search.error }}
+                            </p>
+                            <template v-if="apiTests.search.result">
+                                <p class="font-medium">{{ apiTests.search.result.message }}</p>
+                                <p class="font-medium text-slate-200">request</p>
+                                <pre
+                                    class="max-h-80 overflow-auto whitespace-pre-wrap font-mono text-slate-300"
+                                    >{{
+                                        JSON.stringify(
+                                            apiTests.search.result.apiRequest ?? null,
+                                            null,
+                                            2,
+                                        )
+                                    }}</pre
+                                >
+                                <p class="font-medium text-slate-200">response</p>
+                                <pre
+                                    class="max-h-80 overflow-auto whitespace-pre-wrap font-mono text-slate-300"
+                                    >{{
+                                        JSON.stringify(
+                                            apiTests.search.result.apiResponse ?? {
+                                                message: '上游未返回',
+                                            },
+                                            null,
+                                            2,
+                                        )
+                                    }}</pre
+                                >
+                            </template>
+                        </div>
+                    </section>
                     <Field
                         label="systemPrompt"
                         hint="猫娘人设；保存后热替换立即生效（安全段由代码固定拼接）"
@@ -1225,7 +1457,10 @@ onMounted(load);
 
                     <!-- 选中群的编辑表单 -->
                     <div
-                        v-if="selectedGroupForOverride && ai.chatbot?.groupConfigs?.[selectedGroupForOverride] !== undefined"
+                        v-if="
+                            selectedGroupForOverride &&
+                            ai.chatbot?.groupConfigs?.[selectedGroupForOverride] !== undefined
+                        "
                         class="space-y-3 rounded-xl border border-violet-500/30 bg-violet-500/5 px-4 py-3"
                     >
                         <div class="flex flex-wrap items-center justify-between gap-2">

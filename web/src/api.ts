@@ -87,7 +87,7 @@ export function saveAIConfig(config: unknown) {
     });
 }
 
-export type AIApiTestKind = 'chat' | 'vision';
+export type AIApiTestKind = 'chat' | 'vision' | 'search';
 
 export type AIApiTestResponse = {
     ok: boolean;
@@ -122,7 +122,7 @@ export type AIApiTestResponse = {
     apiResponse?: unknown;
 };
 
-/** 用当前表单值测试对话 / 看图 API，无需先保存 */
+/** 用当前表单值测试对话 / 看图 / 联网搜索 API，无需先保存 */
 export async function testAIApi(body: {
     kind: AIApiTestKind;
     baseURL?: string;

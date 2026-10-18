@@ -53,6 +53,15 @@
             "servers": [],
             "maxToolRounds": 3
         },
+        "search": {
+            "enabled": false,
+            "baseURL": "",
+            "apiKey": "",
+            "count": 5,
+            "needContent": false,
+            "allowFetch": true,
+            "resultMaxChars": 4000
+        },
         "rateLimitPerSecond": 1,
         "rateLimitPerMinute": 10,
         "cooldownSec": 10,

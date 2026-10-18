@@ -2,6 +2,7 @@ import axios, { AxiosError } from 'axios';
 import OpenAI from 'openai';
 import sharp from 'sharp';
 import { chatOpenAIHeaders, resolveStructuredOutputMode } from '../plugins/chatbot/providers';
+import { deepseekToolsEndpoint } from '../plugins/chatbot/search';
 
 const DEFAULT_CHAT_BASE = 'https://api.deepseek.com';
 const DEFAULT_VISION_BASE = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
@@ -10,8 +11,10 @@ const DEFAULT_VISION_MODEL = 'qwen3.7-plus';
 
 const PING_TIMEOUT_MS = 20000;
 const PING_PROMPT = 'Reply with exactly the word pong.';
+/** 联网搜索连通测试词（一次成功搜索按次计费） */
+const SEARCH_TEST_QUERY = 'DeepSeek 最新消息';
 
-export type AIApiTestKind = 'chat' | 'vision';
+export type AIApiTestKind = 'chat' | 'vision' | 'search';
 
 export type AIApiTestInput = {
     kind: AIApiTestKind;
@@ -197,8 +200,75 @@ function summarize(result: Omit<AIApiTestResult, 'message'>): string {
     return [head, pingText, modelsText, balanceText, result.warning].filter(Boolean).join('。');
 }
 
+/**
+ * 联网搜索（DeepSeek Search）连通测试：固定 query 一次搜索请求，回显 request/response。
+ * 仅验证搜索密钥与地址；成功一次按官方计费（5 元/1000 次）。
+ */
+async function testSearchApi(input: AIApiTestInput): Promise<AIApiTestResult> {
+    const apiKey = String(input.apiKey || '').trim();
+    const baseURL = trimSlash(String(input.baseURL || '').trim() || DEFAULT_CHAT_BASE);
+    const url = deepseekToolsEndpoint(baseURL, 'search');
+    /** 搜索按次计费，测试返回 2 条即可 */
+    const payload = { query: SEARCH_TEST_QUERY, count: 2, need_content: false };
+    const apiRequest = toJson({ method: 'POST', url, body: payload });
+    const emptyResult = (error: string): AIApiTestResult => ({
+        ok: false,
+        kind: 'search',
+        baseURL,
+        model: 'deepseek-search',
+        message: '搜索 apiKey 为空（未填写且无法复用对话 apiKey）',
+        ping: { ok: false, latencyMs: 0, content: '', error },
+        models: { ok: false, count: 0, currentListed: null, sample: [] },
+        apiRequest,
+    });
+    if (!apiKey) return emptyResult('密钥未填写');
+
+    const t0 = Date.now();
+    try {
+        const { data } = await axios.post(url, payload, {
+            headers: {
+                Authorization: `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+            },
+            timeout: PING_TIMEOUT_MS,
+            proxy: false,
+        });
+        const results = Array.isArray(data?.results) ? data.results : [];
+        const latencyMs = Date.now() - t0;
+        return {
+            ok: true,
+            kind: 'search',
+            baseURL,
+            model: 'deepseek-search',
+            message: `搜索 API 可用：${results.length} 条结果（${latencyMs}ms）`,
+            ping: {
+                ok: true,
+                latencyMs,
+                content: String(results[0]?.title || '').slice(0, 200),
+            },
+            models: { ok: false, count: 0, currentListed: null, sample: [] },
+            apiRequest,
+            apiResponse: toJson(data),
+        };
+    } catch (err) {
+        const errorText = formatProviderError(err);
+        return {
+            ok: false,
+            kind: 'search',
+            baseURL,
+            model: 'deepseek-search',
+            message: `搜索 API 失败：${errorText}`,
+            ping: { ok: false, latencyMs: Date.now() - t0, content: '', error: errorText },
+            models: { ok: false, count: 0, currentListed: null, sample: [] },
+            apiRequest,
+            apiResponse: extractApiErrorBody(err),
+        };
+    }
+}
+
 export async function testChatbotApi(input: AIApiTestInput): Promise<AIApiTestResult> {
     const kind = input.kind;
+    if (kind === 'search') return testSearchApi(input);
     const apiKey = String(input.apiKey || '').trim();
     const baseURL = trimSlash(
         String(input.baseURL || '').trim() ||
