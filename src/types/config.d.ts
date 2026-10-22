@@ -501,6 +501,8 @@ interface AiTranslateMessage {
 
 interface AiTranslateConfigFile {
     apiKey: string;
+    /** OpenAI 兼容接口 baseURL；留空缺省 https://dashscope.aliyuncs.com/compatible-mode/v1 */
+    baseURL?: string;
     systemPromptFile?: string | PathRefLegacy;
     createParams: {
         model: string;
@@ -514,6 +516,8 @@ interface AiTranslateConfigFile {
 
 interface AiTranslateConfig {
     apiKey: string;
+    /** OpenAI 兼容接口 baseURL；留空缺省 https://dashscope.aliyuncs.com/compatible-mode/v1 */
+    baseURL?: string;
     systemPromptFile?: ConfigPath;
     createParams: {
         model: string;

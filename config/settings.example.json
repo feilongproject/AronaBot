@@ -139,6 +139,7 @@
     "fontRoot": "data/fonts",
     "aiTranslate": {
         "apiKey": "YOUR_OPENAI_API_KEY",
+        "baseURL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
         "systemPromptFile": "data/aiPrompt.txt",
         "createParams": {
             "model": "qwen3-max-preview",

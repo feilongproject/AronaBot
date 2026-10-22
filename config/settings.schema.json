@@ -244,6 +244,10 @@
             "description": "AI 翻译（OpenAI 兼容接口）",
             "properties": {
                 "apiKey": { "type": "string" },
+                "baseURL": {
+                    "type": "string",
+                    "description": "OpenAI 兼容接口 baseURL；留空缺省 https://dashscope.aliyuncs.com/compatible-mode/v1；热加载立即生效"
+                },
                 "systemPromptFile": {
                     "type": "string",
                     "description": "system prompt 文件子路径；启动时注入 messages 首条 system"

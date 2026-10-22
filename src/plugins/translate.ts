@@ -4,9 +4,18 @@ import { mailerError } from '../libs/mailer';
 import { IMessageGROUP } from '../libs/IMessageEx';
 import config from '../../config/config';
 
+/** aiTranslate.baseURL 留空时的缺省值（阿里云百炼 OpenAI 兼容接口） */
+const DEFAULT_TRANSLATE_BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+
+/** 读取配置的 baseURL：留空回落缺省；去掉尾部斜杠避免拼接出 // */
+function resolveTranslateBaseURL(): string {
+    const configured = String(config.aiTranslate.baseURL ?? '').trim();
+    return (configured || DEFAULT_TRANSLATE_BASE_URL).replace(/\/+$/, '');
+}
+
 const openai = new OpenAI({
     apiKey: config.aiTranslate.apiKey,
-    baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    baseURL: resolveTranslateBaseURL(),
 });
 
 export async function translate(msg: IMessageGROUP) {
@@ -19,8 +28,9 @@ export async function translate(msg: IMessageGROUP) {
         ].includes(msg.group_id)
     )
         return;
-    // 设置页热加载后同步最新 apiKey
+    // 设置页热加载后同步最新 apiKey / baseURL
     openai.apiKey = config.aiTranslate.apiKey;
+    openai.baseURL = resolveTranslateBaseURL();
     const postData: ChatCompletionCreateParamsNonStreaming = JSON.parse(
         JSON.stringify(config.aiTranslate.createParams),
     );

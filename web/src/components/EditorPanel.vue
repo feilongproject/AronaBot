@@ -83,6 +83,7 @@ const config = reactive<AnyConfig>({
     },
     aiTranslate: {
         apiKey: '',
+        baseURL: '',
         systemPromptFile: '',
         createParams: {
             model: '',
@@ -328,6 +329,7 @@ function normalizeConfig(src: AnyConfig): AnyConfig {
     c.aiTranslate = {
         ...aiSrc,
         apiKey: aiSrc.apiKey ?? '',
+        baseURL: aiSrc.baseURL ?? '',
         systemPromptFile: asChildPath(aiSrc.systemPromptFile),
         createParams: {
             ...createParamsSrc,
@@ -975,6 +977,13 @@ onMounted(() => {
                     <div class="grid gap-4 sm:grid-cols-2">
                         <Field label="apiKey">
                             <TextInput v-model="config.aiTranslate.apiKey" type="password" />
+                        </Field>
+                        <Field label="baseURL">
+                            <TextInput
+                                v-model="config.aiTranslate.baseURL"
+                                mono
+                                placeholder="留空缺省 https://dashscope.aliyuncs.com/compatible-mode/v1"
+                            />
                         </Field>
                         <Field label="systemPromptFile" class="sm:col-span-2">
                             <PathField
