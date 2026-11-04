@@ -122,13 +122,22 @@ export type AIApiTestResponse = {
     apiResponse?: unknown;
 };
 
+/** 结构化输出模式：配置项直选，不按模型名筛选 */
+export type StructuredOutputMode = 'off' | 'json_object' | 'json_schema';
+
+export const STRUCTURED_OUTPUT_MODES: readonly StructuredOutputMode[] = [
+    'off',
+    'json_object',
+    'json_schema',
+] as const;
+
 /** 用当前表单值测试对话 / 看图 / 联网搜索 API，无需先保存 */
 export async function testAIApi(body: {
     kind: AIApiTestKind;
     baseURL?: string;
     apiKey?: string;
     model?: string;
-    structuredOutput?: boolean;
+    structuredOutputMode?: StructuredOutputMode | string;
 }) {
     try {
         return await request<AIApiTestResponse>('/api/settings/ai/test', {

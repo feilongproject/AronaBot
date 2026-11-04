@@ -183,9 +183,11 @@ interface BotChatbotConfig {
     /** 对话文本模型名 */
     chatModel: string;
     /**
-     * 是否强制结构化输出（默认 true）。
-     * Qwen3.7-Plus/Max、Qwen3.8-Max 走 JSON Schema；其余走 JSON Object。
+     * 结构化输出模式（配置项直选，默认 json_schema）。
+     * off=自由文本；json_object=仅保证合法 JSON；json_schema=严格结构（上游拒绝时回落 json_object）。
      */
+    structuredOutputMode?: 'off' | 'json_object' | 'json_schema';
+    /** @deprecated 旧布尔开关，仅在 structuredOutputMode 缺失时兼容：true→json_schema，false→off */
     structuredOutput?: boolean;
     /** 白名单群 group_openid 列表 */
     groups: string[];
@@ -230,10 +232,9 @@ interface BotChatbotConfig {
     visionBaseURL?: string;
     /** 独立看图密钥，不复用 chatbot.apiKey / aiTranslate.apiKey */
     visionApiKey: string;
-    /**
-     * 看图是否强制结构化输出（默认 true）。
-     * Qwen3.7-Plus/Max、Qwen3.8-Max 走 JSON Schema；其余走 JSON Object。
-     */
+    /** 看图结构化输出模式（配置项直选，默认 json_schema）；含义同 structuredOutputMode */
+    visionStructuredOutputMode?: 'off' | 'json_object' | 'json_schema';
+    /** @deprecated 旧布尔开关，仅在 visionStructuredOutputMode 缺失时兼容 */
     visionStructuredOutput?: boolean;
     /** 自动抓取群聊图/表情入库 */
     stickerCaptureEnabled: boolean;

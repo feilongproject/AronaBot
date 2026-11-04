@@ -350,6 +350,7 @@ export function registerSettingsRoutes(router: Router): void {
             baseURL?: string;
             apiKey?: string;
             model?: string;
+            structuredOutputMode?: string;
             structuredOutput?: boolean;
         };
         const kind = body.kind as AIApiTestKind;
@@ -364,6 +365,7 @@ export function registerSettingsRoutes(router: Router): void {
                 baseURL: body.baseURL,
                 apiKey: body.apiKey,
                 model: body.model,
+                structuredOutputMode: body.structuredOutputMode,
                 structuredOutput: body.structuredOutput,
             });
             ctx.body = result;

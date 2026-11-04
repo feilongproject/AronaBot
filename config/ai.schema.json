@@ -54,9 +54,14 @@
                     "type": "string",
                     "description": "对话文本模型名，默认 deepseek-chat"
                 },
+                "structuredOutputMode": {
+                    "type": "string",
+                    "enum": ["off", "json_object", "json_schema"],
+                    "description": "结构化输出模式，直接选定不按模型名筛选（默认 json_schema）。off=自由文本；json_object=仅保证合法 JSON，结构靠 prompt；json_schema=严格结构，上游拒绝时自动回落 json_object"
+                },
                 "structuredOutput": {
                     "type": "boolean",
-                    "description": "强制结构化输出（默认 true）。Qwen3.7-Plus/Max、Qwen3.8-Max 使用 JSON Schema 严格结构；其余模型回落 JSON Object。关闭则自由文本"
+                    "description": "【已废弃】旧布尔开关，仅在 structuredOutputMode 缺失时兼容：true→json_schema，false→off"
                 },
                 "groups": {
                     "type": "array",
@@ -180,9 +185,14 @@
                     "type": "string",
                     "description": "独立看图密钥；与 chatbot.apiKey / aiTranslate.apiKey 分离"
                 },
+                "visionStructuredOutputMode": {
+                    "type": "string",
+                    "enum": ["off", "json_object", "json_schema"],
+                    "description": "看图结构化输出模式，直接选定不按模型名筛选（默认 json_schema）。off=自由文本；json_object=仅保证合法 JSON；json_schema=严格结构，上游拒绝时自动回落 json_object"
+                },
                 "visionStructuredOutput": {
                     "type": "boolean",
-                    "description": "看图强制结构化输出（默认 true）。Qwen3.7-Plus/Max、Qwen3.8-Max 使用 JSON Schema；其余回落 JSON Object。关闭则自由文本"
+                    "description": "【已废弃】旧布尔开关，仅在 visionStructuredOutputMode 缺失时兼容：true→json_schema，false→off"
                 },
                 "stickerCaptureEnabled": {
                     "type": "boolean",

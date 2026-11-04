@@ -1,7 +1,11 @@
 import axios, { AxiosError } from 'axios';
 import OpenAI from 'openai';
 import sharp from 'sharp';
-import { chatOpenAIHeaders, resolveStructuredOutputMode } from '../plugins/chatbot/providers';
+import {
+    chatOpenAIHeaders,
+    normalizeStructuredOutputMode,
+    type StructuredOutputMode,
+} from '../plugins/chatbot/providers';
 import { deepseekToolsEndpoint } from '../plugins/chatbot/search';
 
 const DEFAULT_CHAT_BASE = 'https://api.deepseek.com';
@@ -21,6 +25,9 @@ export type AIApiTestInput = {
     baseURL?: string;
     apiKey?: string;
     model?: string;
+    /** 结构化输出模式（off / json_object / json_schema）；缺省 json_schema */
+    structuredOutputMode?: StructuredOutputMode | string;
+    /** @deprecated 旧布尔开关，仅在 structuredOutputMode 缺失时兼容 */
     structuredOutput?: boolean;
 };
 
@@ -301,10 +308,9 @@ export async function testChatbotApi(input: AIApiTestInput): Promise<AIApiTestRe
 
     const pingPromise = (async () => {
         const t0 = Date.now();
-        const mode = resolveStructuredOutputMode({
-            structuredOutput: input.structuredOutput !== false,
-            model,
-        });
+        const mode = normalizeStructuredOutputMode(
+            input.structuredOutputMode ?? input.structuredOutput,
+        );
         const prompt = mode === 'off' ? PING_PROMPT : 'Reply with JSON: {"pong": true}';
         const response_format =
             mode === 'off'

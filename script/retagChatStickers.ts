@@ -19,6 +19,7 @@ import imageSize from 'image-size';
 import { MongoClient } from 'mongodb';
 import { visionSummarize, VisionInputImage } from '../src/plugins/chatbot/models';
 import type { ChatbotRuntimeConfig } from '../src/plugins/chatbot/config';
+import { normalizeStructuredOutputMode } from '../src/plugins/chatbot/providers';
 
 const ROOT = process.cwd();
 const settings = JSON.parse(fs.readFileSync(path.join(ROOT, 'config/settings.json'), 'utf-8'));
@@ -206,10 +207,12 @@ async function main() {
     const cfg = {
         visionApiKey,
         visionBaseURL:
-            aiConfig.chatbot?.visionBaseURL ||
-            'https://dashscope.aliyuncs.com/compatible-mode/v1',
+            aiConfig.chatbot?.visionBaseURL || 'https://dashscope.aliyuncs.com/compatible-mode/v1',
         visionModel: aiConfig.chatbot?.visionModel || 'qwen3.7-plus',
-        visionStructuredOutput: aiConfig.chatbot?.visionStructuredOutput !== false,
+        visionStructuredOutputMode: normalizeStructuredOutputMode(
+            aiConfig.chatbot?.visionStructuredOutputMode ??
+                aiConfig.chatbot?.visionStructuredOutput,
+        ),
     } as ChatbotRuntimeConfig;
 
     const client = new MongoClient(mongoUri(aiMongo), { serverSelectionTimeoutMS: 8000 });

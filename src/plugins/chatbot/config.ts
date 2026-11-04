@@ -1,4 +1,5 @@
 import config from '../../../config/config';
+import { normalizeStructuredOutputMode, type StructuredOutputMode } from './providers';
 
 /** 默认猫娘人设（参照主流 chatbot；运营可在设置页覆盖） */
 export const DEFAULT_SYSTEM_PROMPT = [
@@ -69,10 +70,10 @@ export interface ChatbotRuntimeConfig {
     apiKey: string;
     chatModel: string;
     /**
-     * 是否强制结构化输出（默认 true）。
-     * Qwen3.7-Plus/Max、Qwen3.8-Max → JSON Schema；其余 → JSON Object。
+     * 结构化输出模式（配置项直选，默认 json_schema）。
+     * off=自由文本；json_object=仅保证合法 JSON；json_schema=严格结构。
      */
-    structuredOutput: boolean;
+    structuredOutputMode: StructuredOutputMode;
     groups: string[];
     systemPrompt: string;
     mustPrefixes: string[];
@@ -96,8 +97,8 @@ export interface ChatbotRuntimeConfig {
     visionModel: string;
     visionBaseURL: string;
     visionApiKey: string;
-    /** 看图是否强制结构化输出（默认 true） */
-    visionStructuredOutput: boolean;
+    /** 看图结构化输出模式（配置项直选，默认 json_schema） */
+    visionStructuredOutputMode: StructuredOutputMode;
     stickerCaptureEnabled: boolean;
     stickerCaptureMode: 'emoji_like' | 'all_images' | 'animated_only' | 'sticker';
     stickerCaptureStore: boolean;
@@ -164,7 +165,9 @@ export function getChatbotConfig(): ChatbotRuntimeConfig | null {
         baseURL: c.baseURL || 'https://api.deepseek.com',
         apiKey: String(c.apiKey || '').trim(),
         chatModel: c.chatModel || 'deepseek-chat',
-        structuredOutput: c.structuredOutput !== false,
+        structuredOutputMode: normalizeStructuredOutputMode(
+            c.structuredOutputMode ?? c.structuredOutput,
+        ),
         groups: Array.isArray(c.groups) ? c.groups.filter(Boolean) : [],
         systemPrompt: c.systemPrompt?.trim() || DEFAULT_SYSTEM_PROMPT,
         mustPrefixes: Array.isArray(c.mustPrefixes) ? c.mustPrefixes.filter(Boolean) : [],
@@ -196,7 +199,9 @@ export function getChatbotConfig(): ChatbotRuntimeConfig | null {
         visionModel: c.visionModel || 'qwen3.7-plus',
         visionBaseURL: c.visionBaseURL || 'https://dashscope.aliyuncs.com/compatible-mode/v1',
         visionApiKey: c.visionApiKey || '',
-        visionStructuredOutput: c.visionStructuredOutput !== false,
+        visionStructuredOutputMode: normalizeStructuredOutputMode(
+            c.visionStructuredOutputMode ?? c.visionStructuredOutput,
+        ),
         stickerCaptureEnabled: c.stickerCaptureEnabled !== false,
         stickerCaptureMode:
             c.stickerCaptureMode === 'emoji_like' ||

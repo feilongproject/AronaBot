@@ -8,7 +8,7 @@ import {
 } from 'openai/resources/chat/completions';
 import type { ResponseFormatJSONObject, ResponseFormatJSONSchema } from 'openai/resources/shared';
 import { ChatbotRuntimeConfig } from './config';
-import { chatOpenAIHeaders, resolveStructuredOutputMode, StructuredOutputMode } from './providers';
+import { chatOpenAIHeaders, StructuredOutputMode } from './providers';
 
 function createOpenAI(apiKey: string, baseURL: string, sessionId: string) {
     return new OpenAI({
@@ -233,13 +233,6 @@ async function createChatCompletion(
     }
 }
 
-function chatStructuredMode(cfg: ChatbotRuntimeConfig): StructuredOutputMode {
-    return resolveStructuredOutputMode({
-        structuredOutput: cfg.structuredOutput,
-        model: cfg.chatModel,
-    });
-}
-
 /** 对话文本（OpenAI 兼容）；token 估算优先 API usage */
 export async function chatCompletion(
     messages: ChatCompletionMessageParam[],
@@ -250,7 +243,7 @@ export async function chatCompletion(
     const apiKey = cfg.apiKey;
     if (!apiKey) throw new Error('chatbot: 对话 apiKey 未配置（ai.json chatbot.apiKey）');
     const openai = createOpenAI(apiKey, cfg.baseURL, sessionId);
-    const mode = jsonMode ? chatStructuredMode(cfg) : 'off';
+    const mode: StructuredOutputMode = jsonMode ? cfg.structuredOutputMode : 'off';
     const completion = await createChatCompletion(openai, {
         model: cfg.chatModel,
         messages,
@@ -315,7 +308,7 @@ export async function chatCompletionWithTools(
             });
         }
     }
-    const mode = chatStructuredMode(cfg);
+    const mode = cfg.structuredOutputMode;
     const final = await createChatCompletion(openai, {
         model: cfg.chatModel,
         messages: msgs,
@@ -874,7 +867,7 @@ export function classifyStickerTags(input: {
 /**
  * 阿里云百炼看图（OpenAI 兼容、独立 visionApiKey）。
  * 多图同一请求批量分析，返回与入参顺序一致的结果数组；失败返回 null。
- * 看图结构化输出由 visionStructuredOutput 控制（默认开）。
+ * 看图结构化输出由 visionStructuredOutputMode 控制（默认 json_schema）。
  */
 export async function visionSummarize(
     images: VisionInputImage[],
@@ -900,10 +893,7 @@ export async function visionSummarize(
 
     let raw = '';
     try {
-        const visionMode = resolveStructuredOutputMode({
-            structuredOutput: cfg.visionStructuredOutput,
-            model: cfg.visionModel,
-        });
+        const visionMode = cfg.visionStructuredOutputMode;
         if (devEnv) log.debug(`visionSummarize mode=${visionMode} model=${cfg.visionModel}`);
         const completion = await createChatCompletion(openai, {
             model: cfg.visionModel,
@@ -1099,7 +1089,7 @@ export async function muteIntentCheck(
     const clip = current.length > 300 ? `${current.slice(0, 300)}…` : current;
     try {
         const openai = createOpenAI(cfg.apiKey, cfg.baseURL, sessionId || 'planabot-mute-review');
-        const mode = chatStructuredMode(cfg);
+        const mode = cfg.structuredOutputMode;
         const completion = await createChatCompletion(openai, {
             model: cfg.chatModel,
             messages: [
