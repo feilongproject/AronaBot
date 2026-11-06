@@ -1,12 +1,11 @@
 #!/usr/bin/bash
 cd /root/RemoteDir/qbot/AronaBot
 
-# export $HOME="/root"
+# systemd 不设置 HOME，须显式指定，否则 nvm 无法加载
+export HOME=/root
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+#[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 
-# bash /root/.zshrc
-
-# echo $NVM_DIR/nvm.sh >>0.log
-
-# echo $PATH
-
-/root/.nvm/versions/node/v24.11.0/bin/node /root/.nvm/versions/node/v24.11.0/bin/pnpm run start:$1
+# nvm 加载后 PATH 已含当前 default 版本的 node/pnpm，无需硬编码版本号
+exec pnpm run start:"$1"
