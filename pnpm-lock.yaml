@@ -65,6 +65,9 @@ importers:
       html-entities:
         specifier: ^2.6.0
         version: 2.6.0
+      https-proxy-agent:
+        specifier: 7.0.6
+        version: 7.0.6
       image-size:
         specifier: ^2.0.2
         version: 2.0.2

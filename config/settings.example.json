@@ -95,6 +95,20 @@
         "localUploadPath": "/opt/llob/LiteLoader/upload",
         "remoteUploadPath": "/opt/QQ/resources/app/LiteLoader/upload"
     },
+    "twitterPush": {
+        "enable": false,
+        "proxyUrl": "http://127.0.0.1:10809",
+        "sourceBaseUrl": "",
+        "apiBaseUrl": "",
+        "userTweetsQueryId": "",
+        "userByScreenNameQueryId": "",
+        "maxPushPerCheck": 3,
+        "maxImagesPerTweet": 4,
+        "pushVideo": false,
+        "notifyCooldownMin": 60,
+        "requestTimeout": 15000,
+        "cookies": ""
+    },
     "sms": {
         "AccessKey": {
             "AccessKeyId": "YOUR_SMS_ACCESS_KEY",

@@ -144,6 +144,64 @@
                 "remoteUploadPath": { "type": "string" }
             }
         },
+        "twitterPush": {
+            "type": "object",
+            "description": "推特(X)动态订阅推送（syndication 免登录数据源，经代理访问；订阅由 /推特订阅 命令管理，存 Redis）",
+            "properties": {
+                "enable": {
+                    "type": "boolean",
+                    "description": "总开关（定时检查与推送）；命令不受此开关限制"
+                },
+                "proxyUrl": {
+                    "type": "string",
+                    "description": "HTTP(S) 代理 URL，如 http://127.0.0.1:10809；留空=直连；运行时 /推特代理 设置优先于此配置；代理不可用时提醒管理员"
+                },
+                "maxPushPerCheck": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "每轮检查单账号最多补推条数（防刷屏），默认 3"
+                },
+                "maxImagesPerTweet": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "单条推文最多发送图片数，默认 4"
+                },
+                "pushVideo": {
+                    "type": "boolean",
+                    "description": "是否下载并推送视频文件（经 COS 中转，超 50MB 跳过）；默认 false 仅发链接"
+                },
+                "sourceBaseUrl": {
+                    "type": "string",
+                    "description": "推特数据源 (syndication 备源) 基础 URL 覆盖（自建镜像/测试用）；留空=官方 https://syndication.twitter.com"
+                },
+                "apiBaseUrl": {
+                    "type": "string",
+                    "description": "Twitter API 基础 URL 覆盖（GraphQL guest 主源；自建镜像/测试用）；留空=官方 https://api.twitter.com"
+                },
+                "userTweetsQueryId": {
+                    "type": "string",
+                    "description": "GraphQL UserTweets queryId 覆盖；Twitter 改版导致 404 时可在此热修；留空=内置值"
+                },
+                "userByScreenNameQueryId": {
+                    "type": "string",
+                    "description": "GraphQL UserByScreenName queryId 覆盖；留空=内置值"
+                },
+                "notifyCooldownMin": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "同类故障（代理不可用/数据源失败）提醒管理员的冷却分钟数，默认 60"
+                },
+                "requestTimeout": {
+                    "type": "integer",
+                    "minimum": 3000,
+                    "description": "代理/数据源单次请求超时（毫秒），默认 15000"
+                },
+                "cookies": {
+                    "type": "string",
+                    "description": "Twitter 登录 Cookie（可选）：auth_token=...; ct0=...；部分账号推文页对未登录访客不可见，配置后走登录会话抓取完整时间线"
+                }
+            }
+        },
         "sms": {
             "type": "object",
             "description": "阿里云短信",

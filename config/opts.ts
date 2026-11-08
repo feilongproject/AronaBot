@@ -401,6 +401,47 @@ export default {
                 describe: '使用指定动态id手动获取截图',
             },
         },
+        twitterDynamic: {
+            twitterList: {
+                reg: /^\/?推特订阅列表$/,
+                fnc: 'twitterList',
+                type: [MessageType.GUILD, MessageType.GROUP, MessageType.FRIEND],
+                channelAllows: ['all'],
+                describe: '查看推特动态订阅列表与代理状态（管理员）',
+            },
+            twitterSub: {
+                reg: /^\/?推特订阅\s+@?[A-Za-z0-9_]{1,15}$/,
+                fnc: 'twitterSub',
+                type: [MessageType.GROUP],
+                describe: '订阅推特账号动态到本群（管理员）',
+            },
+            twitterUnsub: {
+                reg: /^\/?推特(取消订阅|退订)\s+@?[A-Za-z0-9_]{1,15}$/,
+                fnc: 'twitterUnsub',
+                type: [MessageType.GROUP],
+                describe: '取消本群推特订阅（管理员）',
+            },
+            twitterProxy: {
+                reg: /^\/?推特代理(\s+[\s\S]+)?$/,
+                fnc: 'twitterProxy',
+                type: [MessageType.GUILD, MessageType.GROUP, MessageType.FRIEND],
+                channelAllows: ['all'],
+                describe: '查看/设置推特抓取代理url（管理员）',
+            },
+            mainCheck: {
+                reg: /^\/?推特检查$/,
+                fnc: 'mainCheck',
+                type: [MessageType.GUILD, MessageType.GROUP, MessageType.FRIEND],
+                channelAllows: ['all'],
+                describe: '手动执行一轮推特动态检查（管理员）',
+            },
+            twitterPushById: {
+                reg: /^\/?推特推送\s+\S+$/,
+                fnc: 'twitterPushById',
+                type: [MessageType.GROUP, MessageType.FRIEND],
+                describe: '按推文链接/ID测试推送到当前会话（管理员）',
+            },
+        },
         Tarot: {
             todayTarot: {
                 reg: /^\/?塔罗牌$/,

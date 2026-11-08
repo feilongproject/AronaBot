@@ -43,6 +43,7 @@ interface AppConfigFile {
     cos: CosConfig;
     groupPush: GroupPushConfig;
     onebot: OnebotConfig;
+    twitterPush?: TwitterPushConfig;
     sms: SmsConfig;
     cosUrl: string;
     retryTime: number;
@@ -92,6 +93,7 @@ interface AppConfig {
     cos: CosConfig;
     groupPush: GroupPushConfig;
     onebot: OnebotConfig;
+    twitterPush?: TwitterPushConfig;
     sms: SmsConfig;
     cosUrl: string;
     retryTime: number;
@@ -453,6 +455,41 @@ interface OnebotConfig {
     baseUrl: string;
     localUploadPath: string;
     remoteUploadPath: string;
+}
+
+/** 推特（X）动态订阅推送（plugins/twitterDynamic.ts） */
+interface TwitterPushConfig {
+    /** 总开关（定时检查与推送）；命令不受此开关限制；默认 false */
+    enable?: boolean;
+    /**
+     * HTTP(S) 代理 URL，如 http://127.0.0.1:10809；留空 = 直连。
+     * 运行时 /推特代理 设置的 redis 覆盖值优先于此配置。
+     */
+    proxyUrl?: string;
+    /** 每轮检查单账号最多补推条数（防刷屏）；默认 3 */
+    maxPushPerCheck?: number;
+    /** 单条推文最多发送图片数；默认 4 */
+    maxImagesPerTweet?: number;
+    /** 是否下载并推送视频文件（经 COS 中转，超 50MB 跳过）；默认 false 仅发链接 */
+    pushVideo?: boolean;
+    /** 推特数据源 (syndication) 基础 URL 覆盖（自建镜像/测试用）；默认官方地址 */
+    sourceBaseUrl?: string;
+    /** Twitter API 基础 URL 覆盖（GraphQL guest 数据源；自建镜像/测试用）；默认 https://api.twitter.com */
+    apiBaseUrl?: string;
+    /** GraphQL UserTweets queryId 覆盖（Twitter 改版导致 404 时可热修）；默认内置 */
+    userTweetsQueryId?: string;
+    /** GraphQL UserByScreenName queryId 覆盖；默认内置 */
+    userByScreenNameQueryId?: string;
+    /** 同类故障（代理不可用/数据源失败）提醒管理员的冷却分钟数；默认 60 */
+    notifyCooldownMin?: number;
+    /** 代理/数据源单次请求超时（毫秒）；默认 15000 */
+    requestTimeout?: number;
+    /**
+     * Twitter 登录 Cookie（可选）：auth_token=...; ct0=...
+     * 部分账号（回复为主/敏感账号等）的推文页对未登录访客不可见，
+     * 配置登录 Cookie 后 GraphQL 走登录会话即可抓取完整时间线。
+     */
+    cookies?: string;
 }
 
 interface SmsConfig {
