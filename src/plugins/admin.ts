@@ -7,29 +7,6 @@ import { sendToAdmin, timeConver } from '../libs/common';
 import { IMessageC2C, IMessageDIRECT, IMessageGROUP, IMessageGUILD } from '../libs/IMessageEx';
 import config from '../../config/config';
 
-export async function updateEventId(event?: IntentMessage.GUILD_MEMBERS) {
-    const opUserId = '15874984758683127001';
-    if (devEnv) log.debug('updateEventId', event?.eventId);
-    if (event?.msg.user.id == opUserId) {
-        return redis.setEx(`lastestEventId:${meId}:${event.msg.guild_id}`, 60 * 4, event.eventId);
-    }
-    if (event) return;
-
-    for (const guildId in saveGuildsTree) {
-        const guildInfo = saveGuildsTree[guildId];
-        const channel = Object.values(guildInfo.channels).find((v) => v.name == 'bot操作记录日志');
-        if (!channel) continue;
-        if (devEnv && guildId != '2175103623165659414') continue;
-
-        await client.memberApi
-            .memberAddRole(guildId, '5', opUserId, channel.id)
-            .then((res) => {
-                if (devEnv) log.debug('memberAddRole', res.status, res.statusText);
-            })
-            .catch((err) => {});
-    }
-}
-
 export async function status(msg: IMessageGUILD | IMessageDIRECT | IMessageGROUP | IMessageC2C) {
     if (!adminId.includes(msg.author.id)) return;
     const content =

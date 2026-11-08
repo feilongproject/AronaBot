@@ -10,12 +10,6 @@ const scheduleTables: ScheduleTable[] = [
         enable: botType == 'AronaBot',
     },
     {
-        desc: '事件更新',
-        rule: '0 */3 * * * ?',
-        func: () => import('./admin').then((module) => module.updateEventId()),
-        enable: botType == 'AronaBot',
-    },
-    {
         desc: 'bilibili动态检查',
         rule: '0 */3 * * * ? ',
         func: () =>
@@ -27,18 +21,18 @@ const scheduleTables: ScheduleTable[] = [
                 }),
         enable: botType == 'AronaBot',
     },
-    {
-        desc: 'twitter动态检查',
-        rule: '30 */5 * * * ?',
-        func: () =>
-            import('./twitterDynamic')
-                .then((module) => module.mainCheck())
-                .catch((err) => {
-                    log.error(err);
-                    return sendToAdmin(strFormat(err)).catch(() => {});
-                }),
-        enable: botType == 'AronaBot',
-    },
+    // {
+    //     desc: 'twitter动态检查',
+    //     rule: '30 */5 * * * ?',
+    //     func: () =>
+    //         import('./twitterDynamic')
+    //             .then((module) => module.mainCheck())
+    //             .catch((err) => {
+    //                 log.error(err);
+    //                 return sendToAdmin(strFormat(err)).catch(() => {});
+    //             }),
+    //     enable: botType == 'AronaBot',
+    // },
     {
         desc: 'callback事件更新',
         rule: '0 */3 * * * ?',

@@ -229,11 +229,7 @@ export async function eventRec<T>(event: IntentMessage.EventRespose<T>) {
         }
         case AvailableIntentsEventsEnum.GUILD_MEMBERS: {
             if (botType != 'AronaBot') return;
-            if (devEnv) log.debug('GUILD_MEMBERS', event);
-            import('./plugins/admin')
-                .then((module) => module.updateEventId(event as IntentMessage.GUILD_MEMBERS))
-                .catch((err) => log.error(err));
-            if (devEnv) return;
+            if (devEnv) return log.debug('GUILD_MEMBERS', event);
             const msg = (event as IntentMessage.GUILD_MEMBERS).msg;
             // if (msg.user.id != '15874984758683127001')
             return writeMessageDB(
